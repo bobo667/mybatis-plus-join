@@ -69,9 +69,9 @@ maven坐标.....还没有，等后面在更新上去，主要是我忘记账号�
 
 ## 基本使用方法
 
-1.mapper继承 JoinBaseMapper<T>
+1.mapper继承 JoinBaseMapper< T >
 
-2.service继承 JoinIService<T>
+2.service继承 JoinIService< T >
 
 3.impl 继承 JoinServiceImpl<M,T>
 
@@ -137,12 +137,12 @@ usersService.joinList(wrapper,UsersVo.class);
 // 执行SQL 
 select 
   users.user_id,
-	users.user_name,
-	users_age.age_name
+  users.user_name,
+  users_age.age_name
 from users users
   left join users_age users_age on users_age.id = users.age_id
-where (
-	users_age.age_name = '95'
+where (  
+       users_age.age_name = '95'
 )
 
 ```
@@ -174,8 +174,8 @@ usersService.joinList(wrapper);
 // 执行SQL 
 select 
   users.user_id,
-	users.user_name,
-	users_age.age_name as user_age_name
+  users.user_name,
+  users_age.age_name as user_age_name
 from users users
   left join users_age users_age on users_age.id = users.age_id
 where (
@@ -189,9 +189,9 @@ wrapper.join(UsersAge.class)
   	.leftJoin(UsersAge::getId,Users::getAgeId)
   	.eq(UserAge::getAgeName,"95")
   	.selectAs(Arrays.as(
-      new ColumnsBuilder<>(UserAge::getAgeName,"user_age_name"),
-      new ColumnsBuilder<>(UserAge::getAgeDoc),
-      new ColumnsBuilder<>("mp永远滴神","mpnb"),
+            new ColumnsBuilder<>(UserAge::getAgeName,"user_age_name"),
+            new ColumnsBuilder<>(UserAge::getAgeDoc),
+            new ColumnsBuilder<>("mp永远滴神","mpnb"),
     )).end();
 // 执行查询
 usersService.joinList(wrapper,UsersVo.class);
@@ -199,10 +199,10 @@ usersService.joinList(wrapper,UsersVo.class);
 // 执行SQL 
 select 
   users.user_id,
-	users.user_name,
-	users_age.age_name as user_age_name,
-	users_age.age_doc,
-	'mp永远滴神' as mpnb
+  users.user_name,
+  users_age.age_name as user_age_name,
+  users_age.age_doc,
+  'mp永远滴神' as mpnb
 from users users
   left join users_age users_age on users_age.id = users.age_id
 where (
@@ -227,10 +227,10 @@ usersService.joinList(wrapper,UsersVo.class);
 // 执行SQL 
 select 
   users.user_id,
-	users.user_name,
-	users_age.age_name,
-	users_age.age_doc,
-	users_age.id
+  users.user_name,
+  users_age.age_name,
+  users_age.age_doc,
+  users_age.id
 from users users
   left join users_age users_age on users_age.id = users.age_id
 where (
@@ -255,9 +255,9 @@ wrapper.join(UsersAge.class)
   	.joinAnd(UsersAge::getId,1,0) // 需要注意啊，这个最后一个下标是指的第几个join，因为有时候会出现多个连接，附表连接主表，附表的附表连接附表这样子
   	.eq(UserAge::getAgeName,"95")
   	.selectAs(Arrays.as(
-      new ColumnsBuilder<>(UserAge::getAgeName,"user_age_name"),
-      new ColumnsBuilder<>(UserAge::getAgeDoc),
-      new ColumnsBuilder<>("mp永远滴神","mpnb"),
+              new ColumnsBuilder<>(UserAge::getAgeName,"user_age_name"),
+              new ColumnsBuilder<>(UserAge::getAgeDoc),
+              new ColumnsBuilder<>("mp永远滴神","mpnb"),
     )).end();
 // 执行查询
 usersService.joinList(wrapper,UsersVo.class);
@@ -265,10 +265,10 @@ usersService.joinList(wrapper,UsersVo.class);
 // 执行SQL 
 select 
   users.user_id,
-	users.user_name,
-	users_age.age_name as user_age_name,
-	users_age.age_doc,
-	'mp永远滴神' as mpnb
+  users.user_name,
+  users_age.age_name as user_age_name,
+  users_age.age_doc,
+  'mp永远滴神' as mpnb
 from users users
   left join users_age users_age on users_age.id = users.age_id and users_age.id = 1
 where (
