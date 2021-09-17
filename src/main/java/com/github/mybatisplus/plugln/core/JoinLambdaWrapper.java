@@ -276,7 +276,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      * @param key                     此次外联表唯一标识码
      * @param joinParamNameValuePairs 条件SQL对应的值
      */
-    public void setJoinConditionSql(String sql, String key, Map<String, Object> joinParamNameValuePairs) {
+    void setJoinConditionSql(String sql, String key, Map<String, Object> joinParamNameValuePairs) {
         if (StringUtils.isNotBlank(sql)) {
             // 向当前参数map存入外联表的值
             paramNameValuePairs.put(key, joinParamNameValuePairs);
@@ -293,7 +293,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      *
      * @param sql SQL
      */
-    public void setJoinSql(List<SharedString> sql) {
+    void setJoinSql(List<SharedString> sql) {
         if (CollectionUtils.isNotEmpty(sql)) {
             joinSql.addAll(sql);
         }
@@ -304,7 +304,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      *
      * @param orderBy 排序列表
      */
-    public void setOrderBy(OrderBySegmentList orderBy) {
+    void setOrderBy(OrderBySegmentList orderBy) {
         if (!orderBy.isEmpty()) {
             for (ISqlSegment sqlSegment : orderBy) {
                 doIt(true, ORDER_BY, sqlSegment);
@@ -317,7 +317,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      *
      * @param groupBy 分组列表
      */
-    public void setGroupBy(GroupBySegmentList groupBy) {
+    void setGroupBy(GroupBySegmentList groupBy) {
         if (!groupBy.isEmpty()) {
             for (ISqlSegment sqlSegment : groupBy) {
                 doIt(true, GROUP_BY, sqlSegment);
@@ -330,7 +330,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      *
      * @param havingBuildList having 构建列表
      */
-    public void setHaving(List<HavingBuild> havingBuildList) {
+    void setHaving(List<HavingBuild> havingBuildList) {
         if (havingBuildList != null && !havingBuildList.isEmpty()) {
             for (HavingBuild havingBuild : havingBuildList) {
                 having(havingBuild.isCondition(), havingBuild.getSql(), havingBuild.getParams());
@@ -344,7 +344,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      *
      * @param select 查询字段
      */
-    public void setJoinSelect(SharedString... select) {
+    void setJoinSelect(SharedString... select) {
         joinSqlSelect.addAll(Arrays.asList(select));
     }
 
@@ -353,7 +353,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      *
      * @param last 外联表传入last数据
      */
-    public void setLastSql(SharedString last) {
+    void setLastSql(SharedString last) {
         if (StringUtils.isNotBlank(last.getStringValue())) {
             lastSql = last;
         }
