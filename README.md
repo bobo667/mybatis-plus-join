@@ -3,10 +3,12 @@
 mybatis plus的一个多表插件，上手简单，只要会用mp就会用这个插件，仅仅依赖了lombok和fastJson，而且是扩展mp的构造器并非更改原本的构造器，不会对原有项目产生一点点影响，相信大多数项目都有这俩插件，四舍五入就是没依赖。
 
 
+
 **注意：目前当前版本只支持3.3.1 - 3.42 如果有特殊需求，请下载源码改动，需要改的东西并不多**
 
 maven坐标.....还没有，等后面在更新上去，主要是我忘记账号密码了，然后我试密码的时候，他给我账号禁用了，所以过段时间吧。现在各位可以把这个安装一下，然后引入就行了
 `mvn install` 安装到本地
+
 
 
 废话不多说，直接看怎么使用
@@ -69,9 +71,9 @@ maven坐标.....还没有，等后面在更新上去，主要是我忘记账号�
 
 ## 基本使用方法
 
-1.mapper继承 JoinBaseMapper< T >
+1.mapper继承 JoinBaseMapper< T>
 
-2.service继承 JoinIService< T >
+2.service继承 JoinIService< T>
 
 3.impl 继承 JoinServiceImpl<M,T>
 
@@ -124,6 +126,11 @@ wrapper.eq(UserAge::getAgeName,"95")
 // 最后一步 需要使用end方法结束
 wrapper.end();
 
+// 或者还有一种简单一点的 上面那个join.leftjoin 可以直接替换成 一步到位
+wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId);
+  
+
+
 // 完整的就是
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
 wrapper.join(UsersAge.class)
@@ -141,8 +148,8 @@ select
   users_age.age_name
 from users users
   left join users_age users_age on users_age.id = users.age_id
-where (  
-       users_age.age_name = '95'
+where (
+	users_age.age_name = '95'
 )
 
 ```
@@ -174,8 +181,8 @@ usersService.joinList(wrapper);
 // 执行SQL 
 select 
   users.user_id,
-  users.user_name,
-  users_age.age_name as user_age_name
+	users.user_name,
+	users_age.age_name as user_age_name
 from users users
   left join users_age users_age on users_age.id = users.age_id
 where (
@@ -189,9 +196,9 @@ wrapper.join(UsersAge.class)
   	.leftJoin(UsersAge::getId,Users::getAgeId)
   	.eq(UserAge::getAgeName,"95")
   	.selectAs(Arrays.as(
-            new ColumnsBuilder<>(UserAge::getAgeName,"user_age_name"),
-            new ColumnsBuilder<>(UserAge::getAgeDoc),
-            new ColumnsBuilder<>("mp永远滴神","mpnb"),
+      new ColumnsBuilder<>(UserAge::getAgeName,"user_age_name"),
+      new ColumnsBuilder<>(UserAge::getAgeDoc),
+      new ColumnsBuilder<>("mp永远滴神","mpnb"),
     )).end();
 // 执行查询
 usersService.joinList(wrapper,UsersVo.class);
@@ -199,10 +206,10 @@ usersService.joinList(wrapper,UsersVo.class);
 // 执行SQL 
 select 
   users.user_id,
-  users.user_name,
-  users_age.age_name as user_age_name,
-  users_age.age_doc,
-  'mp永远滴神' as mpnb
+	users.user_name,
+	users_age.age_name as user_age_name,
+	users_age.age_doc,
+	'mp永远滴神' as mpnb
 from users users
   left join users_age users_age on users_age.id = users.age_id
 where (
@@ -227,10 +234,10 @@ usersService.joinList(wrapper,UsersVo.class);
 // 执行SQL 
 select 
   users.user_id,
-  users.user_name,
-  users_age.age_name,
-  users_age.age_doc,
-  users_age.id
+	users.user_name,
+	users_age.age_name,
+	users_age.age_doc,
+	users_age.id
 from users users
   left join users_age users_age on users_age.id = users.age_id
 where (
@@ -255,9 +262,9 @@ wrapper.join(UsersAge.class)
   	.joinAnd(UsersAge::getId,1,0) // 需要注意啊，这个最后一个下标是指的第几个join，因为有时候会出现多个连接，附表连接主表，附表的附表连接附表这样子
   	.eq(UserAge::getAgeName,"95")
   	.selectAs(Arrays.as(
-              new ColumnsBuilder<>(UserAge::getAgeName,"user_age_name"),
-              new ColumnsBuilder<>(UserAge::getAgeDoc),
-              new ColumnsBuilder<>("mp永远滴神","mpnb"),
+      new ColumnsBuilder<>(UserAge::getAgeName,"user_age_name"),
+      new ColumnsBuilder<>(UserAge::getAgeDoc),
+      new ColumnsBuilder<>("mp永远滴神","mpnb"),
     )).end();
 // 执行查询
 usersService.joinList(wrapper,UsersVo.class);
@@ -265,10 +272,10 @@ usersService.joinList(wrapper,UsersVo.class);
 // 执行SQL 
 select 
   users.user_id,
-  users.user_name,
-  users_age.age_name as user_age_name,
-  users_age.age_doc,
-  'mp永远滴神' as mpnb
+	users.user_name,
+	users_age.age_name as user_age_name,
+	users_age.age_doc,
+	'mp永远滴神' as mpnb
 from users users
   left join users_age users_age on users_age.id = users.age_id and users_age.id = 1
 where (
