@@ -1,4 +1,5 @@
 package icu.mhb.mybatisplus.plugln.core;
+
 import com.baomidou.mybatisplus.core.conditions.ISqlSegment;
 import com.baomidou.mybatisplus.core.conditions.SharedString;
 import com.baomidou.mybatisplus.core.conditions.query.Query;

@@ -4,10 +4,17 @@ mybatis plus的一个多表插件，上手简单，只要会用mp就会用这个
 
 
 
-**注意：目前当前版本只支持3.3.1 - 3.42 如果有特殊需求，请下载源码改动，需要改的东西并不多**
+**注意：目前当前版本只支持3.3.1 - 3.42**
 
-maven坐标.....还没有，等后面在更新上去，主要是我忘记账号密码了，然后我试密码的时候，他给我账号禁用了，所以过段时间吧。现在各位可以把这个安装一下，然后引入就行了
-`mvn install` 安装到本地
+maven坐标
+
+```java
+ <dependency>
+    <groupId>icu.mhb</groupId>
+    <artifactId>mybatis-plus-join</artifactId>
+    <version>1.0.1</version>
+ </dependency>
+```
 
 
 
@@ -110,31 +117,27 @@ public class MyBatisPlusConfig extends JoinDefaultSqlInjector {
 ```java
 // 第一步new 一个JoinLambdaWrapper构造参数是主表的实体对象（如果在service中直接使用joinLambdaWrapper()方法即可获得）
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
-// 第二步 使用join方法创建一个连接
-wrapper.join(UsersAge.class);
+
+// 第二步 使用leftJoin方法创建一个左连接
 /*
-	然后有三个方法可以使用 
+	有三个方法可以使用 
 	leftJoin 左联
 	rightJoin 右联
-	join 内联
+	innerJoin 内联
 */
+
 // 这一部分一个参数是join中定义的连接的表，第二个参数是随意的表，但是是要出现构造器中的
-wrapper.leftJoin(UsersAge::getId,Users::getAgeId);
+wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId);
 // 然后可以设置多表中的查询条件，这一步和mp一致
 wrapper.eq(UserAge::getAgeName,"95")
   		.select(UserAge::getAgeName);
 // 最后一步 需要使用end方法结束
 wrapper.end();
-
-// 或者还有一种简单一点的 上面那个join.leftjoin 可以直接替换成 一步到位
-wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId);
   
-
 
 // 完整的就是
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
-wrapper.join(UsersAge.class)
-  	.leftJoin(UsersAge::getId,Users::getAgeId)
+wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
   	.eq(UserAge::getAgeName,"95")
   	.select(UserAge::getAgeName)
   	.end();
@@ -164,14 +167,13 @@ OK，来点丝滑的加料用法
 
 ```java
 /* 
-  selectAs(List<ColumnsBuilder<T>> columns) 
+  selectAs(List<As<T>> columns) 
   selectAs(SFunction<T, ?> column, String alias)
   查询并添加别名
 */
 // 拿起来我们上面用的哪个实例。我现在需要给ageName给个别名 user_age_name
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
-wrapper.join(UsersAge.class)
-  	.leftJoin(UsersAge::getId,Users::getAgeId)
+wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
   	.eq(UserAge::getAgeName,"95")
   	.selectAs(UserAge::getAgeName,"user_age_name")
   	.end();
@@ -195,11 +197,11 @@ JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
 wrapper.join(UsersAge.class)
   	.leftJoin(UsersAge::getId,Users::getAgeId)
   	.eq(UserAge::getAgeName,"95")
-  	.selectAs(Arrays.as(
-      new ColumnsBuilder<>(UserAge::getAgeName,"user_age_name"),
-      new ColumnsBuilder<>(UserAge::getAgeDoc),
-      new ColumnsBuilder<>("mp永远滴神","mpnb"),
-    )).end();
+    .selectAs((cb) -> {
+      cb.add(UserAge::getAgeName,"user_age_name")
+        .add(UserAge::getAgeDoc)
+        .add("mp永远滴神","mpnb");
+    }).end();
 // 执行查询
 usersService.joinList(wrapper,UsersVo.class);
  
@@ -217,6 +219,14 @@ where (
 )
 
  
+/*
+	这里需要注意啊，如果selectAs那个地方因为是函数接口，所以值是不可以改变的，如果是可变的那么可以采用
+	selectAs(Arrays.asList(
+			new As(UserAge::getAgeName,"user_age_name"),
+			new As(UserAge::getAgeDoc)
+	))
+*/
+    
 ```
 
 ### selectAll() 查询全部
@@ -224,8 +234,7 @@ where (
 ```java
 // selectAll()方法，查询出当前表所有的子段
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
-wrapper.join(UsersAge.class)
-  	.leftJoin(UsersAge::getId,Users::getAgeId)
+wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
   	.eq(UserAge::getAgeName,"95")
   	.selectAll().end();
 // 执行查询
@@ -257,15 +266,14 @@ where (
 */
 
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
-wrapper.join(UsersAge.class)
-  	.leftJoin(UsersAge::getId,Users::getAgeId)
+wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
   	.joinAnd(UsersAge::getId,1,0) // 需要注意啊，这个最后一个下标是指的第几个join，因为有时候会出现多个连接，附表连接主表，附表的附表连接附表这样子
   	.eq(UserAge::getAgeName,"95")
-  	.selectAs(Arrays.as(
-      new ColumnsBuilder<>(UserAge::getAgeName,"user_age_name"),
-      new ColumnsBuilder<>(UserAge::getAgeDoc),
-      new ColumnsBuilder<>("mp永远滴神","mpnb"),
-    )).end();
+  	.selectAs((cb) -> {
+      cb.add(UserAge::getAgeName,"user_age_name")
+        .add(UserAge::getAgeDoc)
+        .add("mp永远滴神","mpnb");
+    }).end();
 // 执行查询
 usersService.joinList(wrapper,UsersVo.class);
 
