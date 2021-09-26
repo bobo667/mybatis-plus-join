@@ -1,19 +1,27 @@
 package icu.mhb.mybatisplus.plugln.core;
+import com.baomidou.mybatisplus.core.conditions.ISqlSegment;
 import com.baomidou.mybatisplus.core.conditions.SharedString;
 import com.baomidou.mybatisplus.core.conditions.query.Query;
 import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
+import com.baomidou.mybatisplus.core.enums.SqlKeyword;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
-import com.baomidou.mybatisplus.core.toolkit.*;
+import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
+import com.baomidou.mybatisplus.core.toolkit.Assert;
+import com.baomidou.mybatisplus.core.toolkit.ExceptionUtils;
+import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
 import icu.mhb.mybatisplus.plugln.entity.HavingBuild;
+import icu.mhb.mybatisplus.plugln.entity.OrderByBuild;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
+import icu.mhb.mybatisplus.plugln.tookit.StringUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,6 +49,12 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      */
     private List<HavingBuild> havingBuildList = null;
 
+
+    /**
+     * 排序build列表
+     */
+    private List<OrderByBuild> orderByBuildList = new ArrayList<>();
+
     /**
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
      */
@@ -61,7 +75,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
      */
     JoinWrapper(Class<T> entityClass, JoinLambdaWrapper<J> wrapper) {
-        super.setEntityClass(entityClass);
+        this.entityClass = entityClass;
         super.initNeed();
         this.wrapper = wrapper;
     }
@@ -73,14 +87,13 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
                 Map<String, Object> paramNameValuePairs, MergeSegments mergeSegments,
                 SharedString lastSql, SharedString sqlComment, SharedString sqlFirst) {
         super.setEntity(entity);
-        super.setEntityClass(entityClass);
+        this.entityClass = entityClass;
         this.paramNameSeq = paramNameSeq;
         this.paramNameValuePairs = paramNameValuePairs;
         this.expression = mergeSegments;
         this.sqlSelect = sqlSelect;
         this.lastSql = lastSql;
         this.sqlComment = sqlComment;
-        this.sqlFirst = sqlFirst;
     }
 
     /**
@@ -97,6 +110,11 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         return typedThis;
     }
 
+    @Override
+    public JoinWrapper<T, J> select(Predicate<TableFieldInfo> predicate) {
+        return select(entityClass, predicate);
+    }
+
 
     /**
      * 过滤查询的字段信息(主键除外!)
@@ -111,7 +129,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      */
     @Override
     public JoinWrapper<T, J> select(Class<T> entityClass, Predicate<TableFieldInfo> predicate) {
-        super.setEntityClass(entityClass);
+        this.entityClass = entityClass;
         this.sqlSelect.setStringValue(TableInfoHelper.getTableInfo(getEntityOrMasterClass()).chooseSelect(predicate));
         return typedThis;
     }
@@ -127,16 +145,8 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      */
     @Override
     protected JoinWrapper<T, J> instance() {
-        return new JoinWrapper<>(getEntity(), getEntityClass(), null, paramNameSeq, paramNameValuePairs,
+        return new JoinWrapper<>(getEntity(), entityClass, null, paramNameSeq, paramNameValuePairs,
                                  new MergeSegments(), SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
-    }
-
-    @Override
-    public void clear() {
-        super.clear();
-        wrapper = null;
-        sqlJoin.clear();
-        sqlSelect.toNull();
     }
 
 
@@ -214,7 +224,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         String column = columnToString(field);
 
         SharedString sql = sqlJoin.get(index);
-        if (sql == null || StringUtils.isBlank(sql.getStringValue())) {
+        if (sql == null || StringUtil.isBlank(sql.getStringValue())) {
             throw ExceptionUtils.mpe("no such subscript join");
         }
 
@@ -222,6 +232,40 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         sqlJoin.remove(index);
         sqlJoin.add(index, sql);
         return typedThis;
+    }
+
+
+    /*
+        为啥要在子类实现这个doIt，在1.0.*版本的时候不用，因为3.2版本的mp解析orderBy的时候
+        1.0.*那种写法的话会出现 '，'导致语法错误，所以需要重写这个方法
+     */
+    @Override
+    protected JoinWrapper<T, J> doIt(boolean condition, ISqlSegment... sqlSegments) {
+
+        boolean flag = false;
+
+        for (ISqlSegment sqlSegment : sqlSegments) {
+            if (sqlSegment instanceof SqlKeyword) {
+                SqlKeyword sqlKeyword = (SqlKeyword) sqlSegment;
+                // 如果这个拼装的SQL是 排序用的标识打true
+                if (sqlKeyword.getSqlSegment().equals(SqlKeyword.ORDER_BY.getSqlSegment())) {
+                    flag = true;
+                }
+            }
+        }
+
+        // 如果是排序的就吧这个SQL装到 列表中，然后传递到主类，直接返回不调用原始方法
+        if (flag) {
+            OrderByBuild orderByBuild = OrderByBuild.builder()
+                    .sqlSegmentList(Arrays.asList(sqlSegments))
+                    .condition(condition)
+                    .build();
+
+            orderByBuildList.add(orderByBuild);
+            return typedThis;
+        }
+
+        return super.doIt(condition, sqlSegments);
     }
 
     /**
@@ -264,11 +308,11 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     public JoinLambdaWrapper<J> end() {
         wrapper.setJoinSelect(sqlSelect);
         wrapper.setJoinSql(sqlJoin);
-        wrapper.setOrderBy(expression.getOrderBy());
+        wrapper.setOrderBy(orderByBuildList);
         wrapper.setGroupBy(expression.getGroupBy());
         wrapper.setHaving(havingBuildList);
         wrapper.setLastSql(lastSql);
-        lastSql.toEmpty();
+        lastSql = SharedString.emptyString();
         expression.getOrderBy().clear();
         expression.getHaving().clear();
         expression.getGroupBy().clear();

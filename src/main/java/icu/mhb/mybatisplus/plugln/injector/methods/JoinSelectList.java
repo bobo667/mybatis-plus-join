@@ -19,7 +19,7 @@ public class JoinSelectList extends JoinAbstractMethod {
     @Override
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         JoinSqlMethod sqlMethod = JoinSqlMethod.JOIN_SELECT_LIST;
-        String sql = String.format(sqlMethod.getSql(), sqlFirst(), sqlSelectColumns(tableInfo, true), getJoinTableName(tableInfo), JoinConstant.JOIN_SQL_NAME,
+        String sql = String.format(sqlMethod.getSql(), sqlSelectColumns(tableInfo, true), getJoinTableName(tableInfo), JoinConstant.JOIN_SQL_NAME,
                                    sqlWhereEntityWrapper(true, tableInfo), sqlComment());
         SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass);
         return this.addSelectMappedStatementForOther(mapperClass, sqlMethod.getMethod(), sqlSource, Map.class);

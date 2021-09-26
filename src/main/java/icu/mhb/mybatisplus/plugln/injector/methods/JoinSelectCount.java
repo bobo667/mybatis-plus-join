@@ -20,7 +20,7 @@ public class JoinSelectCount extends JoinAbstractMethod {
         // 转换一下
         modelClass = getTableClass(modelClass);
 
-        String sql = String.format(sqlMethod.getSql(), sqlFirst(), getJoinTableName(tableInfo), JoinConstant.JOIN_SQL_NAME,
+        String sql = String.format(sqlMethod.getSql(), getJoinTableName(tableInfo), JoinConstant.JOIN_SQL_NAME,
                                    sqlWhereEntityWrapper(true, tableInfo), sqlComment());
         SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass);
         return this.addSelectMappedStatementForOther(mapperClass, sqlMethod.getMethod(), sqlSource, Integer.class);

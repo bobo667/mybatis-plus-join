@@ -4,17 +4,39 @@ mybatis plus的一个多表插件，上手简单，只要会用mp就会用这个
 
 
 
-**注意：目前当前版本只支持3.3.1 - 3.42**
+**注意：1.1.0版本只是为了兼容3.2.0版本 除非修复bug，不然基本不更新该版本 ，目前当前版本只支持3.2.0 版本**
 
 maven坐标
 
-```java
+mybatis plus：3.2.0版本依赖地址：
+
+```xml
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.0.1</version>
+    <version>1.2.0</version>
  </dependency>
 ```
+
+mybatis plus：3.3.1 - 3.42版本依赖地址：
+
+```xml
+ <dependency>
+    <groupId>icu.mhb</groupId>
+    <artifactId>mybatis-plus-join</artifactId>
+    <version>1.0.2</version>
+ </dependency>
+```
+
+
+
+版本对应关系（此处只显示对应的最新版本）
+
+| Mybatis-plus | Mybatis-plus-join |
+| ------------ | ----------------- |
+| 3.2.0        | 1.2.0             |
+| 3.3.1 - 3.42 | 1.0.2             |
+
 
 
 
@@ -194,8 +216,7 @@ where (
 // 现在来个高级需求，我需要查询出users_age表中的两个字段并且需要加一个固定值
 
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
-wrapper.join(UsersAge.class)
-  	.leftJoin(UsersAge::getId,Users::getAgeId)
+wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
   	.eq(UserAge::getAgeName,"95")
     .selectAs((cb) -> {
       cb.add(UserAge::getAgeName,"user_age_name")

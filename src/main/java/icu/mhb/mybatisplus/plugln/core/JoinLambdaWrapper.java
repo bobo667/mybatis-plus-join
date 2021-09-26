@@ -6,13 +6,19 @@ import com.baomidou.mybatisplus.core.conditions.query.Query;
 import com.baomidou.mybatisplus.core.conditions.segments.GroupBySegmentList;
 import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
 import com.baomidou.mybatisplus.core.conditions.segments.OrderBySegmentList;
+import com.baomidou.mybatisplus.core.enums.SqlKeyword;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
-import com.baomidou.mybatisplus.core.toolkit.*;
+import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.Constants;
+import com.baomidou.mybatisplus.core.toolkit.StringPool;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
 import icu.mhb.mybatisplus.plugln.entity.HavingBuild;
+import icu.mhb.mybatisplus.plugln.entity.OrderByBuild;
+import icu.mhb.mybatisplus.plugln.tookit.StringUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -87,7 +93,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
      */
     public JoinLambdaWrapper(Class<T> entityClass) {
-        super.setEntityClass(entityClass);
+        this.entityClass = entityClass;
         this.initNeed();
     }
 
@@ -98,14 +104,13 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
                       Map<String, Object> paramNameValuePairs, MergeSegments mergeSegments,
                       SharedString lastSql, SharedString sqlComment, SharedString sqlFirst) {
         super.setEntity(entity);
-        super.setEntityClass(entityClass);
+        this.entityClass = entityClass;
         this.paramNameSeq = paramNameSeq;
         this.paramNameValuePairs = paramNameValuePairs;
         this.expression = mergeSegments;
         this.sqlSelect = sqlSelect;
         this.lastSql = lastSql;
         this.sqlComment = sqlComment;
-        this.sqlFirst = sqlFirst;
     }
 
 
@@ -123,6 +128,11 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         return typedThis;
     }
 
+    @Override
+    public JoinLambdaWrapper<T> select(Predicate<TableFieldInfo> predicate) {
+        return select(entityClass, predicate);
+    }
+
 
     /**
      * 过滤查询的字段信息(主键除外!)
@@ -137,7 +147,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      */
     @Override
     public JoinLambdaWrapper<T> select(Class<T> entityClass, Predicate<TableFieldInfo> predicate) {
-        super.setEntityClass(entityClass);
+        super.entityClass = entityClass;
         this.sqlSelect.setStringValue(TableInfoHelper.getTableInfo(getEntityOrMasterClass()).chooseSelect(predicate));
         return typedThis;
     }
@@ -149,7 +159,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
             return sqlSelectCahce.getStringValue();
         }
 
-        if (StringUtils.isBlank(sqlSelect.getStringValue())) {
+        if (StringUtil.isBlank(sqlSelect.getStringValue())) {
             selectAll();
         }
 
@@ -157,7 +167,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
 
         for (SharedString sharedString : joinSqlSelect) {
 
-            if (StringUtils.isBlank(sharedString.getStringValue())) {
+            if (StringUtil.isBlank(sharedString.getStringValue())) {
                 continue;
             }
 
@@ -169,7 +179,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
 
         String selectSql = stringValue.toString();
         // 如果说 没有指定查询语句就默认查询主表的全部字段
-//        if (StringUtils.isBlank(selectSql)) {
+//        if (StringUtil.isBlank(selectSql)) {
 //            selectAll();
 //            selectSql = sqlSelect.getStringValue();
 //        }
@@ -187,22 +197,10 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      */
     @Override
     protected JoinLambdaWrapper<T> instance() {
-        return new JoinLambdaWrapper<>(getEntity(), getEntityClass(), null, paramNameSeq, paramNameValuePairs,
+        return new JoinLambdaWrapper<>(getEntity(), entityClass, null, paramNameSeq, paramNameValuePairs,
                                        new MergeSegments(), SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
     }
 
-    @Override
-    public void clear() {
-        super.clear();
-        sqlSelect.toEmpty();
-        sqlSelectCahce.toEmpty();
-        sqlSelectFlag = false;
-        sqlCache.toEmpty();
-        sqlCacheFlag = false;
-        joinSql.clear();
-        joinSqlSelect.clear();
-        joinConditionSql.clear();
-    }
 
     /**
      * 条件SQL
@@ -220,7 +218,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         String sql = expression.getSqlSegment();
         StringBuilder sqlBuilder = new StringBuilder();
 
-        boolean sqlIsBlank = StringUtils.isBlank(sql) || expression.getNormal().size() == 0;
+        boolean sqlIsBlank = StringUtil.isBlank(sql) || expression.getNormal().size() == 0;
         boolean conditionSqlIsNotEmpty = CollectionUtils.isNotEmpty(joinConditionSql);
 
         // 如果SQL不为空就是会创建where字句 否则需要自己手动创建
@@ -290,7 +288,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      * @param joinParamNameValuePairs 条件SQL对应的值
      */
     void setJoinConditionSql(String sql, String key, Map<String, Object> joinParamNameValuePairs) {
-        if (StringUtils.isNotBlank(sql)) {
+        if (StringUtil.isNotBlank(sql)) {
             // 向当前参数map存入外联表的值
             paramNameValuePairs.put(key, joinParamNameValuePairs);
             // 外联表如果执行了条件会存在where标签，需要祛除
@@ -315,12 +313,12 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     /**
      * 存入排序
      *
-     * @param orderBy 排序列表
+     * @param orderByBuildList 排序列表
      */
-    void setOrderBy(OrderBySegmentList orderBy) {
-        if (!orderBy.isEmpty()) {
-            for (ISqlSegment sqlSegment : orderBy) {
-                doIt(true, ORDER_BY, sqlSegment);
+    void setOrderBy(List<OrderByBuild> orderByBuildList) {
+        if (!orderByBuildList.isEmpty()) {
+            for (OrderByBuild orderByBuild : orderByBuildList) {
+                super.doIt(orderByBuild.isCondition(), orderByBuild.getSqlSegmentList().toArray(new ISqlSegment[0]));
             }
         }
     }
@@ -367,7 +365,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      * @param last 外联表传入last数据
      */
     void setLastSql(SharedString last) {
-        if (StringUtils.isNotBlank(last.getStringValue())) {
+        if (StringUtil.isNotBlank(last.getStringValue())) {
             lastSql = last;
         }
     }
@@ -394,9 +392,8 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     }
 
     @Override
-    protected void initNeed() {
-        super.initNeed();
-        final Class<T> entityClass = getEntityClass();
+    protected void initNeedSun() {
+        super.initNeedSun();
     }
 
 }

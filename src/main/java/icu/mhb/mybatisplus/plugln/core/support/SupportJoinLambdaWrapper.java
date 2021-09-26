@@ -10,11 +10,11 @@ import com.baomidou.mybatisplus.core.toolkit.support.ColumnCache;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
 import icu.mhb.mybatisplus.plugln.annotations.TableAlias;
-import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
 import icu.mhb.mybatisplus.plugln.entity.As;
 import icu.mhb.mybatisplus.plugln.entity.ColumnsBuilder;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
+import icu.mhb.mybatisplus.plugln.tookit.StringUtil;
 import icu.mhb.mybatisplus.plugln.tookit.TableAliasCache;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 
@@ -64,7 +64,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
 
     protected String columnToString(SFunction<T, ?> column, boolean onlyColumn) {
         String columnToString = getColumn(LambdaUtils.resolve(column), onlyColumn);
-        if (StringUtils.isNotBlank(columnToString)) {
+        if (StringUtil.isNotBlank(columnToString)) {
             return getAliasAndField(columnToString);
         }
         return columnToString;
@@ -87,7 +87,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
                 .collect(joining(COMMA));
 
         // 不为空代表有主键
-        if (StringUtils.isNotBlank(keySqlSelect)) {
+        if (StringUtil.isNotBlank(keySqlSelect)) {
             sqlSelect += COMMA + getAliasAndField(keySqlSelect);
         }
 
@@ -201,9 +201,11 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
                 if (as.getColumn() != null) {
                     // 获取序列化后的列明
                     column = columnToString(as.getColumn());
+                } else {
+                    column = StringUtils.quotaMark(column);
                 }
 
-                if (StringUtils.isNotBlank(as.getAlias())) {
+                if (StringUtil.isNotBlank(as.getAlias())) {
                     column = String.format(SqlExcerpt.AS.getSql(), column, as.getAlias());
                 }
                 columnsStringList.add(column);
@@ -233,7 +235,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      */
     protected String getColumn(SerializedLambda lambda, boolean onlyColumn) throws MybatisPlusException {
         String fieldName = PropertyNamer.methodToProperty(lambda.getImplMethodName());
-        Class<?> aClass = getTableClass(lambda.getInstantiatedType());
+        Class<?> aClass = getTableClass(lambda.getInstantiatedMethodType());
         columnMap.computeIfAbsent(aClass, (key) -> LambdaUtils.getColumnMap(aClass));
         Assert.notNull(columnMap.get(aClass), "can not find lambda cache for this entity [%s]", aClass.getName());
         ColumnCache columnCache = columnMap.get(aClass).get(LambdaUtils.formatKey(fieldName));
@@ -241,6 +243,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
                        fieldName, aClass.getName());
         return onlyColumn ? columnCache.getColumn() : columnCache.getColumnSelect();
     }
+
 
     /**
      * 获取表对应的class  主要用于 vo dto这种对应实体
@@ -258,23 +261,24 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      * @return Class<?>
      */
     protected Class<?> getEntityOrMasterClass() {
-        Class<T> aClass = getEntityClass();
 
-        if (null != aClass) {
-            return getTableClass(aClass);
+        if (null != entityClass) {
+            return getTableClass(entityClass);
         }
-
         return null;
     }
 
     @Override
-    protected void initNeed() {
-        super.initNeed();
-        final Class<?> entityClass = getEntityOrMasterClass();
+    protected void initEntityClass() {
+        super.initEntityClass();
         if (entityClass != null) {
             columnMap.put(entityClass, LambdaUtils.getColumnMap(entityClass));
             initColumnMap = true;
         }
+    }
+
+    protected void initNeedSun() {
+        super.initNeed();
     }
 
 
