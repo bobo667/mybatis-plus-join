@@ -3,18 +3,44 @@
 mybatis plus的一个多表插件，上手简单，只要会用mp就会用这个插件，仅仅依赖了lombok和fastJson，而且是扩展mp的构造器并非更改原本的构造器，不会对原有项目产生一点点影响，相信大多数项目都有这俩插件，四舍五入就是没依赖。
 
 
+mybatis-plus-join示例：**
+**gitee: https://gitee.com/mhb0409/mybatis-plus-join-example**
+**github: https://github.com/bobo667/mybatis-plus-join-example**
 
-**注意：目前当前版本只支持3.3.1 - 3.42**
+**注意：目前当前版本只支持3.3.1 - 3.42 以及 3.2.0**
 
 maven坐标
 
-```java
+mybatis plus：3.2.0版本依赖地址：
+
+```xml
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.0.1</version>
+    <version>1.2.0</version>
  </dependency>
 ```
+
+mybatis plus：3.3.1 - 3.42版本依赖地址：
+
+```xml
+ <dependency>
+    <groupId>icu.mhb</groupId>
+    <artifactId>mybatis-plus-join</artifactId>
+    <version>1.0.2</version>
+ </dependency>
+```
+
+
+
+版本对应关系（此处只显示对应的最新版本）
+
+| Mybatis-plus | Mybatis-plus-join |
+| ------------ | ----------------- |
+| 3.2.0        | 1.2.0             |
+| 3.3.1 - 3.42 | 1.0.2             |
+
+
 
 
 

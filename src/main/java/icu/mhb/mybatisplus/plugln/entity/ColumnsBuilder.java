@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -23,7 +24,26 @@ public class ColumnsBuilder<T> {
         this.columnsBuilderList = new ArrayList<>();
     }
 
+
+    public ColumnsBuilder<T> add(Collection<SFunction<T, ?>> columns) {
+
+        if (null == columns || columns.isEmpty()) {
+            return this;
+        }
+
+        for (SFunction<T, ?> column : columns) {
+            columnsBuilderList.add(new As<>(column));
+        }
+
+        return this;
+    }
+
     public ColumnsBuilder<T> add(SFunction<T, ?> column) {
+
+        if (column == null) {
+            return this;
+        }
+
         columnsBuilderList.add(new As<>(column));
         return this;
     }

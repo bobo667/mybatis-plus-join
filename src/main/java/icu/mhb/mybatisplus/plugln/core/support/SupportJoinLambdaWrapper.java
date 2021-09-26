@@ -10,7 +10,6 @@ import com.baomidou.mybatisplus.core.toolkit.support.ColumnCache;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
 import icu.mhb.mybatisplus.plugln.annotations.TableAlias;
-import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
 import icu.mhb.mybatisplus.plugln.entity.As;
 import icu.mhb.mybatisplus.plugln.entity.ColumnsBuilder;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
@@ -201,6 +200,8 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
                 if (as.getColumn() != null) {
                     // 获取序列化后的列明
                     column = columnToString(as.getColumn());
+                } else {
+                    column = StringUtils.quotaMark(column);
                 }
 
                 if (StringUtils.isNotBlank(as.getAlias())) {
