@@ -48,6 +48,11 @@ public class ColumnsBuilder<T> {
         return this;
     }
 
+    public ColumnsBuilder<T> add(SFunction<T, ?> column, String alias) {
+        columnsBuilderList.add(new As<>(column, alias));
+        return this;
+    }
+
     public ColumnsBuilder<T> add(Object columnStr, String alias) {
         columnsBuilderList.add(new As<>(columnStr, alias));
         return this;
