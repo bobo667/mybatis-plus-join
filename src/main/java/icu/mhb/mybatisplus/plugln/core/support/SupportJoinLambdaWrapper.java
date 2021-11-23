@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.*;
 import com.baomidou.mybatisplus.core.toolkit.support.ColumnCache;
+import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
 import icu.mhb.mybatisplus.plugln.annotations.TableAlias;
@@ -62,7 +63,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
     }
 
     protected String columnToString(SFunction<T, ?> column, boolean onlyColumn) {
-        String columnToString = getColumn(LambdaUtils.resolve(column), onlyColumn);
+        String columnToString = getColumn(LambdaUtils.extract(column), onlyColumn);
         if (StringUtils.isNotBlank(columnToString)) {
             return getAliasAndField(columnToString);
         }
@@ -232,9 +233,9 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      * @see SerializedLambda#getImplClass()
      * @see SerializedLambda#getImplMethodName()
      */
-    protected String getColumn(SerializedLambda lambda, boolean onlyColumn) throws MybatisPlusException {
+    protected String getColumn(LambdaMeta lambda, boolean onlyColumn) throws MybatisPlusException {
         String fieldName = PropertyNamer.methodToProperty(lambda.getImplMethodName());
-        Class<?> aClass = getTableClass(lambda.getInstantiatedType());
+        Class<?> aClass = getTableClass(lambda.getInstantiatedClass());
         columnMap.computeIfAbsent(aClass, (key) -> LambdaUtils.getColumnMap(aClass));
         Assert.notNull(columnMap.get(aClass), "can not find lambda cache for this entity [%s]", aClass.getName());
         ColumnCache columnCache = columnMap.get(aClass).get(LambdaUtils.formatKey(fieldName));

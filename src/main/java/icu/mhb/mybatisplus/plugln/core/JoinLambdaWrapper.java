@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static com.baomidou.mybatisplus.core.enums.SqlKeyword.GROUP_BY;
 import static com.baomidou.mybatisplus.core.enums.SqlKeyword.ORDER_BY;
@@ -72,6 +73,11 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      * 查询字段缓存
      */
     private SharedString sqlSelectCahce = new SharedString();
+
+    /**
+     * 是否查询主表全部字段 该条件是在没有指定查询字段的时候生效
+     */
+    private boolean notDefaultSelectAll = false;
 
 
     /**
@@ -127,7 +133,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     /**
      * 过滤查询的字段信息(主键除外!)
      * <p>例1: 只要 java 字段名以 "test" 开头的             -> select(i -&gt; i.getProperty().startsWith("test"))</p>
-     * <p>例2: 只要 java 字段属性是 CharSequence 类型的     -> select(TableFieldInfo::isCharSequence)</p>
+     * <p>例2: 只要 java 字段属性是 CharSequence 类型的     -> select(TableFieldInfoExt::isCharSequence)</p>
      * <p>例3: 只要 java 字段没有填充策略的                 -> select(i -&gt; i.getFieldFill() == FieldFill.DEFAULT)</p>
      * <p>例4: 要全部字段                                   -> select(i -&gt; true)</p>
      * <p>例5: 只要主键字段                                 -> select(i -&gt; false)</p>
@@ -149,30 +155,25 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
             return sqlSelectCahce.getStringValue();
         }
 
-        if (StringUtils.isBlank(sqlSelect.getStringValue())) {
+        if (StringUtils.isBlank(sqlSelect.getStringValue()) && !this.notDefaultSelectAll) {
             selectAll();
         }
 
         StringBuilder stringValue = new StringBuilder(sqlSelect.getStringValue());
 
-        for (SharedString sharedString : joinSqlSelect) {
+        String joinSelectSql = joinSqlSelect.stream()
+                .map(SharedString::getStringValue)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.joining(COMMA));
 
-            if (StringUtils.isBlank(sharedString.getStringValue())) {
-                continue;
-            }
-
-            if (stringValue.length() != 0) {
-                stringValue.append(COMMA);
-            }
-            stringValue.append(sharedString.getStringValue());
+        // 只有在拥有主表查询字段并且有子表查询的时候才需要加上','分隔符
+        if (stringValue.length() > 0 && StringUtils.isNotBlank(joinSelectSql)) {
+            stringValue.append(COMMA);
         }
 
+        stringValue.append(joinSelectSql);
+
         String selectSql = stringValue.toString();
-        // 如果说 没有指定查询语句就默认查询主表的全部字段
-//        if (StringUtils.isBlank(selectSql)) {
-//            selectAll();
-//            selectSql = sqlSelect.getStringValue();
-//        }
 
         sqlSelectFlag = true;
         sqlSelectCahce.setStringValue(selectSql);
@@ -180,6 +181,13 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         return selectSql;
     }
 
+    /**
+     * 在没有指定查询主表字段的情况下，不进行查询字段
+     */
+    public JoinLambdaWrapper<T> notDefaultSelectAll() {
+        this.notDefaultSelectAll = true;
+        return typedThis;
+    }
 
     /**
      * 用于生成嵌套 sql
@@ -220,12 +228,18 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         String sql = expression.getSqlSegment();
         StringBuilder sqlBuilder = new StringBuilder();
 
+        // 判断实体是否不为空
+        boolean nonEmptyOfEntity = this.nonEmptyOfEntity();
+        // 判断主表执行SQL是否为空
         boolean sqlIsBlank = StringUtils.isBlank(sql) || expression.getNormal().size() == 0;
+        // 判断连表SQL是否为空
         boolean conditionSqlIsNotEmpty = CollectionUtils.isNotEmpty(joinConditionSql);
 
-        // 如果SQL不为空就是会创建where字句 否则需要自己手动创建
-        if (sqlIsBlank && conditionSqlIsNotEmpty) {
+        // 如果SQL不为空或者实体不为空就是会创建where字句 否则需要自己手动创建
+        if ((sqlIsBlank && !nonEmptyOfEntity) && conditionSqlIsNotEmpty) {
             sqlBuilder.append(Constants.WHERE);
+        } else if (conditionSqlIsNotEmpty && nonEmptyOfEntity && sqlIsBlank) {
+            sqlBuilder.append(Constants.AND);
         }
 
         if (conditionSqlIsNotEmpty) {
@@ -319,8 +333,8 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      */
     void setOrderBy(OrderBySegmentList orderBy) {
         if (!orderBy.isEmpty()) {
-            for (ISqlSegment sqlSegment : orderBy) {
-                doIt(true, ORDER_BY, sqlSegment);
+            for (ISqlSegment iSqlSegment : orderBy) {
+                this.maybeDo(true, () -> appendSqlSegments(ORDER_BY, iSqlSegment));
             }
         }
     }
@@ -332,8 +346,8 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      */
     void setGroupBy(GroupBySegmentList groupBy) {
         if (!groupBy.isEmpty()) {
-            for (ISqlSegment sqlSegment : groupBy) {
-                doIt(true, GROUP_BY, sqlSegment);
+            for (ISqlSegment iSqlSegment : groupBy) {
+                this.maybeDo(true, () -> appendSqlSegments(GROUP_BY, iSqlSegment));
             }
         }
     }

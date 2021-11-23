@@ -1,7 +1,9 @@
 package icu.mhb.mybatisplus.plugln.injector;
 import com.baomidou.mybatisplus.core.injector.AbstractMethod;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
+import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
+import icu.mhb.mybatisplus.plugln.entity.TableInfoExt;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 
 /**
@@ -11,14 +13,64 @@ import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
  */
 public abstract class JoinAbstractMethod extends AbstractMethod {
 
+    private TableInfoExt table;
+
+    protected TableInfoExt getTableInfo() {
+        return this.table;
+    }
+
+    protected void setTableInfo(TableInfo tableInfo) {
+        this.table = new TableInfoExt(tableInfo);
+    }
+
     /**
      * 获取join 别名后的表名
      *
-     * @param tableInfo 表信息
      * @return 表名
      */
-    protected String getJoinTableName(TableInfo tableInfo) {
-        return String.format(JoinConstant.AS, tableInfo.getTableName(), JoinConstant.TABLE_ALIAS_NAME);
+    protected String getJoinTableName() {
+        return String.format(JoinConstant.AS, table.getTableInfo().getTableName(), JoinConstant.TABLE_ALIAS_NAME);
+    }
+
+    /**
+     * EntityWrapper方式获取select where
+     *
+     * @param newLine 是否提到下一行
+     * @param table   表信息
+     * @return String
+     */
+    protected String sqlWhereAliasEntityWrapper(boolean newLine) {
+        if (table.getTableInfo().isWithLogicDelete()) {
+            String sqlScript = table.getAllSqlWhere(true, true, WRAPPER_ENTITY_DOT);
+            sqlScript = SqlScriptUtils.convertIf(sqlScript, String.format("%s != null", WRAPPER_ENTITY),
+                                                 true);
+            sqlScript += (NEWLINE + table.getTableInfo().getLogicDeleteSql(true, true) + NEWLINE);
+            String normalSqlScript = SqlScriptUtils.convertIf(String.format("AND ${%s}", WRAPPER_SQLSEGMENT),
+                                                              String.format("%s != null and %s != '' and %s", WRAPPER_SQLSEGMENT, WRAPPER_SQLSEGMENT,
+                                                                            WRAPPER_NONEMPTYOFNORMAL), true);
+            normalSqlScript += NEWLINE;
+            normalSqlScript += SqlScriptUtils.convertIf(String.format(" ${%s}", WRAPPER_SQLSEGMENT),
+                                                        String.format("%s != null and %s != '' and %s", WRAPPER_SQLSEGMENT, WRAPPER_SQLSEGMENT,
+                                                                      WRAPPER_EMPTYOFNORMAL), true);
+            sqlScript += normalSqlScript;
+            sqlScript = SqlScriptUtils.convertChoose(String.format("%s != null", WRAPPER), sqlScript,
+                                                     table.getTableInfo().getLogicDeleteSql(false, true));
+            sqlScript = SqlScriptUtils.convertWhere(sqlScript);
+            return newLine ? NEWLINE + sqlScript : sqlScript;
+        } else {
+            String sqlScript = table.getAllSqlWhere(false, true, WRAPPER_ENTITY_DOT);
+            sqlScript = SqlScriptUtils.convertIf(sqlScript, String.format("%s != null", WRAPPER_ENTITY), true);
+            sqlScript += NEWLINE;
+            sqlScript += SqlScriptUtils.convertIf(String.format(SqlScriptUtils.convertIf(" AND", String.format("%s and %s", WRAPPER_NONEMPTYOFENTITY, WRAPPER_NONEMPTYOFNORMAL), false) + " ${%s}", WRAPPER_SQLSEGMENT),
+                                                  String.format("%s != null and %s != '' and %s", WRAPPER_SQLSEGMENT, WRAPPER_SQLSEGMENT,
+                                                                WRAPPER_NONEMPTYOFWHERE), true);
+            sqlScript = SqlScriptUtils.convertWhere(sqlScript) + NEWLINE;
+            sqlScript += SqlScriptUtils.convertIf(String.format(" ${%s}", WRAPPER_SQLSEGMENT),
+                                                  String.format("%s != null and %s != '' and %s", WRAPPER_SQLSEGMENT, WRAPPER_SQLSEGMENT,
+                                                                WRAPPER_EMPTYOFWHERE), true);
+            sqlScript = SqlScriptUtils.convertIf(sqlScript, String.format("%s != null", WRAPPER), true);
+            return newLine ? NEWLINE + sqlScript : sqlScript;
+        }
     }
 
     /**

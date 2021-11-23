@@ -1,9 +1,12 @@
 package icu.mhb.mybatisplus.plugln.entity;
 
+import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -27,7 +30,7 @@ public class ColumnsBuilder<T> {
 
     public ColumnsBuilder<T> add(Collection<SFunction<T, ?>> columns) {
 
-        if (null == columns || columns.isEmpty()) {
+        if (CollectionUtils.isEmpty(columns)) {
             return this;
         }
 
@@ -36,6 +39,16 @@ public class ColumnsBuilder<T> {
         }
 
         return this;
+    }
+
+    @SafeVarargs
+    public final ColumnsBuilder<T> add(SFunction<T, ?>... columns) {
+
+        if (ArrayUtils.isEmpty(columns)) {
+            return this;
+        }
+
+        return add(Arrays.asList(columns));
     }
 
     public ColumnsBuilder<T> add(SFunction<T, ?> column) {

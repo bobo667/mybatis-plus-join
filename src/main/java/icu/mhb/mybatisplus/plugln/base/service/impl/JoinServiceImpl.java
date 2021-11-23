@@ -83,6 +83,10 @@ public class JoinServiceImpl<M extends JoinBaseMapper<T>, T> extends ServiceImpl
         return new JoinLambdaWrapper<>(clz);
     }
 
+    protected <J> JoinLambdaWrapper<J> joinLambdaQueryWrapper(J entity) {
+        return new JoinLambdaWrapper<>(entity);
+    }
+
     protected LambdaUpdateWrapper<T> lambdaUpdateWrapper() {
         return new LambdaUpdateWrapper<>();
     }

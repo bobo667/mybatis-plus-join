@@ -39,8 +39,7 @@ mybatis plus：3.3.1 - 3.42版本依赖地址：
 | ------------ | ----------------- |
 | 3.2.0        | 1.2.0             |
 | 3.3.1 - 3.42 | 1.0.2             |
-
-
+| 3.4.3.4 - *  | 1.0.3             |
 
 
 
@@ -99,6 +98,38 @@ mybatis plus：3.3.1 - 3.42版本依赖地址：
 `joinPage -> page`
 
 **注意：这几个方法，前面俩参数和mp的用法一致，最后一个class类型的是返回类型，这个主要是大多数多表操作都是需要有额外字段，所以需要额外定义，而Wrapper<E> wrapper中的这个需要填写在需要构建条件的实体，这个实体是任意的，不强制，创建条件构造器的时候定义的那个对象就是主表**
+
+
+
+## 版本日志
+
+### 1.0.1 版本
+
+1.初始化项目 mybatis-plus-join项目诞生
+
+### 1.0.2 版本
+
+1.优化了selectAs()方法，支持函数简洁式写法
+
+2.增加了缓存优化性能
+
+### 1.0.3 版本
+
+1.支持3.4.3.4版本
+
+2.增加根据传入实体不为空的数据查询
+
+3.优化了代码逻辑
+
+4.增加notDefaultSelectAll() 不默认查询主表全部的字段
+
+
+
+### 其他版本
+
+#### 1.2.0 版本
+
+1.支持了3.2.0 版本
 
 
 
@@ -188,6 +219,80 @@ where (
 ## 加料用法
 
 OK，来点丝滑的加料用法
+
+### 根据实体不为空的数据查询
+
+```java
+// 如果需要根据实体查询可以采用这样的实例化
+JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(new Users().setUserName("name啊")
+                                                                          .setUserId(1L));
+// 或者可以采用这样的setEntity
+// wrapper.setEntity(new Users().setUserName("name啊"));
+
+// 这一部分一个参数是join中定义的连接的表，第二个参数是随意的表，但是是要出现构造器中的
+wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId);
+// 然后可以设置多表中的查询条件，这一步和mp一致
+wrapper.eq(UserAge::getAgeName,"95")
+  		.select(UserAge::getAgeName);
+// 最后一步 需要使用end方法结束
+wrapper.end();
+
+// 执行查询
+usersService.joinList(wrapper);
+
+// 执行SQL 
+select 
+  users.user_id,
+  users.user_name,
+  users_age.age_name
+from users users
+  left join users_age users_age on users_age.id = users.age_id
+where 
+ users.user_id = 1
+ and users.user_name = 'name啊'
+ and users_age.age_name = '95'
+
+
+```
+
+
+
+### notDefaultSelectAll() 不默认查询主表全部的字段
+
+```java
+// 如果需要根据实体查询可以采用这样的实例化
+JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(new Users().setUserName("name啊")
+                                                                          .setUserId(1L));
+
+// 因为默认是查询主表所有查询字段，如果不需要查询主表全部字段就调用该方法
+wrapper.notDefaultSelectAll();
+
+// 这一部分一个参数是join中定义的连接的表，第二个参数是随意的表，但是是要出现构造器中的
+wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId);
+// 然后可以设置多表中的查询条件，这一步和mp一致
+wrapper.eq(UserAge::getAgeName,"95")
+  		.select(UserAge::getAgeName);
+// 最后一步 需要使用end方法结束
+wrapper.end();
+
+// 执行查询
+usersService.joinList(wrapper);
+
+// 执行SQL 
+select 
+  users_age.age_name
+from users users
+  left join users_age users_age on users_age.id = users.age_id
+where 
+ users.user_id = 1
+ and users.user_name = 'name啊'
+ and users_age.age_name = '95'
+
+
+
+```
+
+
 
 ### selectAs() 查询添加别名
 
@@ -345,6 +450,8 @@ public class Users implements Serializable {
 
 
 
+
+
 ## 用法注意
 
 1.在使用 join service 一系列方法的时候，所有参数都不能传null
@@ -352,4 +459,3 @@ public class Users implements Serializable {
 2.这个条件构造器啊，你在join的时候就相当于创建一个新的构造器，你要在这个新的构造器中实现你所有的操作，包括查询，和条件，排序之类的，这样的好处在于，维护好一些，毕竟都放在一起的话，到时候容易迷。
 
 3.您的start是作者更新的动力，如果用的人多的话，可以留言，我会继续更新并适配mp其他版本，如果各位等不了呢，也可以把源码下载下来，放进你的项目中改一下里面的东西。
-

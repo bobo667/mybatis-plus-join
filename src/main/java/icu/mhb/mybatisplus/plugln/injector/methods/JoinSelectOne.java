@@ -13,14 +13,17 @@ import java.util.Map;
  * @Title: JoinSelectOne
  * @time 9/6/21 4:33 PM
  */
-@SuppressWarnings("all")
 public class JoinSelectOne extends JoinAbstractMethod {
 
     @Override
+    @SuppressWarnings("all")
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         JoinSqlMethod sqlMethod = JoinSqlMethod.JOIN_SELECT_ONE;
-        String sql = String.format(sqlMethod.getSql(), sqlFirst(), sqlSelectColumns(tableInfo, true), getJoinTableName(tableInfo), JoinConstant.JOIN_SQL_NAME,
-                                   sqlWhereEntityWrapper(true, tableInfo), sqlComment());
+
+        setTableInfo(tableInfo);
+
+        String sql = String.format(sqlMethod.getSql(), sqlFirst(), sqlSelectColumns(tableInfo, true), getJoinTableName(), JoinConstant.JOIN_SQL_NAME,
+                                   sqlWhereAliasEntityWrapper(true), sqlComment());
         SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass);
         return this.addSelectMappedStatementForOther(mapperClass, sqlMethod.getMethod(), sqlSource, Map.class);
     }

@@ -17,11 +17,13 @@ public class JoinSelectCount extends JoinAbstractMethod {
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         JoinSqlMethod sqlMethod = JoinSqlMethod.JOIN_SELECT_COUNT;
 
+        setTableInfo(tableInfo);
+
         // 转换一下
         modelClass = getTableClass(modelClass);
 
-        String sql = String.format(sqlMethod.getSql(), sqlFirst(), getJoinTableName(tableInfo), JoinConstant.JOIN_SQL_NAME,
-                                   sqlWhereEntityWrapper(true, tableInfo), sqlComment());
+        String sql = String.format(sqlMethod.getSql(), sqlFirst(), getJoinTableName(), JoinConstant.JOIN_SQL_NAME,
+                                   sqlWhereAliasEntityWrapper(true), sqlComment());
         SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass);
         return this.addSelectMappedStatementForOther(mapperClass, sqlMethod.getMethod(), sqlSource, Integer.class);
     }

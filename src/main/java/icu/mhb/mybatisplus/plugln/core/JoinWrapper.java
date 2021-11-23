@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.*;
+import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
@@ -101,7 +102,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     /**
      * 过滤查询的字段信息(主键除外!)
      * <p>例1: 只要 java 字段名以 "test" 开头的             -> select(i -&gt; i.getProperty().startsWith("test"))</p>
-     * <p>例2: 只要 java 字段属性是 CharSequence 类型的     -> select(TableFieldInfo::isCharSequence)</p>
+     * <p>例2: 只要 java 字段属性是 CharSequence 类型的     -> select(TableFieldInfoExt::isCharSequence)</p>
      * <p>例3: 只要 java 字段没有填充策略的                 -> select(i -&gt; i.getFieldFill() == FieldFill.DEFAULT)</p>
      * <p>例4: 要全部字段                                   -> select(i -&gt; true)</p>
      * <p>例5: 只要主键字段                                 -> select(i -&gt; false)</p>
@@ -233,11 +234,11 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      */
     private <F> void buildJoinSql(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField, SqlExcerpt sqlExcerpt) {
         // 解析方法
-        SerializedLambda joinTableResolve = LambdaUtils.resolve(joinTableField);
-        SerializedLambda masterTableResolve = LambdaUtils.resolve(masterTableField);
+        LambdaMeta joinTableResolve = LambdaUtils.extract(joinTableField);
+        LambdaMeta masterTableResolve = LambdaUtils.extract(masterTableField);
 
-        Class<?> joinTableClass = joinTableResolve.getImplClass();
-        Class<?> masterTableClass = masterTableResolve.getImplClass();
+        Class<?> joinTableClass = joinTableResolve.getInstantiatedClass();
+        Class<?> masterTableClass = masterTableResolve.getInstantiatedClass();
         TableInfo joinTableInfo = TableInfoHelper.getTableInfo(joinTableClass);
 
         Assert.notNull(joinTableInfo, "can not find tableInfo cache for this entity [%s]", joinTableClass.getName());
