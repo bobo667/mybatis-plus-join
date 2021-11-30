@@ -21,7 +21,7 @@ mybatis plus：3.2.0版本依赖地址：
  </dependency>
 ```
 
-mybatis plus：3.3.1 - 3.42版本依赖地址：
+最新版本依赖地址：
 
 ```xml
  <dependency>
