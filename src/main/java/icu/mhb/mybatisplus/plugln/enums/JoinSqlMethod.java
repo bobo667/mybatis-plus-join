@@ -13,7 +13,7 @@ public enum JoinSqlMethod {
     JOIN_SELECT_LIST("joinSelectList", "查询满足条件所有数据", "<script>%s SELECT %s FROM %s %s %s %s\n</script>"),
     JOIN_SELECT_COUNT("joinSelectCount", "查询满足条件的总数", "<script>%s SELECT COUNT(1) FROM %s %s %s %s\n</script>"),
     JOIN_SELECT_PAGE("joinSelectPage", "查询满足条件的列表分页", "<script>%s SELECT %s FROM %s %s %s %s\n</script>"),
-    JOIN_SELECT_ONE("joinSelectOne", "查询满足条件的单个对象", "<script>%s SELECT %s FROM %s %s %s %s limit 1 \n</script>");
+    JOIN_SELECT_ONE("joinSelectOne", "查询满足条件的单个对象", "<script>%s SELECT %s FROM %s %s %s %s \n</script>");
 
     private final String method;
 

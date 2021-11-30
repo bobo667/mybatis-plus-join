@@ -1,7 +1,5 @@
 package icu.mhb.mybatisplus.plugln.base.service.impl;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -12,13 +10,16 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import icu.mhb.mybatisplus.plugln.base.mapper.JoinBaseMapper;
 import icu.mhb.mybatisplus.plugln.base.service.JoinIService;
 import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
-import com.sun.istack.internal.NotNull;
+import icu.mhb.mybatisplus.plugln.enums.PropertyType;
+import icu.mhb.mybatisplus.plugln.tookit.JsonUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * @author mahuibo
@@ -31,41 +32,57 @@ public class JoinServiceImpl<M extends JoinBaseMapper<T>, T> extends ServiceImpl
     protected M joinMapper;
 
     @Override
-    public <EV, E> List<EV> joinList(@NotNull Wrapper<E> wrapper, @NotNull Class<EV> clz) {
+    public <EV, E> List<EV> joinList(Wrapper<E> wrapper, Class<EV> clz) {
         List<Map<String, Object>> objectMap = joinMapper.joinSelectList(wrapper);
 
         if (CollectionUtils.isEmpty(objectMap)) {
             return new ArrayList<>();
         }
 
-        return JSONArray.parseArray(JSON.toJSONString(objectMap), clz);
+        // 判断是否是基础类型
+        if (PropertyType.hasBaseType(clz)) {
+            // 获取到每个map的第一位数据然后返回
+            List<Object> list = objectMap.stream()
+                    .map(i -> i.values().stream().findFirst())
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .collect(Collectors.toList());
+            return JsonUtil.getClzTypeList(list, clz);
+        }
+
+        return JsonUtil.getClzTypeList(objectMap, clz);
     }
 
     @Override
-    public <E, EV> EV joinGetOne(@NotNull Wrapper<E> wrapper, @NotNull Class<EV> clz) {
+    public <E, EV> EV joinGetOne(Wrapper<E> wrapper, Class<EV> clz) {
         Map<String, Object> objectMap = joinMapper.joinSelectOne(wrapper);
 
         if (null == objectMap) {
             return null;
         }
 
-        return JSON.parseObject(JSON.toJSONString(objectMap), clz);
+        // 判断是否是基础类型
+        if (PropertyType.hasBaseType(clz)) {
+            return JsonUtil.getClzType(objectMap.entrySet().stream().findFirst().map(Map.Entry::getValue).get(), clz);
+        }
+
+        return JsonUtil.getClzType(objectMap, clz);
     }
 
     @Override
-    public <E> int joinCount(@NotNull Wrapper<E> wrapper) {
+    public <E> int joinCount(Wrapper<E> wrapper) {
         return joinMapper.joinSelectCount(wrapper);
     }
 
     @Override
-    public <EV, E extends IPage<EV>, C> Page<EV> joinPage(@NotNull E page, @NotNull Wrapper<C> wrapper, @NotNull Class<EV> clz) {
+    public <EV, E extends IPage<EV>, C> Page<EV> joinPage(E page, Wrapper<C> wrapper, Class<EV> clz) {
 
         IPage<Map<String, Object>> selectPage = joinMapper.joinSelectPage(new Page<>(page.getCurrent(), page.getSize()), wrapper);
 
         // 获取列表
         List<Map<String, Object>> pageRecords = selectPage.getRecords();
 
-        List<EV> parseArray = JSON.parseArray(JSON.toJSONString(pageRecords), clz);
+        List<EV> parseArray = JsonUtil.getClzTypeList(pageRecords, clz);
         selectPage.setRecords(null);
 
         Page<EV> returnPage = new Page<>();

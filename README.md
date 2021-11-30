@@ -7,7 +7,7 @@ mybatis-plus-join示例：**
 **gitee: https://gitee.com/mhb0409/mybatis-plus-join-example**
 **github: https://github.com/bobo667/mybatis-plus-join-example**
 
-**注意：目前当前版本只支持3.3.1 - 3.42 以及 3.2.0**
+**目前支持大部分mp常用版本**
 
 maven坐标
 
@@ -27,7 +27,7 @@ mybatis plus：3.3.1 - 3.42版本依赖地址：
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.4</version>
  </dependency>
 ```
 
@@ -39,18 +39,19 @@ mybatis plus：3.3.1 - 3.42版本依赖地址：
 | ------------ | ----------------- |
 | 3.2.0        | 1.2.0             |
 | 3.3.1 - 3.42 | 1.0.2             |
-| 3.4.3.4 - *  | 1.0.3             |
+| 3.4.3.4 - *  | 1.0.3 、1.0.4     |
 
 
 
 废话不多说，直接看怎么使用
 
 ```java
+   
     /**
      * 查询列表
      *
-     * @param wrapper 实体对象封装操作类（可以为 null）
-     * @param <E>     返回泛型
+     * @param wrapper 实体对象封装操作类
+     * @param <E>     返回泛型（如果只查询一个字段可以传递String Int之类的类型）
      * @return 返回E 类型的列表
      */
     <EV, E> List<EV> joinList(Wrapper<E> wrapper, Class<EV> clz);
@@ -59,7 +60,7 @@ mybatis plus：3.3.1 - 3.42版本依赖地址：
      * 查询单个对象
      *
      * @param wrapper 实体对象封装操作类
-     * @param clz     返回对象
+     * @param clz     返回对象 （如果只查询一个字段可以传递String Int之类的类型）
      * @param <E>     包装泛型类型
      * @param <EV>    返回类型泛型
      * @return EV
@@ -70,7 +71,7 @@ mybatis plus：3.3.1 - 3.42版本依赖地址：
     /**
      * 查询count
      *
-     * @param wrapper 实体对象封装操作类（可以为 null）
+     * @param wrapper 实体对象封装操作类
      * @param <E>     返回泛型
      * @return 总数
      */
@@ -84,6 +85,7 @@ mybatis plus：3.3.1 - 3.42版本依赖地址：
      * @param wrapper 实体对象封装操作类
      */
     <EV, E extends IPage<EV>, C> IPage<EV> joinPage(E page, Wrapper<C> wrapper, Class<EV> clz);
+
 
 ```
 
@@ -122,6 +124,14 @@ mybatis plus：3.3.1 - 3.42版本依赖地址：
 3.优化了代码逻辑
 
 4.增加notDefaultSelectAll() 不默认查询主表全部的字段
+
+
+
+### 1.0.4 版本
+
+1.支持查询单个参数时候返回单个参数，例如List<String> String
+
+2.优化转换类型的方式
 
 
 
@@ -219,6 +229,39 @@ where (
 ## 加料用法
 
 OK，来点丝滑的加料用法
+
+
+
+### 返回基础类型数据
+
+```java
+// 当我们只需要查询一个字段，例如id列表，现在支持直接传递基础类型
+
+JoinLambdaWrapper<Users> wrapper = joinLambdaQueryWrapper(Users.class)
+                .select(Users::getUserId);
+
+List<Integer> ids = super.joinList(wrapper, Integer.class);
+
+System.out.println(JSON.toJSONString(ids));
+
+// 输出结果：[1,2]
+
+// 也支持返回单个数据类型
+
+JoinLambdaWrapper<Users> wrapper = joinLambdaQueryWrapper(Users.class)
+                .select(Users::getUserName)
+                .eq(Users::getUserId, 1)
+                .last("limit 1");
+
+String userName = super.joinGetOne(wrapper, String.class);
+
+System.out.println(userName);
+
+// 输出结果："我是名字1"
+
+```
+
+
 
 ### 根据实体不为空的数据查询
 
