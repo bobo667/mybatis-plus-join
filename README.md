@@ -27,7 +27,7 @@ mybatis plus：3.2.0版本依赖地址：
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
  </dependency>
 ```
 
@@ -35,11 +35,11 @@ mybatis plus：3.2.0版本依赖地址：
 
 版本对应关系（此处只显示对应的最新版本）
 
-| Mybatis-plus | Mybatis-plus-join |
-| ------------ | ----------------- |
-| 3.2.0        | 1.2.0             |
-| 3.3.1 - 3.42 | 1.0.2             |
-| 3.4.3.4 - *  | 1.0.3 、1.0.4     |
+| Mybatis-plus | Mybatis-plus-join    |
+| ------------ | -------------------- |
+| 3.2.0        | 1.2.0                |
+| 3.3.1 - 3.42 | 1.0.2                |
+| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5 |
 
 
 
@@ -132,6 +132,12 @@ mybatis plus：3.2.0版本依赖地址：
 1.支持查询单个参数时候返回单个参数，例如List<String> String
 
 2.优化转换类型的方式
+
+
+
+### 1.0.5 版本
+
+1.修复在没有条件下order 排序失效的问题
 
 
 

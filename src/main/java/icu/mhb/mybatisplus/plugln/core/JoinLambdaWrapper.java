@@ -264,6 +264,12 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
             sqlBuilder.append(sql);
         }
 
+        // 如果查询条件为空，并且 排序 、分组、 having 不为空就添加
+        if (sqlIsBlank && (expression.getOrderBy().size() > 0 || expression.getGroupBy().size() > 0 || expression.getHaving().size() > 0)) {
+            sqlBuilder.append(NEWLINE)
+                    .append(sql);
+        }
+
         sqlBuilder.append(NEWLINE).append(lastSql.getStringValue());
 
         String sqlBuilderStr = sqlBuilder.toString();

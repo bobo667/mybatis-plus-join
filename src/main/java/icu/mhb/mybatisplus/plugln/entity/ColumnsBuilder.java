@@ -27,7 +27,6 @@ public class ColumnsBuilder<T> {
         this.columnsBuilderList = new ArrayList<>();
     }
 
-
     public ColumnsBuilder<T> add(Collection<SFunction<T, ?>> columns) {
 
         if (CollectionUtils.isEmpty(columns)) {
@@ -68,6 +67,14 @@ public class ColumnsBuilder<T> {
 
     public ColumnsBuilder<T> add(Object columnStr, String alias) {
         columnsBuilderList.add(new As<>(columnStr, alias));
+        return this;
+    }
+
+    public ColumnsBuilder<T> addAll(List<As<T>> columnsBuilderList) {
+
+        if (CollectionUtils.isNotEmpty(columnsBuilderList)) {
+            this.columnsBuilderList.addAll(columnsBuilderList);
+        }
         return this;
     }
 
