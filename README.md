@@ -32,6 +32,7 @@ mybatis plus：3.2.0版本依赖地址：
 ```
 
 
+
 版本对应关系（此处只显示对应的最新版本）
 
 | Mybatis-plus | Mybatis-plus-join           |
@@ -248,7 +249,7 @@ OK，来点丝滑的加料用法
 ### 一对一查询映射
 
 ```java
-// 很多时候连表返回的字段很多都相同，所以在每个vo里面都会出现，如果把这些重复性字段封装成一个类，会更好维护，所以说针对这个情况 版本 > 1.0.6 即可使用oneToOneSelect 方法
+// 很多时候连表返回的字段很多都相同，所以在每个vo里面都会出现，如果把这些重复性字段封装成一个类，会更好维护，所以说针对这个情况 版本 >= 1.0.6 即可使用oneToOneSelect 方法
 
  JoinLambdaWrapper<Users> wrapper = joinLambdaQueryWrapper(Users.class);
 
@@ -257,10 +258,11 @@ OK，来点丝滑的加料用法
         .oneToOneSelect(UsersVo::getUsersAge, (cb) -> {
              cb.add(UsersAge::getAgeDoc, UsersAge::getAgeName)
                /* 
-              当你出现两个实体类映射字段相同，例如 user实体中有个字段id，userAge表中也有个字段id，你									想要同时获取这两个字段，这时候则可以使用
+              当你出现两个实体类映射字段相同，例如 user实体中有个字段id，userAge表中也有个字段id，
+              你想要同时获取这两个字段，这时候则可以使用
                |column : 查询字段
                |alias  : 别名
-							 |fieldName : 字段名称
+			   |fieldName : 字段名称
                add(SFunction<T, ?> column, String alias, SFunction<F, ?> fieldName)
                */
                .add(UsersAge::getId, "ageId", UsersAge::getId);
