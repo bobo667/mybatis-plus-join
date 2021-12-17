@@ -10,15 +10,14 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import icu.mhb.mybatisplus.plugln.base.mapper.JoinBaseMapper;
 import icu.mhb.mybatisplus.plugln.base.service.JoinIService;
 import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
+import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
 import icu.mhb.mybatisplus.plugln.enums.PropertyType;
 import icu.mhb.mybatisplus.plugln.tookit.JsonUtil;
+import icu.mhb.mybatisplus.plugln.tookit.MappingUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +29,11 @@ public class JoinServiceImpl<M extends JoinBaseMapper<T>, T> extends ServiceImpl
 
     @Autowired
     protected M joinMapper;
+
+    @Override
+    public M getBaseMapper() {
+        return joinMapper;
+    }
 
     @Override
     public <EV, E> List<EV> joinList(Wrapper<E> wrapper, Class<EV> clz) {
@@ -50,6 +54,10 @@ public class JoinServiceImpl<M extends JoinBaseMapper<T>, T> extends ServiceImpl
             return JsonUtil.getClzTypeList(list, clz);
         }
 
+        if (wrapper instanceof JoinLambdaWrapper) {
+            MappingUtil.wrapperOneToOneMapping(objectMap, (JoinLambdaWrapper<E>) wrapper);
+        }
+
         return JsonUtil.getClzTypeList(objectMap, clz);
     }
 
@@ -64,6 +72,10 @@ public class JoinServiceImpl<M extends JoinBaseMapper<T>, T> extends ServiceImpl
         // 判断是否是基础类型
         if (PropertyType.hasBaseType(clz)) {
             return JsonUtil.getClzType(objectMap.entrySet().stream().findFirst().map(Map.Entry::getValue).get(), clz);
+        }
+
+        if (wrapper instanceof JoinLambdaWrapper) {
+            MappingUtil.wrapperOneToOneMapping(Collections.singletonList(objectMap), (JoinLambdaWrapper<E>) wrapper);
         }
 
         return JsonUtil.getClzType(objectMap, clz);

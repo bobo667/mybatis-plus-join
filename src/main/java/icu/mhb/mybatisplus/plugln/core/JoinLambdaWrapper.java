@@ -13,6 +13,8 @@ import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
 import icu.mhb.mybatisplus.plugln.entity.HavingBuild;
+import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
+import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,6 +55,11 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      */
     private List<String> joinConditionSql = new ArrayList<>();
 
+    /**
+     * 一对一 构建列表
+     */
+    @Getter
+    private List<OneToOneSelectBuild> oneToOneSelectBuildList = null;
 
     /**
      * 判断SQL是否缓存过
@@ -390,6 +397,19 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         if (StringUtils.isNotBlank(last.getStringValue())) {
             lastSql = last;
         }
+    }
+
+    void setOneToOneSelect(OneToOneSelectBuild oneToOneSelect) {
+
+        if (null == oneToOneSelect) {
+            return;
+        }
+
+        if (null == oneToOneSelectBuildList) {
+            oneToOneSelectBuildList = new ArrayList<>();
+        }
+
+        oneToOneSelectBuildList.add(oneToOneSelect);
     }
 
     /**

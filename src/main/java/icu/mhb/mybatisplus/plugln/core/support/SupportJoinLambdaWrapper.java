@@ -62,6 +62,10 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         return columnToString(column, true);
     }
 
+    protected String columnToStringNoAlias(SFunction<T, ?> column) {
+        return getColumn(LambdaUtils.extract(column), true);
+    }
+
     protected String columnToString(SFunction<T, ?> column, boolean onlyColumn) {
         String columnToString = getColumn(LambdaUtils.extract(column), onlyColumn);
         if (StringUtils.isNotBlank(columnToString)) {
@@ -182,7 +186,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         // 执行用户自定义定义
         consumer.accept(columnsBuilder);
         // 进行构建
-        selectAs(columnsBuilder.getColumnsBuilderList());
+        selectAs(getSelectColumn(columnsBuilder.getColumnsBuilderList()));
         return typedThis;
     }
 
@@ -192,33 +196,43 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      * @param columns 列
      * @return 子
      */
-    public final Children selectAs(List<As<T>> columns) {
+    public final Children selectAs(List<String> columns) {
         if (CollectionUtils.isNotEmpty(columns)) {
-            List<String> columnsStringList = new ArrayList<>();
-            for (As<T> as : columns) {
-                String column = as.getColumnStr().toString();
-
-                if (as.getColumn() != null) {
-                    // 获取序列化后的列明
-                    column = columnToString(as.getColumn());
-                } else {
-                    column = StringUtils.quotaMark(column);
-                }
-
-                if (StringUtils.isNotBlank(as.getAlias())) {
-                    column = String.format(SqlExcerpt.AS.getSql(), column, as.getAlias());
-                }
-                columnsStringList.add(column);
-            }
             this.sqlSelect.setStringValue(
-                    String.join(",", columnsStringList)
+                    String.join(",", columns)
             );
         }
         return typedThis;
     }
 
     public final Children selectAs(SFunction<T, ?> column, String alias) {
-        return this.selectAs(Collections.singletonList(new As<>(column, alias)));
+        return this.selectAs(getSelectColumn(Collections.singletonList(new As<>(column, alias))));
+    }
+
+    /**
+     * 获取查询列
+     *
+     * @param columns 列集合
+     * @return List<String>
+     */
+    protected List<String> getSelectColumn(List<As<T>> columns) {
+        List<String> columnsStringList = new ArrayList<>();
+        for (As<T> as : columns) {
+            String column = as.getColumnStr().toString();
+
+            if (as.getColumn() != null) {
+                // 获取序列化后的列明
+                column = columnToString(as.getColumn());
+            } else {
+                column = StringUtils.quotaMark(column);
+            }
+
+            if (StringUtils.isNotBlank(as.getAlias())) {
+                column = String.format(SqlExcerpt.AS.getSql(), column, as.getAlias());
+            }
+            columnsStringList.add(column);
+        }
+        return columnsStringList;
     }
 
     /**
@@ -230,7 +244,6 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      * @param onlyColumn 如果是，结果: "name", 如果否： "name" as "name"
      * @return 列
      * @throws MybatisPlusException 获取不到列信息时抛出异常
-     * @see SerializedLambda#getImplClass()
      * @see SerializedLambda#getImplMethodName()
      */
     protected String getColumn(LambdaMeta lambda, boolean onlyColumn) throws MybatisPlusException {
@@ -243,6 +256,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
                        fieldName, aClass.getName());
         return onlyColumn ? columnCache.getColumn() : columnCache.getColumnSelect();
     }
+
 
     /**
      * 获取表对应的class  主要用于 vo dto这种对应实体

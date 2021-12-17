@@ -1,15 +1,11 @@
 package icu.mhb.mybatisplus.plugln.entity;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
-import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 
-import java.util.Objects;
-
-import static com.baomidou.mybatisplus.core.toolkit.StringPool.*;
-import static java.util.stream.Collectors.joining;
+import static com.baomidou.mybatisplus.core.toolkit.StringPool.EMPTY;
 
 /**
  * tableField的扩展类
@@ -47,7 +43,7 @@ public class TableFieldInfoExt {
      * @param column 字段
      * @return 添加别名后的字段
      */
-    public String getAliasColumn(String column) {
+    public static String getAliasColumn(String column) {
         return JoinConstant.TABLE_ALIAS_NAME + "." + column;
     }
 

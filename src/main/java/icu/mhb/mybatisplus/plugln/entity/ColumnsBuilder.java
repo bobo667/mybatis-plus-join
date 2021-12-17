@@ -70,6 +70,11 @@ public class ColumnsBuilder<T> {
         return this;
     }
 
+    public <F> ColumnsBuilder<T> add(SFunction<T, ?> column, String alias, SFunction<F, ?> fieldName) {
+        columnsBuilderList.add(new As<>(column, alias, fieldName));
+        return this;
+    }
+
     public ColumnsBuilder<T> addAll(List<As<T>> columnsBuilderList) {
 
         if (CollectionUtils.isNotEmpty(columnsBuilderList)) {

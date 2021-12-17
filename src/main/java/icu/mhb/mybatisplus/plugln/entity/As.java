@@ -1,6 +1,10 @@
 package icu.mhb.mybatisplus.plugln.entity;
+import com.baomidou.mybatisplus.core.metadata.TableInfo;
+import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
+import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import lombok.Getter;
+import org.apache.ibatis.reflection.property.PropertyNamer;
 
 /**
  * @author mahuibo
@@ -21,6 +25,11 @@ public class As<T> {
     Object columnStr;
 
     /**
+     * 映射的字段名
+     */
+    String fieldName;
+
+    /**
      * 别名
      */
     String alias;
@@ -34,6 +43,7 @@ public class As<T> {
     public As(SFunction<T, ?> column) {
         this.column = column;
         this.alias = "";
+        this.fieldName = "";
         this.columnStr = "";
     }
 
@@ -45,6 +55,20 @@ public class As<T> {
      */
     public As(SFunction<T, ?> column, String alias) {
         this.column = column;
+        this.alias = alias;
+        this.fieldName = "";
+        this.columnStr = "";
+    }
+
+    /**
+     * 设置字段名 并添加别名、属性名
+     *
+     * @param column 字段
+     * @param alias  别名
+     */
+    public <F> As(SFunction<T, ?> column, String alias, SFunction<F, ?> fieldName) {
+        this.column = column;
+        this.fieldName = PropertyNamer.methodToProperty(LambdaUtils.extract(fieldName).getImplMethodName());
         this.alias = alias;
         this.columnStr = "";
     }
@@ -63,5 +87,6 @@ public class As<T> {
         this.alias = alias;
         this.columnStr = columnStr;
     }
+
 
 }

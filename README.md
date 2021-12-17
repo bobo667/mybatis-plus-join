@@ -27,19 +27,18 @@ mybatis plus：3.2.0版本依赖地址：
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
  </dependency>
 ```
 
 
-
 版本对应关系（此处只显示对应的最新版本）
 
-| Mybatis-plus | Mybatis-plus-join    |
-| ------------ | -------------------- |
-| 3.2.0        | 1.2.0                |
-| 3.3.1 - 3.42 | 1.0.2                |
-| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5 |
+| Mybatis-plus | Mybatis-plus-join           |
+| ------------ | --------------------------- |
+| 3.2.0        | 1.2.0                       |
+| 3.3.1 - 3.42 | 1.0.2                       |
+| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6 |
 
 
 
@@ -141,6 +140,14 @@ mybatis plus：3.2.0版本依赖地址：
 
 
 
+### 1.0.6 版本
+
+1.修复实体条件为主键ID的时候没有加别名问题
+
+2.增加返回值支持一对一查询
+
+
+
 ### 其他版本
 
 #### 1.2.0 版本
@@ -235,6 +242,56 @@ where (
 ## 加料用法
 
 OK，来点丝滑的加料用法
+
+
+
+### 一对一查询映射
+
+```java
+// 很多时候连表返回的字段很多都相同，所以在每个vo里面都会出现，如果把这些重复性字段封装成一个类，会更好维护，所以说针对这个情况 版本 > 1.0.6 即可使用oneToOneSelect 方法
+
+ JoinLambdaWrapper<Users> wrapper = joinLambdaQueryWrapper(Users.class);
+
+ wrapper.leftJoin(UsersAge.class, UsersAge::getId, Users::getAgeId)
+   // oneToOneSelect 第一个参数需要映射的实体类字段，第二个参数则是查询函数
+        .oneToOneSelect(UsersVo::getUsersAge, (cb) -> {
+             cb.add(UsersAge::getAgeDoc, UsersAge::getAgeName)
+               /* 
+              当你出现两个实体类映射字段相同，例如 user实体中有个字段id，userAge表中也有个字段id，你									想要同时获取这两个字段，这时候则可以使用
+               |column : 查询字段
+               |alias  : 别名
+							 |fieldName : 字段名称
+               add(SFunction<T, ?> column, String alias, SFunction<F, ?> fieldName)
+               */
+               .add(UsersAge::getId, "ageId", UsersAge::getId);
+         }).end();
+
+ return super.joinList(wrapper, UsersVo.class);
+
+// 执行SQL 
+SELECT users.user_name, users.create_time, users.age_id, users.user_id, users_age.age_doc
+	, users_age.age_name, users_age.id AS ageId
+FROM users users
+	LEFT JOIN users_age users_age ON users_age.id = users.age_id
+  
+// 返回结果
+[
+  {
+   "ageId":1,
+   "createTime":1635416270000,
+   "userId":1,
+   "userName":"名字啊",
+   "usersAge":{
+     "ageDoc":"90",
+     "ageName":"90",
+     "id":1
+   }
+  }....
+]
+
+
+
+```
 
 
 

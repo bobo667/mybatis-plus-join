@@ -10,14 +10,16 @@ import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
-import icu.mhb.mybatisplus.plugln.entity.HavingBuild;
+import icu.mhb.mybatisplus.plugln.entity.*;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
+import org.apache.ibatis.reflection.property.PropertyNamer;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
@@ -41,6 +43,11 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * having 条件列表
      */
     private List<HavingBuild> havingBuildList = null;
+
+    /**
+     * 一对一构建
+     */
+    private OneToOneSelectBuild oneToOneSelectBuild = null;
 
     /**
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
@@ -98,6 +105,50 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         return typedThis;
     }
 
+    public final <P> JoinWrapper<T, J> oneToOneSelect(SFunction<P, ?> column, Consumer<ColumnsBuilder<T>> consumer) {
+        ColumnsBuilder<T> columnsBuilder = new ColumnsBuilder<>();
+        // 执行用户自定义定义
+        consumer.accept(columnsBuilder);
+
+        // 查询列
+        List<String> selectColumn = new ArrayList<>();
+
+        // 映射列
+        List<FieldMapping> belongsColumns = new ArrayList<>();
+
+        for (As<T> as : columnsBuilder.getColumnsBuilderList()) {
+            String columnAlias;
+            String columnNoAlias = "";
+            if (as.getColumn() != null) {
+                // 获取序列化后的列明
+                String columnToStringNoAlias = columnToStringNoAlias(as.getColumn());
+                columnNoAlias = columnToStringNoAlias;
+                columnAlias = getAliasAndField(columnToStringNoAlias);
+            } else {
+                columnAlias = StringUtils.quotaMark(column);
+            }
+
+            if (StringUtils.isNotBlank(as.getAlias())) {
+                columnNoAlias = as.getAlias();
+                columnAlias = String.format(SqlExcerpt.AS.getSql(), columnAlias, as.getAlias());
+            }
+            belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName()));
+            selectColumn.add(columnAlias);
+        }
+
+        selectAs(selectColumn);
+
+        // 获取字段名
+        String fieldName = PropertyNamer.methodToProperty(LambdaUtils.extract(column).getImplMethodName());
+
+        this.oneToOneSelectBuild = OneToOneSelectBuild
+                .builder()
+                .oneToOneField(fieldName)
+                .belongsColumns(belongsColumns)
+                .build();
+
+        return typedThis;
+    }
 
     /**
      * 过滤查询的字段信息(主键除外!)
@@ -136,6 +187,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     public void clear() {
         super.clear();
         wrapper = null;
+        oneToOneSelectBuild = null;
         sqlJoin.clear();
         sqlSelect.toNull();
     }
@@ -269,6 +321,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         wrapper.setGroupBy(expression.getGroupBy());
         wrapper.setHaving(havingBuildList);
         wrapper.setLastSql(lastSql);
+        wrapper.setOneToOneSelect(this.oneToOneSelectBuild);
         lastSql.toEmpty();
         expression.getOrderBy().clear();
         expression.getHaving().clear();

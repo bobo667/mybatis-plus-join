@@ -51,7 +51,7 @@ public class TableInfoExt {
         }
 
         String newKeyProperty = newPrefix + tableInfo.getKeyProperty();
-        String keySqlScript = tableInfo.getKeyColumn() + EQUALS + SqlScriptUtils.safeParam(newKeyProperty);
+        String keySqlScript = TableFieldInfoExt.getAliasColumn(tableInfo.getKeyColumn()) + EQUALS + SqlScriptUtils.safeParam(newKeyProperty);
         return SqlScriptUtils.convertIf(keySqlScript, String.format("%s != null", newKeyProperty), false)
                 + NEWLINE + filedSqlScript;
     }
