@@ -8,11 +8,11 @@ import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.*;
 import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
-import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
 import icu.mhb.mybatisplus.plugln.entity.*;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
+import lombok.SneakyThrows;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 
 import java.util.ArrayList;
@@ -48,6 +48,11 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * 一对一构建
      */
     private OneToOneSelectBuild oneToOneSelectBuild = null;
+
+    /**
+     * 多对多构建
+     */
+    private ManyToManySelectBuild manyToManySelectBuild = null;
 
     /**
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
@@ -100,12 +105,51 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @Override
     public final JoinWrapper<T, J> select(SFunction<T, ?>... columns) {
         if (ArrayUtils.isNotEmpty(columns)) {
-            this.sqlSelect.setStringValue(columnsToString(false, columns));
+            this.sqlSelect.setStringValue(columnsToString(false, true, columns));
         }
         return typedThis;
     }
 
-    public final <P> JoinWrapper<T, J> oneToOneSelect(SFunction<P, ?> column, Consumer<ColumnsBuilder<T>> consumer) {
+    @SneakyThrows
+    public <P> JoinWrapper<T, J> manyToManySelect(SFunction<P, ?> column, Class<?> manyToManyClass, Consumer<ColumnsBuilder<T>> consumer) {
+
+        List<FieldMapping> belongsColumns = buildFiles(column, consumer);
+
+        LambdaMeta lambdaMeta = LambdaUtils.extract(column);
+        // 获取字段名
+        String fieldName = PropertyNamer.methodToProperty(lambdaMeta.getImplMethodName());
+
+        this.manyToManySelectBuild = ManyToManySelectBuild
+                .builder()
+                .manyToManyField(fieldName)
+                .manyToManyPropertyType(lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getType())
+                .belongsColumns(belongsColumns)
+                .manyToManyClass(manyToManyClass)
+                .build();
+
+        return typedThis;
+    }
+
+    @SneakyThrows
+    public <P> JoinWrapper<T, J> oneToOneSelect(SFunction<P, ?> column, Consumer<ColumnsBuilder<T>> consumer) {
+
+        List<FieldMapping> belongsColumns = buildFiles(column, consumer);
+
+        LambdaMeta lambdaMeta = LambdaUtils.extract(column);
+        // 获取字段名
+        String fieldName = PropertyNamer.methodToProperty(lambdaMeta.getImplMethodName());
+
+        this.oneToOneSelectBuild = OneToOneSelectBuild
+                .builder()
+                .oneToOneField(fieldName)
+                .belongsColumns(belongsColumns)
+                .oneToOneClass(lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getType())
+                .build();
+
+        return typedThis;
+    }
+
+    private <P> List<FieldMapping> buildFiles(SFunction<P, ?> column, Consumer<ColumnsBuilder<T>> consumer) {
         ColumnsBuilder<T> columnsBuilder = new ColumnsBuilder<>();
         // 执行用户自定义定义
         consumer.accept(columnsBuilder);
@@ -121,7 +165,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
             String columnNoAlias = "";
             if (as.getColumn() != null) {
                 // 获取序列化后的列明
-                String columnToStringNoAlias = columnToStringNoAlias(as.getColumn());
+                String columnToStringNoAlias = columnToStringNoAlias(as.getColumn(), false);
                 columnNoAlias = columnToStringNoAlias;
                 columnAlias = getAliasAndField(columnToStringNoAlias);
             } else {
@@ -137,17 +181,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         }
 
         selectAs(selectColumn);
-
-        // 获取字段名
-        String fieldName = PropertyNamer.methodToProperty(LambdaUtils.extract(column).getImplMethodName());
-
-        this.oneToOneSelectBuild = OneToOneSelectBuild
-                .builder()
-                .oneToOneField(fieldName)
-                .belongsColumns(belongsColumns)
-                .build();
-
-        return typedThis;
+        return belongsColumns;
     }
 
     /**
@@ -301,8 +335,8 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         String masterTableAlias = getAlias(masterTableClass);
 
         // 获取字段名字
-        String joinColumn = getColumn(joinTableResolve, true);
-        String masterColumn = getColumn(masterTableResolve, true);
+        String joinColumn = getColumn(joinTableResolve, true, false);
+        String masterColumn = getColumn(masterTableResolve, true, false);
 
         SharedString sharedString = SharedString.emptyString();
         sharedString.setStringValue(String.format(sqlExcerpt.getSql(), joinTableInfo.getTableName(), joinTableAlias, joinTableAlias, joinColumn, masterTableAlias, masterColumn));
@@ -322,6 +356,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         wrapper.setHaving(havingBuildList);
         wrapper.setLastSql(lastSql);
         wrapper.setOneToOneSelect(this.oneToOneSelectBuild);
+        wrapper.setManyToManySelect(this.manyToManySelectBuild);
         lastSql.toEmpty();
         expression.getOrderBy().clear();
         expression.getHaving().clear();

@@ -12,7 +12,9 @@ import com.baomidou.mybatisplus.core.toolkit.*;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
+import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
 import icu.mhb.mybatisplus.plugln.entity.HavingBuild;
+import icu.mhb.mybatisplus.plugln.entity.ManyToManySelectBuild;
 import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
 import lombok.Getter;
 
@@ -62,6 +64,12 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     private List<OneToOneSelectBuild> oneToOneSelectBuildList = null;
 
     /**
+     * 多对多 构建列表
+     */
+    @Getter
+    private List<ManyToManySelectBuild> manyToManySelectBuildList = null;
+
+    /**
      * 判断SQL是否缓存过
      */
     private boolean sqlCacheFlag;
@@ -70,6 +78,12 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      * SQL缓存
      */
     private SharedString sqlCache = new SharedString();
+
+    /**
+     * 查询的字段映射列表
+     */
+    private List<FieldMapping> fieldMappingList = new ArrayList<>();
+
 
     /**
      * 查询字段是否缓存过
@@ -131,7 +145,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     @Override
     public final JoinLambdaWrapper<T> select(SFunction<T, ?>... columns) {
         if (ArrayUtils.isNotEmpty(columns)) {
-            this.sqlSelect.setStringValue(columnsToString(false, columns));
+            this.sqlSelect.setStringValue(columnsToString(false, true, columns));
         }
         return typedThis;
     }
@@ -412,6 +426,19 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         oneToOneSelectBuildList.add(oneToOneSelect);
     }
 
+    void setManyToManySelect(ManyToManySelectBuild manyToManySelect) {
+
+        if (null == manyToManySelect) {
+            return;
+        }
+
+        if (null == manyToManySelectBuildList) {
+            manyToManySelectBuildList = new ArrayList<>();
+        }
+
+        manyToManySelectBuildList.add(manyToManySelect);
+    }
+
     /**
      * 获取join SQL语句
      *
@@ -437,6 +464,15 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     protected void initNeed() {
         super.initNeed();
         final Class<T> entityClass = getEntityClass();
+    }
+
+    @Override
+    protected void setFieldMappingList(String fileName, String columns) {
+        fieldMappingList.add(new FieldMapping(columns, fileName));
+    }
+
+    public List<FieldMapping> getFieldMappingList() {
+        return this.fieldMappingList;
     }
 
 }

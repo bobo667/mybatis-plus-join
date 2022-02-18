@@ -14,20 +14,25 @@ import java.util.List;
  */
 @Data
 @Builder
-public class OneToOneSelectBuild {
+public class ManyToManySelectBuild {
 
     /**
-     * 一对一所属字段名
+     * 多对多所属字段名
      */
-    private String oneToOneField;
+    private String manyToManyField;
 
     /**
-     * 一对一所属类
+     * 多对多所属类
      */
-    private Class<?> oneToOneClass;
+    private Class<?> manyToManyClass;
 
     /**
-     * 所属列列表
+     * 多对多属性类型
+     */
+    private Class<?> manyToManyPropertyType;
+
+    /**
+     * 多对多所属列列表
      */
     private List<FieldMapping> belongsColumns;
 

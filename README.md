@@ -1,11 +1,21 @@
 # mybatis-plus-join
 
-mybatis plus的一个多表插件，上手简单，只要会用mp就会用这个插件，仅仅依赖了lombok和fastJson，而且是扩展mp的构造器并非更改原本的构造器，不会对原有项目产生一点点影响，相信大多数项目都有这俩插件，四舍五入就是没依赖。
-
+mybatis-plus-join是mybatis plus的一个多表插件，上手简单，十分钟不到就能学会全部使用方式，只要会用mp就会用这个插件，仅仅依赖了lombok，而且是扩展mp的构造器并非更改原本的构造器，不会对原有项目产生一点点影响，相信大多数项目都有这俩插件，四舍五入就是没依赖。
 
 mybatis-plus-join示例：**
 **gitee: https://gitee.com/mhb0409/mybatis-plus-join-example**
 **github: https://github.com/bobo667/mybatis-plus-join-example**
+
+
+
+### 关于该插件的一点问题
+
+1. 出现了bug怎么办，不是mybatis plus官方的会不会不稳定啊？ 这个大可以放心，这个插件我已经在生产环境跑了半年多了，没出过什么问题，如果遇到问题可以在 Issues 上提出，我看见就会解决，上午提的，不忙的话下午就能打包新版本，忙的话大概就需要晚上就差不多了
+2. 关于维护到啥时候？mybatis plus不倒我不倒（当然，如果长期没有star，哪怕是我得先倒了，还是那，您的star就是作者更新的动力，手动ღ( ´･ᴗ･` )比心）
+3. 有什么有想法的新功能啊，或者改善啊，可以在Issues 上提出
+4. 如果想联系作者，可以在wx上搜索小程序 **马汇博的博客 **在关于我中有微信号，欢迎来扰
+
+
 
 **目前支持大部分mp常用版本**
 
@@ -27,19 +37,90 @@ mybatis plus：3.2.0版本依赖地址：
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.8</version>
  </dependency>
 ```
 
 
 
-版本对应关系（此处只显示对应的最新版本）
+## 版本对应关系（此处只显示对应的最新版本）
 
-| Mybatis-plus | Mybatis-plus-join           |
-| ------------ | --------------------------- |
-| 3.2.0        | 1.2.0                       |
-| 3.3.1 - 3.42 | 1.0.2                       |
-| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6 |
+> 标注：*号代表，从起始版本之后都是可以使用的
+
+| Mybatis-plus | Mybatis-plus-join                  |
+| ------------ | ---------------------------------- |
+| 3.2.0        | 1.2.0                              |
+| 3.3.1 - 3.42 | 1.0.2                              |
+| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8 |
+
+
+
+
+
+## 版本日志
+
+### 1.0.1 版本
+
+1.初始化项目 mybatis-plus-join项目诞生
+
+### 1.0.2 版本
+
+1.优化了selectAs()方法，支持函数简洁式写法
+
+2.增加了缓存优化性能
+
+### 1.0.3 版本
+
+1.支持3.4.3.4版本
+
+2.增加根据传入实体不为空的数据查询
+
+3.优化了代码逻辑
+
+4.增加notDefaultSelectAll() 不默认查询主表全部的字段
+
+
+
+### 1.0.4 版本
+
+1.支持查询单个参数时候返回单个参数，例如List<String> String
+
+2.优化转换类型的方式
+
+
+
+### 1.0.5 版本
+
+1.修复在没有条件下order 排序失效的问题
+
+
+
+### 1.0.6 版本
+
+1.修复实体条件为主键ID的时候没有加别名问题
+
+2.增加返回值支持一对一查询
+
+
+
+### 1.0.8 版本
+
+1.增加了多对多映射
+2.去掉了fastJSON依赖
+3.更改serviceImpl动态返回类型的处理方式，采用更优的插件式注入方式
+这次终于去掉了总是说的fastJSON依赖，现在采用动态注入resultMap方式，来构建普通多表，一对一，多对多查询，采用插件式懒加载 + 缓存机制，启动时间无影响，使用加载一下就可以直接从缓存调用，保证不影响使用中的效率。
+
+
+
+### 其他版本
+
+#### 1.2.0 版本
+
+1.支持了3.2.0 版本
+
+
+
+
 
 
 
@@ -100,60 +181,6 @@ mybatis plus：3.2.0版本依赖地址：
 `joinPage -> page`
 
 **注意：这几个方法，前面俩参数和mp的用法一致，最后一个class类型的是返回类型，这个主要是大多数多表操作都是需要有额外字段，所以需要额外定义，而Wrapper<E> wrapper中的这个需要填写在需要构建条件的实体，这个实体是任意的，不强制，创建条件构造器的时候定义的那个对象就是主表**
-
-
-
-## 版本日志
-
-### 1.0.1 版本
-
-1.初始化项目 mybatis-plus-join项目诞生
-
-### 1.0.2 版本
-
-1.优化了selectAs()方法，支持函数简洁式写法
-
-2.增加了缓存优化性能
-
-### 1.0.3 版本
-
-1.支持3.4.3.4版本
-
-2.增加根据传入实体不为空的数据查询
-
-3.优化了代码逻辑
-
-4.增加notDefaultSelectAll() 不默认查询主表全部的字段
-
-
-
-### 1.0.4 版本
-
-1.支持查询单个参数时候返回单个参数，例如List<String> String
-
-2.优化转换类型的方式
-
-
-
-### 1.0.5 版本
-
-1.修复在没有条件下order 排序失效的问题
-
-
-
-### 1.0.6 版本
-
-1.修复实体条件为主键ID的时候没有加别名问题
-
-2.增加返回值支持一对一查询
-
-
-
-### 其他版本
-
-#### 1.2.0 版本
-
-1.支持了3.2.0 版本
 
 
 
@@ -258,11 +285,10 @@ OK，来点丝滑的加料用法
         .oneToOneSelect(UsersVo::getUsersAge, (cb) -> {
              cb.add(UsersAge::getAgeDoc, UsersAge::getAgeName)
                /* 
-              当你出现两个实体类映射字段相同，例如 user实体中有个字段id，userAge表中也有个字段id，
-              你想要同时获取这两个字段，这时候则可以使用
+              当你出现两个实体类映射字段相同，例如 user实体中有个字段id，userAge表中也有个字段id，你									想要同时获取这两个字段，这时候则可以使用
                |column : 查询字段
                |alias  : 别名
-			   |fieldName : 字段名称
+							 |fieldName : 字段名称
                add(SFunction<T, ?> column, String alias, SFunction<F, ?> fieldName)
                */
                .add(UsersAge::getId, "ageId", UsersAge::getId);
@@ -293,6 +319,42 @@ FROM users users
 
 
 
+```
+
+
+
+
+
+### 多对多查询映射
+
+```java
+JoinLambdaWrapper<UsersAge> wrapper = joinLambdaQueryWrapper(UsersAge.class);
+
+wrapper.leftJoin(Users.class, Users::getAgeId, UsersAge::getId)
+  			// manyToManySelect 多对多，对应的就是 mybatis中的resultMap中的collection标签
+  			// 该方法第一个参数代表的是需要映射到的实体类字段
+        // 第二个参数代表list中的实体类型 例如 List<Users> 这里的实体类型就是Users
+  			// 第三个就是要查询的字段
+        .manyToManySelect(UsersAgesVo::getUsersList, Users.class, (cb) -> {
+           cb.add(Users::getUserName, Users::getUserId, Users::getCreateTime);
+         }).end();
+return super.joinList(wrapper, UsersAgesVo.class);
+
+// 执行SQL
+SELECT 		   
+ users_age.age_doc,users_age.age_name,users_age.id,users.user_name,users.user_id,users.create_time
+FROM users_age AS users_age
+	LEFT JOIN users AS users ON users.age_id = users_age.id;
+
+// 返回数据
+[
+  {"ageDoc":"90","ageName":"90","id":1,
+   "usersList":[
+     {"createTime":1635416270000,"userId":1,"userName":"名字啊"},
+     {"createTime":1635416270000,"userId":2,"userName":"名字2"}
+   ]
+  }
+]
 ```
 
 
@@ -346,7 +408,7 @@ wrapper.eq(UserAge::getAgeName,"95")
 wrapper.end();
 
 // 执行查询
-usersService.joinList(wrapper);
+usersService.joinList(wrapper,UsersVo.class);
 
 // 执行SQL 
 select 
@@ -384,7 +446,7 @@ wrapper.eq(UserAge::getAgeName,"95")
 wrapper.end();
 
 // 执行查询
-usersService.joinList(wrapper);
+usersService.joinList(wrapper,UsersVo.class);
 
 // 执行SQL 
 select 
@@ -417,7 +479,7 @@ wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
   	.selectAs(UserAge::getAgeName,"user_age_name")
   	.end();
 // 执行查询
-usersService.joinList(wrapper);
+usersService.joinList(wrapper,UsersVo.class);
 
 // 执行SQL 
 select 

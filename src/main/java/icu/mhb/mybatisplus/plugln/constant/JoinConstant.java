@@ -34,4 +34,9 @@ public final class JoinConstant {
      */
     public static final String MP_PARAMS_NAME = Constants.WRAPPER + ".paramNameValuePairs";
 
+    /**
+     * mapper class参数名
+     */
+    public static final String CLASS_PARAMS_NAME = "returnClassType0000000001111";
+
 }

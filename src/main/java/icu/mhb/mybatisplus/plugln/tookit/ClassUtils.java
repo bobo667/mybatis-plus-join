@@ -1,5 +1,9 @@
 package icu.mhb.mybatisplus.plugln.tookit;
+import com.baomidou.mybatisplus.core.toolkit.ReflectionKit;
 import icu.mhb.mybatisplus.plugln.annotations.MasterTable;
+
+import java.lang.reflect.Field;
+import java.util.Optional;
 
 /**
  * @author mahuibo
@@ -28,6 +32,16 @@ public final class ClassUtils {
             return masterTable.value();
         }
         return clz;
+    }
+
+    public static Field getDeclaredField(Class<?> clz, String name) {
+        Field field = ReflectionKit.getFieldMap(clz).get(name);
+
+        if (field == null) {
+            throw new RuntimeException("获取【" + clz.getName() + "】中的属性【" + name + "】失败，请检查返回对象中是否存在！");
+        }
+
+        return field;
     }
 
 

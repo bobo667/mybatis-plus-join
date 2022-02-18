@@ -54,20 +54,24 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
 
     @SuppressWarnings("unchecked")
     protected String columnsToString(boolean onlyColumn, SFunction<T, ?>... columns) {
-        return Arrays.stream(columns).map(i -> columnToString(i, onlyColumn)).collect(joining(StringPool.COMMA));
+        return Arrays.stream(columns).map(i -> columnToString(i, onlyColumn, false)).collect(joining(StringPool.COMMA));
+    }
+
+    protected String columnsToString(boolean onlyColumn, boolean saveType, SFunction<T, ?>... columns) {
+        return Arrays.stream(columns).map(i -> columnToString(i, onlyColumn, saveType)).collect(joining(StringPool.COMMA));
     }
 
     @Override
     protected String columnToString(SFunction<T, ?> column) {
-        return columnToString(column, true);
+        return columnToString(column, true, false);
     }
 
-    protected String columnToStringNoAlias(SFunction<T, ?> column) {
-        return getColumn(LambdaUtils.extract(column), true);
+    protected String columnToStringNoAlias(SFunction<T, ?> column, boolean saveType) {
+        return getColumn(LambdaUtils.extract(column), true, saveType);
     }
 
-    protected String columnToString(SFunction<T, ?> column, boolean onlyColumn) {
-        String columnToString = getColumn(LambdaUtils.extract(column), onlyColumn);
+    protected String columnToString(SFunction<T, ?> column, boolean onlyColumn, boolean saveType) {
+        String columnToString = getColumn(LambdaUtils.extract(column), true, saveType);
         if (StringUtils.isNotBlank(columnToString)) {
             return getAliasAndField(columnToString);
         }
@@ -77,26 +81,30 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
     /**
      * 获取当前类的所有查询字段
      */
-    public final Children selectAll() {
+    public Children selectAll() {
 
-        Class<?> clz = getEntityOrMasterClass();
-
-        Assert.notNull(clz, "Can't get the current parser class");
-
-        TableInfo tableInfo = TableInfoHelper.getTableInfo(clz);
-        String keySqlSelect = tableInfo.getKeySqlSelect();
-        String sqlSelect = tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect)
-                .map(TableFieldInfo::getSqlSelect)
-                .map(this::getAliasAndField)
-                .collect(joining(COMMA));
-
-        // 不为空代表有主键
-        if (StringUtils.isNotBlank(keySqlSelect)) {
-            sqlSelect += COMMA + getAliasAndField(keySqlSelect);
-        }
-
-        this.sqlSelect.setStringValue(sqlSelect);
-        return typedThis;
+//        Class<?> clz = getEntityOrMasterClass();
+//
+//        Assert.notNull(clz, "Can't get the current parser class");
+//
+//        TableInfo tableInfo = TableInfoHelper.getTableInfo(clz);
+//        String sqlSelect = tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect)
+//                .map(TableFieldInfo::getSqlSelect)
+//                .map(this::getAliasAndField)
+//                .collect(joining(COMMA));
+//
+//        tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect)
+//                .forEach(tableFieldInfo -> setFieldMappingList(tableFieldInfo.getProperty(), tableFieldInfo.getColumn()))
+//
+//        // 不为空代表有主键
+//        if (tableInfo.havePK()) {
+//            String keySqlSelect = tableInfo.getKeyColumn();
+//            sqlSelect += COMMA + getAliasAndField(keySqlSelect);
+//            setFieldMappingList(tableInfo.getKeyProperty(), tableInfo.getKeyColumn());
+//        }
+//
+//        this.sqlSelect.setStringValue(sqlSelect);
+        return selectAll(new ArrayList<>());
     }
 
     /**
@@ -105,14 +113,14 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      * @param excludeColumn 需要排除的字段
      * @return Children
      */
-    public final Children selectAll(Collection<SFunction<T, ?>> excludeColumn) {
+    public Children selectAll(Collection<SFunction<T, ?>> excludeColumn) {
 
         Class<?> clz = getEntityOrMasterClass();
 
         Assert.notNull(clz, "Can't get the current parser class");
 
         // 需要排除的字段列表
-        List<String> excludeList = excludeColumn.stream().map(i -> columnToString(i, true)).collect(Collectors.toList());
+        List<String> excludeList = excludeColumn.stream().map(i -> columnToString(i, true, false)).collect(Collectors.toList());
 
         TableInfo tableInfo = TableInfoHelper.getTableInfo(clz);
         String sqlSelect = tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect)
@@ -120,6 +128,21 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
                 .map(this::getAliasAndField)
                 .filter(str -> !excludeList.contains(str))
                 .collect(joining(COMMA));
+
+        tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect)
+                .filter(tableFieldInfo -> !excludeList.contains(getAliasAndField(tableFieldInfo.getSqlSelect())))
+                .forEach(tableFieldInfo -> setFieldMappingList(tableFieldInfo.getProperty(), tableFieldInfo.getColumn()));
+
+        // 不为空代表有主键
+        if (tableInfo.havePK()) {
+            String keySqlSelect = tableInfo.getKeyColumn();
+            String keyField = getAliasAndField(keySqlSelect);
+            if (!excludeList.contains(keyField)) {
+                sqlSelect += COMMA + getAliasAndField(keySqlSelect);
+                setFieldMappingList(tableInfo.getKeyProperty(), tableInfo.getKeyColumn());
+            }
+        }
+
         this.sqlSelect.setStringValue(sqlSelect);
         return typedThis;
     }
@@ -181,7 +204,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      * @param consumer 消费函数
      * @return Children
      */
-    public final Children selectAs(Consumer<ColumnsBuilder<T>> consumer) {
+    public Children selectAs(Consumer<ColumnsBuilder<T>> consumer) {
         ColumnsBuilder<T> columnsBuilder = new ColumnsBuilder<>();
         // 执行用户自定义定义
         consumer.accept(columnsBuilder);
@@ -196,7 +219,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      * @param columns 列
      * @return 子
      */
-    public final Children selectAs(List<String> columns) {
+    protected Children selectAs(List<String> columns) {
         if (CollectionUtils.isNotEmpty(columns)) {
             this.sqlSelect.setStringValue(
                     String.join(",", columns)
@@ -205,7 +228,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         return typedThis;
     }
 
-    public final Children selectAs(SFunction<T, ?> column, String alias) {
+    public Children selectAs(SFunction<T, ?> column, String alias) {
         return this.selectAs(getSelectColumn(Collections.singletonList(new As<>(column, alias))));
     }
 
@@ -222,9 +245,16 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
 
             if (as.getColumn() != null) {
                 // 获取序列化后的列明
-                column = columnToString(as.getColumn());
+                if (StringUtils.isNotBlank(as.getAlias())) {
+                    column = columnToString(as.getColumn(), true, false);
+                    setFieldMappingList(as.getAlias(), as.getAlias());
+                } else {
+                    column = columnToString(as.getColumn(), true, true);
+                }
+
             } else {
                 column = StringUtils.quotaMark(column);
+                setFieldMappingList(as.getAlias(), as.getAlias());
             }
 
             if (StringUtils.isNotBlank(as.getAlias())) {
@@ -242,11 +272,12 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      *
      * @param lambda     lambda 表达式
      * @param onlyColumn 如果是，结果: "name", 如果否： "name" as "name"
+     * @param saveField  是否保存到字段列表
      * @return 列
      * @throws MybatisPlusException 获取不到列信息时抛出异常
      * @see SerializedLambda#getImplMethodName()
      */
-    protected String getColumn(LambdaMeta lambda, boolean onlyColumn) throws MybatisPlusException {
+    protected String getColumn(LambdaMeta lambda, boolean onlyColumn, boolean saveField) throws MybatisPlusException {
         String fieldName = PropertyNamer.methodToProperty(lambda.getImplMethodName());
         Class<?> aClass = getTableClass(lambda.getInstantiatedClass());
         columnMap.computeIfAbsent(aClass, (key) -> LambdaUtils.getColumnMap(aClass));
@@ -254,7 +285,11 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         ColumnCache columnCache = columnMap.get(aClass).get(LambdaUtils.formatKey(fieldName));
         Assert.notNull(columnCache, "can not find lambda cache for this property [%s] of entity [%s]",
                        fieldName, aClass.getName());
-        return onlyColumn ? columnCache.getColumn() : columnCache.getColumnSelect();
+        String column = onlyColumn ? columnCache.getColumn() : columnCache.getColumnSelect();
+        if (saveField) {
+            setFieldMappingList(fieldName, column);
+        }
+        return column;
     }
 
 
@@ -291,6 +326,10 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
             columnMap.put(entityClass, LambdaUtils.getColumnMap(entityClass));
             initColumnMap = true;
         }
+    }
+
+    protected void setFieldMappingList(String fileName, String columns) {
+
     }
 
 

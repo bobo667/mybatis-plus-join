@@ -3,10 +3,10 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
+import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 用于 join连接所继承的基础mapper
@@ -24,7 +24,7 @@ public interface JoinBaseMapper<T> extends BaseMapper<T> {
      * @param <E>     适配各种传入类型
      * @return 返回包装类型的对象list
      */
-    <E> List<Map<String, Object>> joinSelectList(@Param(Constants.WRAPPER) Wrapper<E> wrapper);
+    <E, EV> List<EV> joinSelectList(@Param(Constants.WRAPPER) Wrapper<E> wrapper, @Param(JoinConstant.CLASS_PARAMS_NAME) Class<EV> clz);
 
     /**
      * 多表查询单个
@@ -33,7 +33,7 @@ public interface JoinBaseMapper<T> extends BaseMapper<T> {
      * @param <E>     传入类型
      * @return 返回包装类型的对象
      */
-    <E> Map<String, Object> joinSelectOne(@Param(Constants.WRAPPER) Wrapper<E> wrapper);
+    <E, EV> EV joinSelectOne(@Param(Constants.WRAPPER) Wrapper<E> wrapper, @Param(JoinConstant.CLASS_PARAMS_NAME) Class<EV> clz);
 
     /**
      * 多表查询count
@@ -53,7 +53,7 @@ public interface JoinBaseMapper<T> extends BaseMapper<T> {
      * @param <C>          传入Wrapper类型
      * @return E
      */
-    <E extends IPage<Map<String, Object>>, C> E joinSelectPage(E page, @Param(Constants.WRAPPER) Wrapper<C> queryWrapper);
+    <E extends IPage<EV>, EV, C> E joinSelectPage(E page, @Param(Constants.WRAPPER) Wrapper<C> queryWrapper, @Param(JoinConstant.CLASS_PARAMS_NAME) Class<EV> clz);
 
 
 }

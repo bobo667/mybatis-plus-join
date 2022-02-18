@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.8</version>
 
     <properties>
         <java.version>1.8</java.version>
@@ -167,14 +167,14 @@
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-boot-starter</artifactId>
-            <version>3.4.3.4</version>
+            <version>3.5.1</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-extension</artifactId>
-            <version>3.4.3.4</version>
+            <version>3.5.1</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
@@ -183,12 +183,6 @@
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
             <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>fastjson</artifactId>
-            <version>1.2.68</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 

@@ -1,10 +1,15 @@
 package icu.mhb.mybatisplus.plugln.entity;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
+import com.baomidou.mybatisplus.core.toolkit.ReflectionKit;
 import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+import icu.mhb.mybatisplus.plugln.tookit.EntityFieldCache;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import org.apache.ibatis.reflection.property.PropertyNamer;
+import org.springframework.util.ReflectionUtils;
 
 /**
  * @author mahuibo
@@ -34,17 +39,23 @@ public class As<T> {
      */
     String alias;
 
+    /**
+     * java类型
+     */
+    Class<?> javaType;
+
 
     /**
      * 不需要别名 使用字段的映射
      *
      * @param column 字段
      */
+    @SneakyThrows
     public As(SFunction<T, ?> column) {
         this.column = column;
-        this.alias = "";
-        this.fieldName = "";
+        this.fieldName = PropertyNamer.methodToProperty(LambdaUtils.extract(column).getImplMethodName());
         this.columnStr = "";
+        this.alias = "";
     }
 
     /**
@@ -55,8 +66,8 @@ public class As<T> {
      */
     public As(SFunction<T, ?> column, String alias) {
         this.column = column;
+        this.fieldName = PropertyNamer.methodToProperty(LambdaUtils.extract(column).getImplMethodName());
         this.alias = alias;
-        this.fieldName = "";
         this.columnStr = "";
     }
 
@@ -88,5 +99,21 @@ public class As<T> {
         this.columnStr = columnStr;
     }
 
+
+//    private void initFieldAndColumn(SFunction<T, ?> column, SFunction<T, ?> fieldName) {
+//        this.column = column;
+//        SFunction<T, ?> parsing = column;
+//        if (fieldName != null) {
+//            parsing = fieldName;
+//        }
+//        LambdaMeta lambdaMeta = LambdaUtils.extract(parsing);
+//        Class<?> metaInstantiatedClass = lambdaMeta.getInstantiatedClass();
+//        this.fieldName = PropertyNamer.methodToProperty(lambdaMeta.getImplMethodName());
+//        this.javaType = EntityFieldCache.computeIfAbsent(metaInstantiatedClass.getName() + this.fieldName, (v) -> ReflectionUtils.findField(metaInstantiatedClass, this.fieldName).getType());
+//    }
+//
+//    private void initFieldAndColumn(SFunction<T, ?> column) {
+//        initFieldAndColumn(column, null);
+//    }
 
 }
