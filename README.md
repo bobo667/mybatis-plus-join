@@ -2,9 +2,10 @@
 
 mybatis-plus-join是mybatis plus的一个多表插件，上手简单，十分钟不到就能学会全部使用方式，只要会用mp就会用这个插件，仅仅依赖了lombok，而且是扩展mp的构造器并非更改原本的构造器，不会对原有项目产生一点点影响，相信大多数项目都有这俩插件，四舍五入就是没依赖。
 
-mybatis-plus-join示例：**
-**gitee: https://gitee.com/mhb0409/mybatis-plus-join-example**
-**github: https://github.com/bobo667/mybatis-plus-join-example**
+mybatis-plus-join示例：
+
+> gitee: https://gitee.com/mhb0409/mybatis-plus-join-example
+> github: https://github.com/bobo667/mybatis-plus-join-example
 
 
 
@@ -13,7 +14,7 @@ mybatis-plus-join示例：**
 1. 出现了bug怎么办，不是mybatis plus官方的会不会不稳定啊？ 这个大可以放心，这个插件我已经在生产环境跑了半年多了，没出过什么问题，如果遇到问题可以在 Issues 上提出，我看见就会解决，上午提的，不忙的话下午就能打包新版本，忙的话大概就需要晚上就差不多了
 2. 关于维护到啥时候？mybatis plus不倒我不倒（当然，如果长期没有star，哪怕是我得先倒了，还是那，您的star就是作者更新的动力，手动ღ( ´･ᴗ･` )比心）
 3. 有什么有想法的新功能啊，或者改善啊，可以在Issues 上提出
-4. 如果想联系作者，可以在wx上搜索小程序 **马汇博的博客 **在关于我中有微信号，欢迎来扰
+4. 如果想联系作者，可以在wx上搜索小程序 <u>马汇博的博客</u>在关于我中有微信号，欢迎来扰
 
 
 
