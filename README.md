@@ -38,7 +38,7 @@ mybatis plus：3.2.0版本依赖地址：
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.0.8</version>
+    <version>1.0.9</version>
  </dependency>
 ```
 
@@ -48,11 +48,11 @@ mybatis plus：3.2.0版本依赖地址：
 
 > 标注：*号代表，从起始版本之后都是可以使用的
 
-| Mybatis-plus | Mybatis-plus-join                  |
-| ------------ | ---------------------------------- |
-| 3.2.0        | 1.2.0                              |
-| 3.3.1 - 3.42 | 1.0.2                              |
-| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8 |
+| Mybatis-plus | Mybatis-plus-join                         |
+| ------------ | ----------------------------------------- |
+| 3.2.0        | 1.2.0                                     |
+| 3.3.1 - 3.42 | 1.0.2                                     |
+| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9 |
 
 
 
@@ -116,7 +116,13 @@ mybatis plus：3.2.0版本依赖地址：
 
    这次终于去掉了总是说的fastJSON依赖，现在采用动态注入resultMap方式，来构建普通多表，一对一，多对多查询，采用插件式懒加载 + 缓存机制，启动时间无影响，使用加载一下就可以直接从缓存调用，保证不影响使用中的效率。
 
+### 1.0.9 版本
 
+1. 更改默认表、字段别名关键字As 为 空格
+
+2. 增加自定义表、字段别名关键字，在不同数据库中兼容
+
+   
 
 ### 其他版本
 
@@ -201,11 +207,10 @@ mybatis plus：3.2.0版本依赖地址：
 4.注入mp自定义方法，主要是继承JoinDefaultSqlInjector
 
 ```java
-package com.fk.zws.app.config;
+package icu.mhb.mpj.example.config;
 
 import com.baomidou.mybatisplus.core.injector.AbstractMethod;
-import com.fk.zws.toolkit.mp.injector.CustomizeSqlInjector;
-import com.fk.zws.toolkit.mp.plugIn.injector.JoinDefaultSqlInjector;
+import icu.mhb.mybatisplus.plugln.injector.JoinDefaultSqlInjector;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
@@ -225,6 +230,34 @@ public class MyBatisPlusConfig extends JoinDefaultSqlInjector {
 ```
 
 然后就可以愉快的使用了
+
+### 自定义查询字段和表别名关键字
+
+```java
+// 为何要这个东西，因为在不同数据库之间，别名关键字不一样，例如Mysql表别名是 As 而oracle中 是 is 关键字所以需要
+
+// 以oracle 关键字为例
+// 解释一下为什么要这样声明，因为注入器在启动的时候就进行初始化，所以这个构建需要在初始化之前，最简单的办法就是在注入MybatisPlusPropertiesCustomizer的地方进行实例化
+ @Bean
+public MybatisPlusPropertiesCustomizer plusPropertiesCustomizer() {
+      MybatisPlusJoinConfig.builder()
+                // 查询字段别名关键字
+                .columnAliasKeyword("as")
+                // 表、left join、right join、inner join 表别名关键字
+                .tableAliasKeyword("is")
+                .build();
+    return MybatisPlusProperties::getGlobalConfig;
+}
+
+// 运行的SQL
+SELECT 1 as id
+ FROM users is users
+ LEFT JOIN users_age is users_age
+ ON users_age.id = users.age_id
+
+```
+
+
 
 下面来看构造器的使用：
 

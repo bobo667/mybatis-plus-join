@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.entity.TableInfoExt;
+import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 
 /**
@@ -23,13 +24,14 @@ public abstract class JoinAbstractMethod extends AbstractMethod {
         this.table = new TableInfoExt(tableInfo);
     }
 
+
     /**
      * 获取join 别名后的表名
      *
      * @return 表名
      */
     protected String getJoinTableName() {
-        return String.format(JoinConstant.AS, table.getTableInfo().getTableName(), JoinConstant.TABLE_ALIAS_NAME);
+        return String.format(SqlExcerpt.TABLE_AS.getSql(), table.getTableInfo().getTableName(), JoinConstant.TABLE_ALIAS_NAME);
     }
 
     /**

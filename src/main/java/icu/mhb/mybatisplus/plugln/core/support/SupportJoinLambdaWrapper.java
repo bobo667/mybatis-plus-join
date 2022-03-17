@@ -258,7 +258,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
             }
 
             if (StringUtils.isNotBlank(as.getAlias())) {
-                column = String.format(SqlExcerpt.AS.getSql(), column, as.getAlias());
+                column = String.format(SqlExcerpt.COLUMNS_AS.getSql(), column, as.getAlias());
             }
             columnsStringList.add(column);
         }

@@ -174,7 +174,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
 
             if (StringUtils.isNotBlank(as.getAlias())) {
                 columnNoAlias = as.getAlias();
-                columnAlias = String.format(SqlExcerpt.AS.getSql(), columnAlias, as.getAlias());
+                columnAlias = String.format(SqlExcerpt.COLUMNS_AS.getSql(), columnAlias, as.getAlias());
             }
             belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName()));
             selectColumn.add(columnAlias);
