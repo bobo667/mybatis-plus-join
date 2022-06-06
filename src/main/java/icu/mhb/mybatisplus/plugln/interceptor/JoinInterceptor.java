@@ -1,5 +1,6 @@
 package icu.mhb.mybatisplus.plugln.interceptor;
 
+import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.core.toolkit.StringPool;
@@ -122,9 +123,19 @@ public class JoinInterceptor implements Interceptor {
         Configuration configuration = ms.getConfiguration();
         String id = ms.getId() + StringPool.UNDERSCORE + joinLambdaWrapper.getSqlSelect();
 
-        // 如果返回类型是基础类型或者包装类型，就直接返回基础映射
-        if (PropertyType.hasBaseType(classType)) {
+        // 如果返回类型是基础类型或者包装类型，就直接返回基础映射，或者是map类型
+        if (PropertyType.hasBaseType(classType) || classType.equals(Map.class)) {
             return new ResultMap.Builder(configuration, id, classType, Lists.newArrayList(0)).build();
+        }
+
+        Class<?>[] interfaces = classType.getInterfaces();
+        if (ArrayUtils.isNotEmpty(interfaces)) {
+            for (Class<?> aClass : interfaces) {
+                // 代表是map类型
+                if (aClass.equals(Map.class)) {
+                    return new ResultMap.Builder(configuration, id, classType, Lists.newArrayList(0)).build();
+                }
+            }
         }
 
         if (configuration.hasResultMap(id)) {
@@ -172,7 +183,6 @@ public class JoinInterceptor implements Interceptor {
 
         return resultMap;
     }
-
 
     /**
      * 构建结果集映射

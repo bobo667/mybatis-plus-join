@@ -38,7 +38,7 @@ mybatis plus：3.2.0版本依赖地址：
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.0.9</version>
+    <version>1.1.1</version>
  </dependency>
 ```
 
@@ -48,11 +48,11 @@ mybatis plus：3.2.0版本依赖地址：
 
 > 标注：*号代表，从起始版本之后都是可以使用的
 
-| Mybatis-plus | Mybatis-plus-join                         |
-| ------------ | ----------------------------------------- |
-| 3.2.0        | 1.2.0                                     |
-| 3.3.1 - 3.42 | 1.0.2                                     |
-| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9 |
+| Mybatis-plus | Mybatis-plus-join                                |
+| ------------ | ------------------------------------------------ |
+| 3.2.0        | 1.2.0                                            |
+| 3.3.1 - 3.42 | 1.0.2                                            |
+| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1 |
 
 
 
@@ -124,15 +124,23 @@ mybatis plus：3.2.0版本依赖地址：
 
    
 
+### 1.1.1 版本
+
+1. 修复在添加逻辑删除的时候SQL报错问题
+
+2. 返回类型支持Map类型
+
+3. 增加主表和子表自定义别名，方便多个相同子表对应一个主表
+
+   
+
+   这次更新解决了目前使用的一些特殊场景下的缺陷问题，使用的更灵活了
+
 ### 其他版本
 
 #### 1.2.0 版本
 
 1.支持了3.2.0 版本
-
-
-
-
 
 
 
@@ -231,7 +239,7 @@ public class MyBatisPlusConfig extends JoinDefaultSqlInjector {
 
 然后就可以愉快的使用了
 
-### 自定义查询字段和表别名关键字
+## 自定义查询字段和表别名关键字
 
 ```java
 // 为何要这个东西，因为在不同数据库之间，别名关键字不一样，例如Mysql表别名是 As 而oracle中 是 is 关键字所以需要
@@ -309,6 +317,35 @@ where (
 ## 加料用法
 
 OK，来点丝滑的加料用法
+
+### 自定义别名和返回map类型
+
+```java
+// 两个参数代表自定义别名
+JoinLambdaWrapper<Users> wrapper = joinLambdaQueryWrapper(Users.class, "userMaster");
+
+wrapper
+       .select(Users::getUserId, Users::getUserName)
+  		// leftJoin innerJoin rightJoin 三个参数代表使用默认别名，四个参数代表使用自定义别名
+       .leftJoin(UsersAge.class, UsersAge::getId, Users::getAgeId, "u_age")
+       .select(UsersAge::getAgeDoc).end()
+       .leftJoin(UsersAge.class, UsersAge::getId, Users::getAgeId, "u_a")
+       .select(UsersAge::getAgeName).end();
+
+// 需要注意的是当返回参数为map的时候是没有下划线转驼峰的，如果需要请自行配置mybatis的下划线转驼峰
+List<Map> dataList = super.joinList(wrapper, Map.class);
+
+// SQL
+SELECT
+	userMaster.user_id,
+	userMaster.user_name,
+	u_age.age_doc,
+	u_a.age_name 
+FROM
+	users AS userMaster
+	LEFT JOIN users_age AS u_age ON u_age.id = userMaster.age_id
+	LEFT JOIN users_age AS u_a ON u_a.id = userMaster.age_id;
+```
 
 
 

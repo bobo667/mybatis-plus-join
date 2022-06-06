@@ -57,8 +57,8 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     /**
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
      */
-    public JoinWrapper(JoinLambdaWrapper<J> wrapper) {
-        this((T) null, wrapper);
+    JoinWrapper(JoinLambdaWrapper<J> wrapper) {
+        this(null, wrapper);
     }
 
     /**
@@ -73,9 +73,18 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     /**
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
      */
-    JoinWrapper(Class<T> entityClass, JoinLambdaWrapper<J> wrapper) {
+    JoinWrapper(Class<T> entityClass, JoinLambdaWrapper<J> wrapper, String alias) {
         super.setEntityClass(entityClass);
         super.initNeed();
+        if (CollectionUtils.isNotEmpty(wrapper.getAliasMap())) {
+            wrapper.getAliasMap().forEach((k, v) -> aliasMap.put(k, v));
+        }
+        if (StringUtils.isBlank(alias)) {
+            aliasMap.remove(entityClass);
+        } else {
+            aliasMap.put(entityClass, alias);
+        }
+
         this.wrapper = wrapper;
     }
 
@@ -221,7 +230,9 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     public void clear() {
         super.clear();
         wrapper = null;
+        aliasMap.clear();
         oneToOneSelectBuild = null;
+        manyToManySelectBuild = null;
         sqlJoin.clear();
         sqlSelect.toNull();
     }
@@ -343,6 +354,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         sqlJoin.add(sharedString);
     }
 
+
     /**
      * join 句子结束
      *
@@ -350,6 +362,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      */
     public JoinLambdaWrapper<J> end() {
         wrapper.setJoinSelect(sqlSelect);
+        wrapper.setAliasMap(aliasMap);
         wrapper.setJoinSql(sqlJoin);
         wrapper.setOrderBy(expression.getOrderBy());
         wrapper.setGroupBy(expression.getGroupBy());

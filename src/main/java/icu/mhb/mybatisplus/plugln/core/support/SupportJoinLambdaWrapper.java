@@ -16,6 +16,7 @@ import icu.mhb.mybatisplus.plugln.entity.ColumnsBuilder;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 import icu.mhb.mybatisplus.plugln.tookit.TableAliasCache;
+import lombok.Getter;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 
 import java.util.*;
@@ -41,6 +42,9 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      * 查询字段
      */
     protected SharedString sqlSelect = SharedString.emptyString();
+
+    @Getter
+    protected Map<Class<?>, String> aliasMap = new HashMap<>();
 
     private Map<Class<?>, Map<String, ColumnCache>> columnMap = new HashMap<>();
 
@@ -147,6 +151,17 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         return typedThis;
     }
 
+    /**
+     * 存入自定义别名
+     *
+     * @param alias 别名
+     * @return Children
+     */
+    protected Children setAlias(String alias) {
+        aliasMap.put(getEntityOrMasterClass(), alias);
+        return typedThis;
+    }
+
 
     /**
      * 获取类别名
@@ -161,6 +176,12 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         }
 
         Assert.notNull(clz, "Can't get the current parser class");
+
+        // 自定义别名
+        String aliasCache = aliasMap.get(clz);
+        if (StringUtils.isNotBlank(aliasCache)) {
+            return aliasCache;
+        }
 
         clz = getTableClass(clz);
 
@@ -291,7 +312,6 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         }
         return column;
     }
-
 
     /**
      * 获取表对应的class  主要用于 vo dto这种对应实体

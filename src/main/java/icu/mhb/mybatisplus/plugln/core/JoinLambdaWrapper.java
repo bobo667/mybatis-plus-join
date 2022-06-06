@@ -7,15 +7,13 @@ import com.baomidou.mybatisplus.core.conditions.segments.GroupBySegmentList;
 import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
 import com.baomidou.mybatisplus.core.conditions.segments.OrderBySegmentList;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
+import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.*;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
-import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
-import icu.mhb.mybatisplus.plugln.entity.HavingBuild;
-import icu.mhb.mybatisplus.plugln.entity.ManyToManySelectBuild;
-import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
+import icu.mhb.mybatisplus.plugln.entity.*;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -104,15 +102,26 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     /**
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
      */
+    public JoinLambdaWrapper(T entity, String alias) {
+        super.setEntity(entity);
+        this.initNeed();
+        setAlias(alias);
+    }
+
     public JoinLambdaWrapper(T entity) {
         super.setEntity(entity);
         this.initNeed();
     }
 
-
     /**
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
      */
+    public JoinLambdaWrapper(Class<T> entityClass, String alias) {
+        super.setEntityClass(entityClass);
+        this.initNeed();
+        setAlias(alias);
+    }
+
     public JoinLambdaWrapper(Class<T> entityClass) {
         super.setEntityClass(entityClass);
         this.initNeed();
@@ -256,9 +265,12 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         // 判断连表SQL是否为空
         boolean conditionSqlIsNotEmpty = CollectionUtils.isNotEmpty(joinConditionSql);
 
-        // 如果SQL不为空或者实体不为空就是会创建where字句 否则需要自己手动创建
-        if ((sqlIsBlank && !nonEmptyOfEntity) && conditionSqlIsNotEmpty) {
+        TableInfo tableInfo = TableInfoHelper.getTableInfo(getEntityClass());
+        // 如果SQL不为空或者实体不为空就是会创建where字句 否则需要自己手动创建,并且不开启逻辑删除
+        if ((sqlIsBlank && !nonEmptyOfEntity) && conditionSqlIsNotEmpty && !tableInfo.isWithLogicDelete()) {
             sqlBuilder.append(Constants.WHERE);
+        } else if ((sqlIsBlank && !nonEmptyOfEntity) && conditionSqlIsNotEmpty && tableInfo.isWithLogicDelete()) {
+            sqlBuilder.append(Constants.AND);
         } else if (conditionSqlIsNotEmpty && nonEmptyOfEntity && sqlIsBlank) {
             sqlBuilder.append(Constants.AND);
         }
@@ -308,19 +320,35 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      * @return JoinWrapper join条件
      */
     public <J> JoinWrapper<J, T> join(Class<J> clz) {
-        return new JoinWrapper<>(clz, this);
+        return join(clz, null);
+    }
+
+    public <J> JoinWrapper<J, T> join(Class<J> clz, String alias) {
+        return new JoinWrapper<>(clz, this, alias);
     }
 
     public <J, F> JoinWrapper<J, T> leftJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField) {
-        return join(clz).leftJoin(joinTableField, masterTableField);
+        return leftJoin(clz, joinTableField, masterTableField, null);
+    }
+
+    public <J, F> JoinWrapper<J, T> leftJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias) {
+        return join(clz, alias).leftJoin(joinTableField, masterTableField);
+    }
+
+    public <J, F> JoinWrapper<J, T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias) {
+        return join(clz, alias).rightJoin(joinTableField, masterTableField);
     }
 
     public <J, F> JoinWrapper<J, T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField) {
-        return join(clz).rightJoin(joinTableField, masterTableField);
+        return rightJoin(clz, joinTableField, masterTableField, null);
+    }
+
+    public <J, F> JoinWrapper<J, T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias) {
+        return join(clz, alias).innerJoin(joinTableField, masterTableField);
     }
 
     public <J, F> JoinWrapper<J, T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField) {
-        return join(clz).innerJoin(joinTableField, masterTableField);
+        return innerJoin(clz, joinTableField, masterTableField, null);
     }
 
     /**
@@ -400,6 +428,12 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      */
     void setJoinSelect(SharedString... select) {
         joinSqlSelect.addAll(Arrays.asList(select));
+    }
+
+    void setAliasMap(Map<Class<?>, String> aliasCacheMap) {
+        if (CollectionUtils.isNotEmpty(aliasCacheMap)) {
+            aliasCacheMap.forEach((k, v) -> aliasMap.put(k, v));
+        }
     }
 
     /**
