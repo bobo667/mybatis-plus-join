@@ -27,15 +27,6 @@ public class FieldMapping {
      */
     private String fieldName;
 
-    /**
-     * 映射类型
-     */
-    private Class<? extends TypeHandler<?>> typeHandler;
-
-
-    /**
-     * jdbc类型
-     */
-    private JdbcType jdbcType;
+    private TableFieldInfoExt tableFieldInfoExt;
 
 }

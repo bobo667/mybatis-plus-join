@@ -38,7 +38,7 @@ public class TableFieldInfoExt {
     public String getSqlWhere(final String prefix) {
         final String newPrefix = prefix == null ? EMPTY : prefix;
         // 默认:  AND column=#{prefix + el}
-        String sqlScript = " AND " + String.format(tableFieldInfo.getCondition(), getAliasColumn(tableFieldInfo.getColumn()), newPrefix + tableFieldInfo.getEl());
+        String sqlScript = " AND " + String.format(tableFieldInfo.getCondition(), getAliasColumn(tableFieldInfo.getColumn(), null), newPrefix + tableFieldInfo.getEl());
         // 查询的时候只判非空
         return convertIf(sqlScript, convertIfProperty(newPrefix, tableFieldInfo.getProperty()), tableFieldInfo.getWhereStrategy());
     }
@@ -49,7 +49,10 @@ public class TableFieldInfoExt {
      * @param column 字段
      * @return 添加别名后的字段
      */
-    public static String getAliasColumn(String column) {
+    public static String getAliasColumn(String column, String alias) {
+        if (StringUtils.isNotBlank(alias)) {
+            return alias + "." + column;
+        }
         return JoinConstant.TABLE_ALIAS_NAME + "." + column;
     }
 
@@ -104,5 +107,6 @@ public class TableFieldInfoExt {
         }
         return builder.build();
     }
+
 
 }

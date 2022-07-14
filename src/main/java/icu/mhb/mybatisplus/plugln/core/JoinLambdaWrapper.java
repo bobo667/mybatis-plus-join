@@ -355,7 +355,8 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      * @param key                     此次外联表唯一标识码
      * @param joinParamNameValuePairs 条件SQL对应的值
      */
-    void setJoinConditionSql(String sql, String key, Map<String, Object> joinParamNameValuePairs) {
+    void setJoinConditionSql(String sql, String key, Map<String, Object> joinParamNameValuePairs, TableInfoExt tableInfoExt, String alias) {
+        sql += Constants.NEWLINE + tableInfoExt.getLogicDeleteSql(StringUtils.isNotBlank(sql), true, alias);
         if (StringUtils.isNotBlank(sql)) {
             // 向当前参数map存入外联表的值
             paramNameValuePairs.put(key, joinParamNameValuePairs);
@@ -500,10 +501,11 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     @Override
     protected void setFieldMappingList(String fieldName, String columns) {
         TableFieldInfo info = getTableFieldInfoByFieldName(fieldName);
-        if (null != info) {
-            fieldMappingList.add(new FieldMapping(columns, fieldName, info.getTypeHandler(), info.getJdbcType()));
+        if (null != info && (info.getTypeHandler() != null || info.getJdbcType() != null)) {
+            fieldMappingList.add(new FieldMapping(columns, fieldName, new TableFieldInfoExt(info)));
+            return;
         }
-        fieldMappingList.add(new FieldMapping(columns, fieldName, null, null));
+        fieldMappingList.add(new FieldMapping(columns, fieldName, null));
     }
 
 

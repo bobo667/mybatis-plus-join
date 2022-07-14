@@ -46,7 +46,7 @@ public abstract class JoinAbstractMethod extends AbstractMethod {
             String sqlScript = table.getAllSqlWhere(true, true, WRAPPER_ENTITY_DOT);
             sqlScript = SqlScriptUtils.convertIf(sqlScript, String.format("%s != null", WRAPPER_ENTITY),
                                                  true);
-            sqlScript += (NEWLINE + table.getTableInfo().getLogicDeleteSql(true, true) + NEWLINE);
+            sqlScript += (NEWLINE + table.getLogicDeleteSql(true, true) + NEWLINE);
             String normalSqlScript = SqlScriptUtils.convertIf(String.format("AND ${%s}", WRAPPER_SQLSEGMENT),
                                                               String.format("%s != null and %s != '' and %s", WRAPPER_SQLSEGMENT, WRAPPER_SQLSEGMENT,
                                                                             WRAPPER_NONEMPTYOFNORMAL), true);

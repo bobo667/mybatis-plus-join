@@ -122,7 +122,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @SneakyThrows
     public <P> JoinWrapper<T, J> manyToManySelect(SFunction<P, ?> column, Class<?> manyToManyClass, Consumer<ColumnsBuilder<T>> consumer) {
 
-        List<FieldMapping> belongsColumns = buildFiles(column, consumer);
+        List<FieldMapping> belongsColumns = buildField(column, consumer);
 
         LambdaMeta lambdaMeta = LambdaUtils.extract(column);
         // 获取字段名
@@ -142,7 +142,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @SneakyThrows
     public <P> JoinWrapper<T, J> oneToOneSelect(SFunction<P, ?> column, Consumer<ColumnsBuilder<T>> consumer) {
 
-        List<FieldMapping> belongsColumns = buildFiles(column, consumer);
+        List<FieldMapping> belongsColumns = buildField(column, consumer);
 
         LambdaMeta lambdaMeta = LambdaUtils.extract(column);
         // 获取字段名
@@ -158,7 +158,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         return typedThis;
     }
 
-    private <P> List<FieldMapping> buildFiles(SFunction<P, ?> column, Consumer<ColumnsBuilder<T>> consumer) {
+    private <P> List<FieldMapping> buildField(SFunction<P, ?> column, Consumer<ColumnsBuilder<T>> consumer) {
         ColumnsBuilder<T> columnsBuilder = new ColumnsBuilder<>();
         // 执行用户自定义定义
         consumer.accept(columnsBuilder);
@@ -188,12 +188,12 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
             if (null != as.getClassType()) {
                 TableFieldInfo fieldInfo = getTableFieldInfoByFieldName(as.getFieldName(), as.getClassType());
                 if (null != fieldInfo) {
-                    belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName(), fieldInfo.getTypeHandler(), fieldInfo.getJdbcType()));
+                    belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName(), new TableFieldInfoExt(fieldInfo)));
                 } else {
-                    belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName(), null, null));
+                    belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName(), null));
                 }
             } else {
-                belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName(), null, null));
+                belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName(), null));
             }
             selectColumn.add(columnAlias);
         }
@@ -370,6 +370,10 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * @return 主表JoinLambdaWrapper
      */
     public JoinLambdaWrapper<J> end() {
+
+        TableInfo tableInfo = TableInfoHelper.getTableInfo(getEntityOrMasterClass());
+        TableInfoExt infoExt = new TableInfoExt(tableInfo);
+
         wrapper.setJoinSelect(sqlSelect);
         wrapper.setAliasMap(aliasMap);
         wrapper.setJoinSql(sqlJoin);
@@ -383,7 +387,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         expression.getOrderBy().clear();
         expression.getHaving().clear();
         expression.getGroupBy().clear();
-        wrapper.setJoinConditionSql(getCustomSqlSegment(), IdUtil.getSimpleUUID(), paramNameValuePairs);
+        wrapper.setJoinConditionSql(getCustomSqlSegment(), IdUtil.getSimpleUUID(), paramNameValuePairs, infoExt, getAlias());
         return wrapper;
     }
 

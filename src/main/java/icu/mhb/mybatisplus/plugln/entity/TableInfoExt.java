@@ -51,9 +51,56 @@ public class TableInfoExt {
         }
 
         String newKeyProperty = newPrefix + tableInfo.getKeyProperty();
-        String keySqlScript = TableFieldInfoExt.getAliasColumn(tableInfo.getKeyColumn()) + EQUALS + SqlScriptUtils.safeParam(newKeyProperty);
+        String keySqlScript = TableFieldInfoExt.getAliasColumn(tableInfo.getKeyColumn(), null) + EQUALS + SqlScriptUtils.safeParam(newKeyProperty);
         return SqlScriptUtils.convertIf(keySqlScript, String.format("%s != null", newKeyProperty), false)
                 + NEWLINE + filedSqlScript;
+    }
+
+
+    /**
+     * 获取逻辑删除字段的 sql 脚本
+     *
+     * @param startWithAnd 是否以 and 开头
+     * @param isWhere      是否需要的是逻辑删除值
+     * @return sql 脚本
+     */
+    public String getLogicDeleteSql(boolean startWithAnd, boolean isWhere, String alias) {
+        if (tableInfo.isWithLogicDelete()) {
+            String logicDeleteSql = formatLogicDeleteSql(isWhere, alias);
+            if (startWithAnd) {
+                logicDeleteSql = " AND " + logicDeleteSql;
+            }
+            return logicDeleteSql;
+        }
+        return EMPTY;
+    }
+
+    public String getLogicDeleteSql(boolean startWithAnd, boolean isWhere) {
+        return getLogicDeleteSql(startWithAnd, isWhere, null);
+    }
+
+    /**
+     * format logic delete SQL, can be overrided by subclass
+     * github #1386
+     *
+     * @param isWhere true: logicDeleteValue, false: logicNotDeleteValue
+     * @return sql
+     */
+    private String formatLogicDeleteSql(boolean isWhere, String alias) {
+        final String value = isWhere ? tableInfo.getLogicDeleteFieldInfo().getLogicNotDeleteValue() : tableInfo.getLogicDeleteFieldInfo().getLogicDeleteValue();
+        if (isWhere) {
+            if (NULL.equalsIgnoreCase(value)) {
+                return TableFieldInfoExt.getAliasColumn(tableInfo.getLogicDeleteFieldInfo().getColumn(), alias) + " IS NULL";
+            } else {
+                return TableFieldInfoExt.getAliasColumn(tableInfo.getLogicDeleteFieldInfo().getColumn(), alias) + EQUALS + String.format(tableInfo.getLogicDeleteFieldInfo().isCharSequence() ? "'%s'" : "%s", value);
+            }
+        }
+        final String targetStr = TableFieldInfoExt.getAliasColumn(tableInfo.getLogicDeleteFieldInfo().getColumn(), alias) + EQUALS;
+        if (NULL.equalsIgnoreCase(value)) {
+            return targetStr + NULL;
+        } else {
+            return targetStr + String.format(tableInfo.getLogicDeleteFieldInfo().isCharSequence() ? "'%s'" : "%s", value);
+        }
     }
 
 

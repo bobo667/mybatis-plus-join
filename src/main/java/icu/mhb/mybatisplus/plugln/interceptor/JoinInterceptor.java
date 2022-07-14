@@ -198,22 +198,13 @@ public class JoinInterceptor implements Interceptor {
     private List<ResultMapping> buildResultMapping(Configuration configuration, List<FieldMapping> fieldMappings, Class<?> clz) {
         return fieldMappings.stream()
                 .map(fieldMapping -> {
+                    if (null != fieldMapping.getTableFieldInfoExt()) {
+                        return fieldMapping.getTableFieldInfoExt().getResultMapping(configuration);
+                    }
                     Class<?> propertyType = ClassUtils.getDeclaredField(clz, fieldMapping.getFieldName()).getType();
                     ResultMapping.Builder builder = new ResultMapping.Builder(configuration, fieldMapping.getFieldName(),
                                                                               fieldMapping.getColumn(), propertyType
                     );
-                    TypeHandlerRegistry registry = configuration.getTypeHandlerRegistry();
-                    if (fieldMapping.getJdbcType() != null && fieldMapping.getJdbcType() != JdbcType.UNDEFINED) {
-                        builder.jdbcType(fieldMapping.getJdbcType());
-                    }
-                    if (fieldMapping.getTypeHandler() != null && fieldMapping.getTypeHandler() != UnknownTypeHandler.class) {
-                        TypeHandler<?> typeHandler = registry.getMappingTypeHandler(fieldMapping.getTypeHandler());
-                        if (typeHandler == null) {
-                            typeHandler = registry.getInstance(propertyType, fieldMapping.getTypeHandler());
-                            // todo 这会有影响 registry.register(typeHandler);
-                        }
-                        builder.typeHandler(typeHandler);
-                    }
                     return builder.build();
                 })
                 .collect(Collectors.toList());
