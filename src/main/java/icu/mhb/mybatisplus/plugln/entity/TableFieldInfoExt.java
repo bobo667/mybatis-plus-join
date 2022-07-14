@@ -4,6 +4,12 @@ import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
+import org.apache.ibatis.mapping.ResultMapping;
+import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.type.JdbcType;
+import org.apache.ibatis.type.TypeHandler;
+import org.apache.ibatis.type.TypeHandlerRegistry;
+import org.apache.ibatis.type.UnknownTypeHandler;
 
 import static com.baomidou.mybatisplus.core.toolkit.StringPool.EMPTY;
 
@@ -74,5 +80,29 @@ public class TableFieldInfoExt {
         return SqlScriptUtils.convertIf(sqlScript, String.format("%s != null", property), false);
     }
 
+
+    /**
+     * 获取 ResultMapping
+     *
+     * @param configuration MybatisConfiguration
+     * @return ResultMapping
+     */
+    public ResultMapping getResultMapping(final Configuration configuration) {
+        ResultMapping.Builder builder = new ResultMapping.Builder(configuration, tableFieldInfo.getProperty(),
+                                                                  StringUtils.getTargetColumn(tableFieldInfo.getColumn()), tableFieldInfo.getPropertyType());
+        TypeHandlerRegistry registry = configuration.getTypeHandlerRegistry();
+        if (tableFieldInfo.getJdbcType() != null && tableFieldInfo.getJdbcType() != JdbcType.UNDEFINED) {
+            builder.jdbcType(tableFieldInfo.getJdbcType());
+        }
+        if (tableFieldInfo.getTypeHandler() != null && tableFieldInfo.getTypeHandler() != UnknownTypeHandler.class) {
+            TypeHandler<?> typeHandler = registry.getMappingTypeHandler(tableFieldInfo.getTypeHandler());
+            if (typeHandler == null) {
+                typeHandler = registry.getInstance(tableFieldInfo.getPropertyType(), tableFieldInfo.getTypeHandler());
+                // todo 这会有影响 registry.register(typeHandler);
+            }
+            builder.typeHandler(typeHandler);
+        }
+        return builder.build();
+    }
 
 }

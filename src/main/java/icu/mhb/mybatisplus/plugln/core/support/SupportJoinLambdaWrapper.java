@@ -352,5 +352,21 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
 
     }
 
+    protected TableFieldInfo getTableFieldInfoByFieldName(String fieldName, Class<?> clz) {
+        TableInfo tableInfo = TableInfoHelper.getTableInfo(clz);
+        Optional<TableFieldInfo> fieldInfoOpt = tableInfo.getFieldList()
+                .stream()
+                .filter(i -> i.getProperty().equals(fieldName))
+                .findFirst();
+        if (fieldInfoOpt.isPresent()) {
+            return fieldInfoOpt.get();
+        }
+        return null;
+    }
+
+    protected TableFieldInfo getTableFieldInfoByFieldName(String fieldName) {
+        return getTableFieldInfoByFieldName(fieldName, getEntityClass());
+    }
+
 
 }

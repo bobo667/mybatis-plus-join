@@ -2,6 +2,8 @@ package icu.mhb.mybatisplus.plugln.entity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.ibatis.type.JdbcType;
+import org.apache.ibatis.type.TypeHandler;
 
 /**
  * 字段映射
@@ -24,5 +26,16 @@ public class FieldMapping {
      * 属性名
      */
     private String fieldName;
+
+    /**
+     * 映射类型
+     */
+    private Class<? extends TypeHandler<?>> typeHandler;
+
+
+    /**
+     * jdbc类型
+     */
+    private JdbcType jdbcType;
 
 }

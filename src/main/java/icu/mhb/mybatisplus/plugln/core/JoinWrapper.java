@@ -185,7 +185,16 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
                 columnNoAlias = as.getAlias();
                 columnAlias = String.format(SqlExcerpt.COLUMNS_AS.getSql(), columnAlias, as.getAlias());
             }
-            belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName()));
+            if (null != as.getClassType()) {
+                TableFieldInfo fieldInfo = getTableFieldInfoByFieldName(as.getFieldName(), as.getClassType());
+                if (null != fieldInfo) {
+                    belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName(), fieldInfo.getTypeHandler(), fieldInfo.getJdbcType()));
+                } else {
+                    belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName(), null, null));
+                }
+            } else {
+                belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName(), null, null));
+            }
             selectColumn.add(columnAlias);
         }
 

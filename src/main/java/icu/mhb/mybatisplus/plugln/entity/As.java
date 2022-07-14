@@ -1,15 +1,10 @@
 package icu.mhb.mybatisplus.plugln.entity;
-import com.baomidou.mybatisplus.core.metadata.TableInfo;
-import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
-import com.baomidou.mybatisplus.core.toolkit.ReflectionKit;
 import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
-import icu.mhb.mybatisplus.plugln.tookit.EntityFieldCache;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.ibatis.reflection.property.PropertyNamer;
-import org.springframework.util.ReflectionUtils;
 
 /**
  * @author mahuibo
@@ -44,6 +39,10 @@ public class As<T> {
      */
     Class<?> javaType;
 
+    /**
+     * 类类型
+     */
+    private Class<?> classType;
 
     /**
      * 不需要别名 使用字段的映射
@@ -53,7 +52,9 @@ public class As<T> {
     @SneakyThrows
     public As(SFunction<T, ?> column) {
         this.column = column;
-        this.fieldName = PropertyNamer.methodToProperty(LambdaUtils.extract(column).getImplMethodName());
+        LambdaMeta extract = LambdaUtils.extract(column);
+        this.classType = extract.getInstantiatedClass();
+        this.fieldName = PropertyNamer.methodToProperty(extract.getImplMethodName());
         this.columnStr = "";
         this.alias = "";
     }
@@ -66,7 +67,9 @@ public class As<T> {
      */
     public As(SFunction<T, ?> column, String alias) {
         this.column = column;
-        this.fieldName = PropertyNamer.methodToProperty(LambdaUtils.extract(column).getImplMethodName());
+        LambdaMeta extract = LambdaUtils.extract(column);
+        this.classType = extract.getInstantiatedClass();
+        this.fieldName = PropertyNamer.methodToProperty(extract.getImplMethodName());
         this.alias = alias;
         this.columnStr = "";
     }
@@ -79,7 +82,9 @@ public class As<T> {
      */
     public <F> As(SFunction<T, ?> column, String alias, SFunction<F, ?> fieldName) {
         this.column = column;
-        this.fieldName = PropertyNamer.methodToProperty(LambdaUtils.extract(fieldName).getImplMethodName());
+        LambdaMeta extract = LambdaUtils.extract(fieldName);
+        this.fieldName = PropertyNamer.methodToProperty(extract.getImplMethodName());
+        this.classType = extract.getInstantiatedClass();
         this.alias = alias;
         this.columnStr = "";
     }

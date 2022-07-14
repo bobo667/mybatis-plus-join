@@ -36,4 +36,5 @@ public class ManyToManySelectBuild {
      */
     private List<FieldMapping> belongsColumns;
 
+
 }

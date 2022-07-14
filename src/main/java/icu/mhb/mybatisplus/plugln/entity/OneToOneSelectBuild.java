@@ -1,6 +1,8 @@
 package icu.mhb.mybatisplus.plugln.entity;
 import lombok.Builder;
 import lombok.Data;
+import org.apache.ibatis.type.JdbcType;
+import org.apache.ibatis.type.TypeHandler;
 
 import java.util.List;
 
@@ -30,5 +32,6 @@ public class OneToOneSelectBuild {
      * 所属列列表
      */
     private List<FieldMapping> belongsColumns;
+
 
 }

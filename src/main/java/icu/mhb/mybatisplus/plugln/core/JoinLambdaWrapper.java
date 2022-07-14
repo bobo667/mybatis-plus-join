@@ -16,10 +16,7 @@ import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
 import icu.mhb.mybatisplus.plugln.entity.*;
 import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -501,9 +498,14 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     }
 
     @Override
-    protected void setFieldMappingList(String fileName, String columns) {
-        fieldMappingList.add(new FieldMapping(columns, fileName));
+    protected void setFieldMappingList(String fieldName, String columns) {
+        TableFieldInfo info = getTableFieldInfoByFieldName(fieldName);
+        if (null != info) {
+            fieldMappingList.add(new FieldMapping(columns, fieldName, info.getTypeHandler(), info.getJdbcType()));
+        }
+        fieldMappingList.add(new FieldMapping(columns, fieldName, null, null));
     }
+
 
     public List<FieldMapping> getFieldMappingList() {
         return this.fieldMappingList;
