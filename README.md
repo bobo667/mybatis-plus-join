@@ -38,7 +38,7 @@ mybatis plus：3.2.0版本依赖地址：
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.1.2</version>
+    <version>1.1.3</version>
  </dependency>
 ```
 
