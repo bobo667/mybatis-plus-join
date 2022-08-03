@@ -55,6 +55,13 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     private ManyToManySelectBuild manyToManySelectBuild = null;
 
     /**
+     * 逻辑删除是否拼接到Join后面
+     * true 拼接
+     * false 拼接到join 后面
+     */
+    private boolean logicDeleteIsApplyJoin = true;
+
+    /**
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
      */
     JoinWrapper(JoinLambdaWrapper<J> wrapper) {
@@ -116,6 +123,18 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         if (ArrayUtils.isNotEmpty(columns)) {
             this.sqlSelect.setStringValue(columnsToString(false, true, columns));
         }
+        return typedThis;
+    }
+
+    /**
+     * 逻辑删除是否拼接到Join后面
+     * true 拼接
+     * false 拼接到where 后面
+     *
+     * @param logicDeleteIsApplyJoin 是否
+     */
+    public JoinWrapper<T, J> isApplyJoin(boolean logicDeleteIsApplyJoin) {
+        this.logicDeleteIsApplyJoin = logicDeleteIsApplyJoin;
         return typedThis;
     }
 
@@ -360,9 +379,16 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
 
         SharedString sharedString = SharedString.emptyString();
         sharedString.setStringValue(String.format(sqlExcerpt.getSql(), joinTableInfo.getTableName(), joinTableAlias, joinTableAlias, joinColumn, masterTableAlias, masterColumn));
+
+        TableInfo tableInfo = TableInfoHelper.getTableInfo(joinTableClass);
+        if (null != tableInfo) {
+            TableInfoExt infoExt = new TableInfoExt(tableInfo);
+            String logicDeleteSql = infoExt.getLogicDeleteSql(true, false, joinTableAlias);
+            sharedString.setStringValue(sharedString.getStringValue() + Constants.SPACE + Constants.NEWLINE + logicDeleteSql);
+        }
+
         sqlJoin.add(sharedString);
     }
-
 
     /**
      * join 句子结束
@@ -370,9 +396,6 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * @return 主表JoinLambdaWrapper
      */
     public JoinLambdaWrapper<J> end() {
-
-        TableInfo tableInfo = TableInfoHelper.getTableInfo(getEntityOrMasterClass());
-        TableInfoExt infoExt = new TableInfoExt(tableInfo);
 
         wrapper.setJoinSelect(sqlSelect);
         wrapper.setAliasMap(aliasMap);
@@ -387,7 +410,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         expression.getOrderBy().clear();
         expression.getHaving().clear();
         expression.getGroupBy().clear();
-        wrapper.setJoinConditionSql(getCustomSqlSegment(), IdUtil.getSimpleUUID(), paramNameValuePairs, infoExt, getAlias());
+        wrapper.setJoinConditionSql(getCustomSqlSegment(), IdUtil.getSimpleUUID(), paramNameValuePairs);
         return wrapper;
     }
 

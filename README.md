@@ -48,11 +48,11 @@ mybatis plus：3.2.0版本依赖地址：
 
 > 标注：*号代表，从起始版本之后都是可以使用的
 
-| Mybatis-plus | Mybatis-plus-join                                       |
-| ------------ | ------------------------------------------------------- |
-| 3.2.0        | 1.2.0                                                   |
-| 3.3.1 - 3.42 | 1.0.2                                                   |
-| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2 |
+| Mybatis-plus | Mybatis-plus-join                                            |
+| ------------ | ------------------------------------------------------------ |
+| 3.2.0        | 1.2.0                                                        |
+| 3.3.1 - 3.42 | 1.0.2                                                        |
+| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3 |
 
 
 
@@ -143,6 +143,18 @@ mybatis plus：3.2.0版本依赖地址：
 2. 修复多个连表情况下，只查询主表的逻辑删除的问题
 
 3. 修复在定义typeHandler不生效的问题
+
+   
+
+   这次更新主要是修复的bug版本，目前作者没有什么特别多的思路去要写什么样的新功能，如果各位有可以提出来
+
+### 1.1.3 版本
+
+1. 更改逻辑删除出现的条件为join后，而不是where后
+
+2. Merge pull request !2 from f_ms/N/A
+
+3. Merge pull request !1 from f_ms/N/A
 
    
 
@@ -297,10 +309,10 @@ JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
 wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId);
 // 然后可以设置多表中的查询条件，这一步和mp一致
 wrapper.eq(UserAge::getAgeName,"95")
-  		.select(UserAge::getAgeName);
-// 最后一步 需要使用end方法结束
-wrapper.end();
-  
+  		.select(UserAge::getAgeName)
+      // 最后一步 需要使用end方法结束
+      .end();
+
 
 // 完整的就是
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);

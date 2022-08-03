@@ -87,7 +87,7 @@ public class JoinInterceptor implements Interceptor {
      * 构建新的MappedStatement
      */
     private MappedStatement newMappedStatement(MappedStatement ms, JoinLambdaWrapper joinLambdaWrapper, Class<?> classType) {
-        String id = ms.getId() + StringPool.UNDERSCORE + joinLambdaWrapper.getSqlSelect();
+        String id = ms.getId() + StringPool.COLON + classType.getName() + StringPool.UNDERSCORE + joinLambdaWrapper.getSqlSelect();
         Map<Configuration, MappedStatement> statementMap = MS_CACHE.get(id);
 
         if (CollectionUtils.isNotEmpty(statementMap) && Objects.nonNull(statementMap.get(ms.getConfiguration()))) {
@@ -125,7 +125,7 @@ public class JoinInterceptor implements Interceptor {
      */
     private ResultMap newResultMap(MappedStatement ms, JoinLambdaWrapper<?> joinLambdaWrapper, Class<?> classType) {
         Configuration configuration = ms.getConfiguration();
-        String id = ms.getId() + StringPool.UNDERSCORE + joinLambdaWrapper.getSqlSelect();
+        String id = ms.getId() + StringPool.COLON + classType.getName() + StringPool.UNDERSCORE + joinLambdaWrapper.getSqlSelect();
 
         // 如果返回类型是基础类型或者包装类型，就直接返回基础映射，或者是map类型
         if (PropertyType.hasBaseType(classType) || classType.equals(Map.class)) {

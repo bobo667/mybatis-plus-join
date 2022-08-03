@@ -355,8 +355,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      * @param key                     此次外联表唯一标识码
      * @param joinParamNameValuePairs 条件SQL对应的值
      */
-    void setJoinConditionSql(String sql, String key, Map<String, Object> joinParamNameValuePairs, TableInfoExt tableInfoExt, String alias) {
-        sql += Constants.NEWLINE + tableInfoExt.getLogicDeleteSql(StringUtils.isNotBlank(sql), true, alias);
+    void setJoinConditionSql(String sql, String key, Map<String, Object> joinParamNameValuePairs) {
         if (StringUtils.isNotBlank(sql)) {
             // 向当前参数map存入外联表的值
             paramNameValuePairs.put(key, joinParamNameValuePairs);
