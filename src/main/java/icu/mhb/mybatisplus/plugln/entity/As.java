@@ -45,6 +45,11 @@ public class As<T> {
     private Class<?> classType;
 
     /**
+     * 是否加单引号
+     */
+    private boolean ifQuotes;
+
+    /**
      * 不需要别名 使用字段的映射
      *
      * @param column 字段
@@ -102,6 +107,28 @@ public class As<T> {
         this.column = null;
         this.alias = alias;
         this.columnStr = columnStr;
+        this.ifQuotes = true;
+    }
+
+    /**
+     * 自定义查询字段
+     * 例如：
+     * As(1, "select_type")
+     * select 1 as select_type.....
+     * <p>
+     * 如果isQuotes为true
+     * As("sum(u.id)","uSum",true)
+     * select sum(u.id) as uSum
+     *
+     * @param columnStr 字段
+     * @param alias     别名
+     * @param isQuotes  是否加引号
+     */
+    public As(Object columnStr, String alias, boolean isQuotes) {
+        this.column = null;
+        this.alias = alias;
+        this.columnStr = columnStr;
+        this.ifQuotes = isQuotes;
     }
 
 

@@ -197,7 +197,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
                 columnNoAlias = columnToStringNoAlias;
                 columnAlias = getAliasAndField(columnToStringNoAlias);
             } else {
-                columnAlias = StringUtils.quotaMark(column);
+                columnAlias = as.isIfQuotes() ? StringUtils.quotaMark(column) : column.toString();
             }
 
             if (StringUtils.isNotBlank(as.getAlias())) {

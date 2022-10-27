@@ -274,7 +274,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
                 }
 
             } else {
-                column = StringUtils.quotaMark(column);
+                column = as.isIfQuotes() ? StringUtils.quotaMark(column) : column;
                 setFieldMappingList(as.getAlias(), as.getAlias());
             }
 
@@ -358,10 +358,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
                 .stream()
                 .filter(i -> i.getProperty().equals(fieldName))
                 .findFirst();
-        if (fieldInfoOpt.isPresent()) {
-            return fieldInfoOpt.get();
-        }
-        return null;
+        return fieldInfoOpt.orElse(null);
     }
 
     protected TableFieldInfo getTableFieldInfoByFieldName(String fieldName) {
