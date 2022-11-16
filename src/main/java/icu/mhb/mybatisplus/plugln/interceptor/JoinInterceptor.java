@@ -1,6 +1,5 @@
 package icu.mhb.mybatisplus.plugln.interceptor;
 
-import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.core.toolkit.StringPool;
@@ -24,10 +23,6 @@ import org.apache.ibatis.plugin.Signature;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
-import org.apache.ibatis.type.JdbcType;
-import org.apache.ibatis.type.TypeHandler;
-import org.apache.ibatis.type.TypeHandlerRegistry;
-import org.apache.ibatis.type.UnknownTypeHandler;
 import org.springframework.core.annotation.Order;
 
 import java.util.List;
@@ -88,6 +83,7 @@ public class JoinInterceptor implements Interceptor {
      */
     private MappedStatement newMappedStatement(MappedStatement ms, JoinLambdaWrapper joinLambdaWrapper, Class<?> classType) {
         String id = ms.getId() + StringPool.COLON + classType.getName() + StringPool.UNDERSCORE + joinLambdaWrapper.getSqlSelect();
+        id.replaceAll(" ", "");
         Map<Configuration, MappedStatement> statementMap = MS_CACHE.get(id);
 
         if (CollectionUtils.isNotEmpty(statementMap) && Objects.nonNull(statementMap.get(ms.getConfiguration()))) {
@@ -126,20 +122,10 @@ public class JoinInterceptor implements Interceptor {
     private ResultMap newResultMap(MappedStatement ms, JoinLambdaWrapper<?> joinLambdaWrapper, Class<?> classType) {
         Configuration configuration = ms.getConfiguration();
         String id = ms.getId() + StringPool.COLON + classType.getName() + StringPool.UNDERSCORE + joinLambdaWrapper.getSqlSelect();
-
+        id = id.replaceAll(" ", "");
         // 如果返回类型是基础类型或者包装类型，就直接返回基础映射，或者是map类型
-        if (PropertyType.hasBaseType(classType) || classType.equals(Map.class)) {
+        if (PropertyType.hasBaseType(classType) || ClassUtils.hasIncludeClass(classType, Map.class)) {
             return new ResultMap.Builder(configuration, id, classType, Lists.newArrayList(0)).build();
-        }
-
-        Class<?>[] interfaces = classType.getInterfaces();
-        if (ArrayUtils.isNotEmpty(interfaces)) {
-            for (Class<?> aClass : interfaces) {
-                // 代表是map类型
-                if (aClass.equals(Map.class)) {
-                    return new ResultMap.Builder(configuration, id, classType, Lists.newArrayList(0)).build();
-                }
-            }
         }
 
         if (configuration.hasResultMap(id)) {
@@ -155,6 +141,7 @@ public class JoinInterceptor implements Interceptor {
             for (OneToOneSelectBuild oneToOneSelectBuild : oneToOneSelectBuildList) {
                 // 构建ResultMap
                 String oneToOneId = id + StringPool.UNDERSCORE + oneToOneSelectBuild.getOneToOneField();
+                oneToOneId = oneToOneId.replaceAll(" ", "");
                 if (!configuration.hasResultMap(oneToOneId)) {
                     ResultMap oneToOneResultMap = new ResultMap.Builder(configuration, oneToOneId,
                                                                         oneToOneSelectBuild.getOneToOneClass(),
@@ -172,6 +159,7 @@ public class JoinInterceptor implements Interceptor {
             for (ManyToManySelectBuild manyToManySelectBuild : manyToManySelectBuildList) {
                 // 构建ResultMap
                 String manyToManyId = id + StringPool.UNDERSCORE + manyToManySelectBuild.getManyToManyField();
+                manyToManyId = manyToManyId.replaceAll(" ", "");
                 if (!configuration.hasResultMap(manyToManyId)) {
                     ResultMap oneToOneResultMap = new ResultMap.Builder(configuration, manyToManyId, manyToManySelectBuild.getManyToManyClass(),
                                                                         buildResultMapping(configuration, manyToManySelectBuild.getBelongsColumns(),

@@ -11,10 +11,11 @@ import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
 import icu.mhb.mybatisplus.plugln.annotations.TableAlias;
-import icu.mhb.mybatisplus.plugln.entity.As;
-import icu.mhb.mybatisplus.plugln.entity.ColumnsBuilder;
+import icu.mhb.mybatisplus.plugln.core.func.JoinOrderFunc;
+import icu.mhb.mybatisplus.plugln.entity.*;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
+import icu.mhb.mybatisplus.plugln.tookit.Lists;
 import icu.mhb.mybatisplus.plugln.tookit.TableAliasCache;
 import lombok.Getter;
 import org.apache.ibatis.reflection.property.PropertyNamer;
@@ -36,12 +37,22 @@ import static java.util.stream.Collectors.joining;
  * @see com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
  */
 public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLambdaWrapper<T, Children>>
-        extends AbstractWrapper<T, SFunction<T, ?>, Children> {
+        extends AbstractWrapper<T, SFunction<T, ?>, Children> implements JoinOrderFunc<Children, SFunction<T, ?>> {
+
+    /**
+     * 查询的字段映射列表
+     */
+    protected List<FieldMapping> fieldMappingList = new ArrayList<>();
 
     /**
      * 查询字段
      */
     protected SharedString sqlSelect = SharedString.emptyString();
+
+    /**
+     * 排序构建列表
+     */
+    protected List<OrderByBuild> orderByBuildList = Lists.newArrayList();
 
     @Getter
     protected Map<Class<?>, String> aliasMap = new HashMap<>();
@@ -49,6 +60,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
     private Map<Class<?>, Map<String, ColumnCache>> columnMap = new HashMap<>();
 
     private boolean initColumnMap = false;
+
 
     @SuppressWarnings("unchecked")
     @Override
@@ -86,29 +98,30 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      * 获取当前类的所有查询字段
      */
     public Children selectAll() {
-
-//        Class<?> clz = getEntityOrMasterClass();
-//
-//        Assert.notNull(clz, "Can't get the current parser class");
-//
-//        TableInfo tableInfo = TableInfoHelper.getTableInfo(clz);
-//        String sqlSelect = tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect)
-//                .map(TableFieldInfo::getSqlSelect)
-//                .map(this::getAliasAndField)
-//                .collect(joining(COMMA));
-//
-//        tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect)
-//                .forEach(tableFieldInfo -> setFieldMappingList(tableFieldInfo.getProperty(), tableFieldInfo.getColumn()))
-//
-//        // 不为空代表有主键
-//        if (tableInfo.havePK()) {
-//            String keySqlSelect = tableInfo.getKeyColumn();
-//            sqlSelect += COMMA + getAliasAndField(keySqlSelect);
-//            setFieldMappingList(tableInfo.getKeyProperty(), tableInfo.getKeyColumn());
-//        }
-//
-//        this.sqlSelect.setStringValue(sqlSelect);
         return selectAll(new ArrayList<>());
+    }
+
+    @Override
+    public Children orderBy(boolean condition, boolean isAsc, SFunction<T, ?> column, int index) {
+        orderByBuildList.add(new OrderByBuild() {{
+            setIndex(index);
+            setColumn(columnToSqlSegment(columnSqlInjectFilter(column)));
+            setCondition(condition);
+            setAsc(isAsc);
+            setSql(false);
+        }});
+        return typedThis;
+    }
+
+    @Override
+    public Children orderBySql(boolean condition, String sql, int index) {
+        orderByBuildList.add(new OrderByBuild() {{
+            setIndex(index);
+            setColumn(() -> sql);
+            setCondition(condition);
+            setSql(true);
+        }});
+        return typedThis;
     }
 
     /**
@@ -202,6 +215,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         });
     }
 
+
     protected String getAlias() {
         return getAlias(null);
     }
@@ -263,11 +277,13 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         List<String> columnsStringList = new ArrayList<>();
         for (As<T> as : columns) {
             String column = as.getColumnStr().toString();
-
+            String columnNotAlias = "";
             if (as.getColumn() != null) {
                 // 获取序列化后的列明
                 if (StringUtils.isNotBlank(as.getAlias())) {
-                    column = columnToString(as.getColumn(), true, false);
+                    columnNotAlias = columnToStringNoAlias(as.getColumn(), false);
+                    column = getAliasAndField(columnNotAlias);
+                    // 因为增加了别名之后数据库名称和属性名则都是别名
                     setFieldMappingList(as.getAlias(), as.getAlias());
                 } else {
                     column = columnToString(as.getColumn(), true, true);
@@ -348,8 +364,16 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         }
     }
 
-    protected void setFieldMappingList(String fileName, String columns) {
-
+    protected void setFieldMappingList(String fieldName, String columns) {
+        TableFieldInfo info = getTableFieldInfoByFieldName(fieldName);
+        if (null != info && (info.getTypeHandler() != null || info.getJdbcType() != null)) {
+            TableFieldInfoExt fieldInfoExt = new TableFieldInfoExt(info);
+            fieldInfoExt.setColumn(columns);
+            fieldInfoExt.setProperty(fieldName);
+            fieldMappingList.add(new FieldMapping(columns, fieldName, fieldInfoExt));
+            return;
+        }
+        fieldMappingList.add(new FieldMapping(columns, fieldName, null));
     }
 
     protected TableFieldInfo getTableFieldInfoByFieldName(String fieldName, Class<?> clz) {

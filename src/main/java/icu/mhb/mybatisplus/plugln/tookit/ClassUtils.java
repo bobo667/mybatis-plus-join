@@ -44,5 +44,30 @@ public final class ClassUtils {
         return field;
     }
 
+    /**
+     * 获取这个类的所有父类和接口是否包含某个类
+     *
+     * @param clazz
+     * @return
+     */
+    public static boolean hasIncludeClass(Class<?> clazz, Class<?> includeClass) {
+        Class<?> suCl = clazz;
+        while (suCl != null) {
+            if (suCl.equals(includeClass)) {
+                return true;
+            }
+            // 查看这个类继承的接口列表
+            for (Class<?> anInterface : suCl.getInterfaces()) {
+                if (anInterface.equals(includeClass)) {
+                    return true;
+                }
+            }
+
+            suCl = suCl.getSuperclass();
+            // 是否是对应类，如果不是则去看他实现的接口
+        }
+        return false;
+    }
+
 
 }

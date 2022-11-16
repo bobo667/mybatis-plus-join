@@ -96,14 +96,49 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     }
 
     /**
+     * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
+     */
+    JoinWrapper(Class<T> entityClass, JoinLambdaWrapper<J> wrapper, String alias, boolean logicDelete) {
+        super.setEntityClass(entityClass);
+        super.initNeed();
+        if (CollectionUtils.isNotEmpty(wrapper.getAliasMap())) {
+            wrapper.getAliasMap().forEach((k, v) -> aliasMap.put(k, v));
+        }
+        if (StringUtils.isBlank(alias)) {
+            aliasMap.remove(entityClass);
+        } else {
+            aliasMap.put(entityClass, alias);
+        }
+
+        this.logicDeleteIsApplyJoin = logicDelete;
+        this.wrapper = wrapper;
+    }
+
+    /**
+     * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
+     */
+    JoinWrapper(Class<T> entityClass, JoinLambdaWrapper<J> wrapper, boolean logicDelete) {
+        super.setEntityClass(entityClass);
+        super.initNeed();
+        if (CollectionUtils.isNotEmpty(wrapper.getAliasMap())) {
+            wrapper.getAliasMap().forEach((k, v) -> aliasMap.put(k, v));
+        }
+
+        this.logicDeleteIsApplyJoin = logicDelete;
+        this.wrapper = wrapper;
+    }
+
+    /**
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(...)
      */
     JoinWrapper(T entity, Class<T> entityClass, SharedString sqlSelect, AtomicInteger paramNameSeq,
                 Map<String, Object> paramNameValuePairs, MergeSegments mergeSegments,
+                Map<Class<?>, String> aliasMap,
                 SharedString lastSql, SharedString sqlComment, SharedString sqlFirst) {
         super.setEntity(entity);
         super.setEntityClass(entityClass);
         this.paramNameSeq = paramNameSeq;
+        this.aliasMap = aliasMap;
         this.paramNameValuePairs = paramNameValuePairs;
         this.expression = mergeSegments;
         this.sqlSelect = sqlSelect;
@@ -123,18 +158,6 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         if (ArrayUtils.isNotEmpty(columns)) {
             this.sqlSelect.setStringValue(columnsToString(false, true, columns));
         }
-        return typedThis;
-    }
-
-    /**
-     * 逻辑删除是否拼接到Join后面
-     * true 拼接
-     * false 拼接到where 后面
-     *
-     * @param logicDeleteIsApplyJoin 是否
-     */
-    public JoinWrapper<T, J> isApplyJoin(boolean logicDeleteIsApplyJoin) {
-        this.logicDeleteIsApplyJoin = logicDeleteIsApplyJoin;
         return typedThis;
     }
 
@@ -204,6 +227,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
                 columnNoAlias = as.getAlias();
                 columnAlias = String.format(SqlExcerpt.COLUMNS_AS.getSql(), columnAlias, as.getAlias());
             }
+
             if (null != as.getClassType()) {
                 TableFieldInfo fieldInfo = getTableFieldInfoByFieldName(as.getFieldName(), as.getClassType());
                 if (null != fieldInfo) {
@@ -251,7 +275,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @Override
     protected JoinWrapper<T, J> instance() {
         return new JoinWrapper<>(getEntity(), getEntityClass(), null, paramNameSeq, paramNameValuePairs,
-                                 new MergeSegments(), SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
+                                 new MergeSegments(), this.aliasMap, SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
     }
 
     @Override
@@ -381,9 +405,9 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         sharedString.setStringValue(String.format(sqlExcerpt.getSql(), joinTableInfo.getTableName(), joinTableAlias, joinTableAlias, joinColumn, masterTableAlias, masterColumn));
 
         TableInfo tableInfo = TableInfoHelper.getTableInfo(joinTableClass);
-        if (null != tableInfo) {
+        if (null != tableInfo && logicDeleteIsApplyJoin) {
             TableInfoExt infoExt = new TableInfoExt(tableInfo);
-            String logicDeleteSql = infoExt.getLogicDeleteSql(true, false, joinTableAlias);
+            String logicDeleteSql = infoExt.getLogicDeleteSql(true, true, joinTableAlias);
             sharedString.setStringValue(sharedString.getStringValue() + Constants.SPACE + Constants.NEWLINE + logicDeleteSql);
         }
 
@@ -396,10 +420,11 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * @return 主表JoinLambdaWrapper
      */
     public JoinLambdaWrapper<J> end() {
-
         wrapper.setJoinSelect(sqlSelect);
         wrapper.setAliasMap(aliasMap);
         wrapper.setJoinSql(sqlJoin);
+        wrapper.setOderByBuildList(this.orderByBuildList);
+        wrapper.setFieldMappingList(this.fieldMappingList);
         wrapper.setOrderBy(expression.getOrderBy());
         wrapper.setGroupBy(expression.getGroupBy());
         wrapper.setHaving(havingBuildList);
@@ -413,5 +438,6 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         wrapper.setJoinConditionSql(getCustomSqlSegment(), IdUtil.getSimpleUUID(), paramNameValuePairs);
         return wrapper;
     }
+
 
 }

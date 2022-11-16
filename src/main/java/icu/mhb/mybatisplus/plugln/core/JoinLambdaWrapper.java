@@ -12,8 +12,11 @@ import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.*;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
+import icu.mhb.mybatisplus.plugln.core.func.JoinMethodFunc;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
 import icu.mhb.mybatisplus.plugln.entity.*;
+import icu.mhb.mybatisplus.plugln.keyword.DefaultFuncKeyWord;
+import icu.mhb.mybatisplus.plugln.keyword.IFuncKeyWord;
 import lombok.Getter;
 
 import java.util.*;
@@ -21,8 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static com.baomidou.mybatisplus.core.enums.SqlKeyword.GROUP_BY;
-import static com.baomidou.mybatisplus.core.enums.SqlKeyword.ORDER_BY;
+import static com.baomidou.mybatisplus.core.enums.SqlKeyword.*;
 import static com.baomidou.mybatisplus.core.toolkit.StringPool.COMMA;
 import static com.baomidou.mybatisplus.core.toolkit.StringPool.NEWLINE;
 
@@ -33,9 +35,14 @@ import static com.baomidou.mybatisplus.core.toolkit.StringPool.NEWLINE;
  * @Title: JoinLambdaWrapper
  * @time 8/21/21 5:17 PM
  */
+@SuppressWarnings("all")
 public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambdaWrapper<T>>
-        implements Query<JoinLambdaWrapper<T>, T, SFunction<T, ?>> {
+        implements Query<JoinLambdaWrapper<T>, T, SFunction<T, ?>>, JoinMethodFunc<T> {
 
+    /**
+     * 关键字获取
+     */
+    private IFuncKeyWord funcKeyWord;
 
     /**
      * 关联表的查询子段
@@ -74,11 +81,6 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      */
     private SharedString sqlCache = new SharedString();
 
-    /**
-     * 查询的字段映射列表
-     */
-    private List<FieldMapping> fieldMappingList = new ArrayList<>();
-
 
     /**
      * 查询字段是否缓存过
@@ -94,6 +96,11 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      * 是否查询主表全部字段 该条件是在没有指定查询字段的时候生效
      */
     private boolean notDefaultSelectAll = false;
+
+    /**
+     * 是否添加去重关键字
+     */
+    private boolean hasDistinct = false;
 
 
     /**
@@ -129,10 +136,12 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      */
     JoinLambdaWrapper(T entity, Class<T> entityClass, SharedString sqlSelect, AtomicInteger paramNameSeq,
                       Map<String, Object> paramNameValuePairs, MergeSegments mergeSegments,
+                      Map<Class<?>, String> aliasMap,
                       SharedString lastSql, SharedString sqlComment, SharedString sqlFirst) {
         super.setEntity(entity);
         super.setEntityClass(entityClass);
         this.paramNameSeq = paramNameSeq;
+        this.aliasMap = aliasMap;
         this.paramNameValuePairs = paramNameValuePairs;
         this.expression = mergeSegments;
         this.sqlSelect = sqlSelect;
@@ -156,6 +165,14 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         return typedThis;
     }
 
+
+    /**
+     * 添加去重函数
+     */
+    public JoinLambdaWrapper<T> distinct() {
+        this.hasDistinct = true;
+        return typedThis;
+    }
 
     /**
      * 过滤查询的字段信息(主键除外!)
@@ -203,6 +220,9 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         String selectSql = stringValue.toString();
 
         sqlSelectFlag = true;
+        if (hasDistinct) {
+            selectSql = getFuncKeyWord().distinct() + " " + selectSql;
+        }
         sqlSelectCahce.setStringValue(selectSql);
 
         return selectSql;
@@ -223,7 +243,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     @Override
     protected JoinLambdaWrapper<T> instance() {
         return new JoinLambdaWrapper<>(getEntity(), getEntityClass(), null, paramNameSeq, paramNameValuePairs,
-                                       new MergeSegments(), SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
+                                       new MergeSegments(), this.getAliasMap(), SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
     }
 
     @Override
@@ -237,6 +257,9 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         joinSql.clear();
         joinSqlSelect.clear();
         joinConditionSql.clear();
+        aliasMap.clear();
+        orderByBuildList.clear();
+        fieldMappingList.clear();
     }
 
     /**
@@ -250,6 +273,22 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         // 如果存在缓存就返回
         if (sqlCacheFlag) {
             return sqlCache.getStringValue();
+        }
+
+        if (this.orderByBuildList.size() > 0) {
+            // 顺序重排
+            this.orderByBuildList = this.orderByBuildList.stream()
+                    .sorted(Comparator.comparing(OrderByBuild::getIndex))
+                    .collect(Collectors.toList());
+            this.orderByBuildList.forEach(i -> {
+                // 如果是手写的SQL则不需要 asc desc 排序 开发者自己写
+                if (i.isSql()) {
+                    maybeDo(i.isCondition(), () -> appendSqlSegments(ORDER_BY, i.getColumn()));
+                } else {
+                    maybeDo(i.isCondition(), () -> appendSqlSegments(ORDER_BY, i.getColumn(),
+                                                                     i.isAsc() ? ASC : DESC));
+                }
+            });
         }
 
         String sql = expression.getSqlSegment();
@@ -309,43 +348,9 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     }
 
 
-    /**
-     * 进行join操作
-     *
-     * @param clz 外联表class
-     * @param <J> 泛型
-     * @return JoinWrapper join条件
-     */
-    public <J> JoinWrapper<J, T> join(Class<J> clz) {
-        return join(clz, null);
-    }
-
-    public <J> JoinWrapper<J, T> join(Class<J> clz, String alias) {
-        return new JoinWrapper<>(clz, this, alias);
-    }
-
-    public <J, F> JoinWrapper<J, T> leftJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField) {
-        return leftJoin(clz, joinTableField, masterTableField, null);
-    }
-
-    public <J, F> JoinWrapper<J, T> leftJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias) {
-        return join(clz, alias).leftJoin(joinTableField, masterTableField);
-    }
-
-    public <J, F> JoinWrapper<J, T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias) {
-        return join(clz, alias).rightJoin(joinTableField, masterTableField);
-    }
-
-    public <J, F> JoinWrapper<J, T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField) {
-        return rightJoin(clz, joinTableField, masterTableField, null);
-    }
-
-    public <J, F> JoinWrapper<J, T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias) {
-        return join(clz, alias).innerJoin(joinTableField, masterTableField);
-    }
-
-    public <J, F> JoinWrapper<J, T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField) {
-        return innerJoin(clz, joinTableField, masterTableField, null);
+    @Override
+    public <J> JoinWrapper<J, T> join(Class<J> clz, String alias, boolean logicDelete) {
+        return new JoinWrapper<>(clz, this, alias, logicDelete);
     }
 
     /**
@@ -444,6 +449,18 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         }
     }
 
+    protected void setFieldMappingList(List<FieldMapping> fieldMappingList) {
+        if (CollectionUtils.isNotEmpty(fieldMappingList)) {
+            this.fieldMappingList.addAll(fieldMappingList);
+        }
+    }
+
+    void setOderByBuildList(List<OrderByBuild> orderByBuildList) {
+        if (CollectionUtils.isNotEmpty(orderByBuildList)) {
+            this.orderByBuildList.addAll(orderByBuildList);
+        }
+    }
+
     void setOneToOneSelect(OneToOneSelectBuild oneToOneSelect) {
 
         if (null == oneToOneSelect) {
@@ -497,19 +514,31 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         final Class<T> entityClass = getEntityClass();
     }
 
-    @Override
-    protected void setFieldMappingList(String fieldName, String columns) {
-        TableFieldInfo info = getTableFieldInfoByFieldName(fieldName);
-        if (null != info && (info.getTypeHandler() != null || info.getJdbcType() != null)) {
-            fieldMappingList.add(new FieldMapping(columns, fieldName, new TableFieldInfoExt(info)));
-            return;
-        }
-        fieldMappingList.add(new FieldMapping(columns, fieldName, null));
-    }
+//    @Override
+//    protected void setFieldMappingList(String fieldName, String columns) {
+//        TableFieldInfo info = getTableFieldInfoByFieldName(fieldName);
+//        if (null != info && (info.getTypeHandler() != null || info.getJdbcType() != null)) {
+//            fieldMappingList.add(new FieldMapping(columns, fieldName, new TableFieldInfoExt(info)));
+//            return;
+//        }
+//        fieldMappingList.add(new FieldMapping(columns, fieldName, null));
+//    }
 
 
     public List<FieldMapping> getFieldMappingList() {
         return this.fieldMappingList;
+    }
+
+    public IFuncKeyWord getFuncKeyWord() {
+        if (this.funcKeyWord == null) {
+            this.funcKeyWord = new DefaultFuncKeyWord();
+        }
+        return funcKeyWord;
+    }
+
+    public JoinLambdaWrapper<T> setFuncKeyWord(IFuncKeyWord funcKeyWord) {
+        this.funcKeyWord = funcKeyWord;
+        return typedThis;
     }
 
 }

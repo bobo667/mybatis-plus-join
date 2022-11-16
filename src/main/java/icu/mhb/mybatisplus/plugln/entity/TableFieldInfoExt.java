@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
+import lombok.Data;
 import org.apache.ibatis.mapping.ResultMapping;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.type.JdbcType;
@@ -20,9 +21,20 @@ import static com.baomidou.mybatisplus.core.toolkit.StringPool.EMPTY;
  * @Title: TableFieldInfoExt
  * @time 11/23/21 9:21 PM
  */
+@Data
 public class TableFieldInfoExt {
 
     private TableFieldInfo tableFieldInfo;
+
+    /**
+     * 字段名
+     */
+    private String column;
+
+    /**
+     * 属性名
+     */
+    private String property;
 
     public TableFieldInfoExt(TableFieldInfo tableFieldInfo) {
         this.tableFieldInfo = tableFieldInfo;
@@ -91,8 +103,8 @@ public class TableFieldInfoExt {
      * @return ResultMapping
      */
     public ResultMapping getResultMapping(final Configuration configuration) {
-        ResultMapping.Builder builder = new ResultMapping.Builder(configuration, tableFieldInfo.getProperty(),
-                                                                  StringUtils.getTargetColumn(tableFieldInfo.getColumn()), tableFieldInfo.getPropertyType());
+        ResultMapping.Builder builder = new ResultMapping.Builder(configuration, getProperty() == null ? tableFieldInfo.getProperty() : getProperty(),
+                                                                  StringUtils.getTargetColumn(getColumn() == null ? tableFieldInfo.getColumn() : getColumn()), tableFieldInfo.getPropertyType());
         TypeHandlerRegistry registry = configuration.getTypeHandlerRegistry();
         if (tableFieldInfo.getJdbcType() != null && tableFieldInfo.getJdbcType() != JdbcType.UNDEFINED) {
             builder.jdbcType(tableFieldInfo.getJdbcType());

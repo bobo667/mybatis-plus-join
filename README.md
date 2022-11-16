@@ -38,7 +38,7 @@ mybatis plus：3.2.0版本依赖地址：
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.1.3</version>
+    <version>1.1.4</version>
  </dependency>
 ```
 
@@ -52,9 +52,7 @@ mybatis plus：3.2.0版本依赖地址：
 | ------------ | ------------------------------------------------------------ |
 | 3.2.0        | 1.2.0                                                        |
 | 3.3.1 - 3.42 | 1.0.2                                                        |
-| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3 |
-
-
+| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4 |
 
 
 
@@ -159,6 +157,19 @@ mybatis plus：3.2.0版本依赖地址：
    
 
    这次更新主要是修复的bug版本，目前作者没有什么特别多的思路去要写什么样的新功能，如果各位有可以提出来
+
+### 1.1.4 版本
+
+1. 修复逻辑删除值错误的bug  **gitee issues-I5UY2K** 
+2. typeHandler 增加子表支持  **gitee issues-I5SUV6**
+3. 修复 在调用 and()方法的情况下，设置的表别名失效的问题
+4. orderBy 排序增加顺序下标，可根据下标来调整对应的排序顺序
+5. 增加 orderBySql 方法，可以手写排序SQL
+6. selectAs 自定义查询字段方法增加重载参数 boolean isQuotes，来标识是否需要是字符，可以用这种方式写一些简单的函数
+7. 增加distinct函数方法
+8. 优化了代码结构
+
+
 
 ### 其他版本
 
@@ -289,6 +300,27 @@ SELECT 1 as id
 
 ```
 
+## 自定义函数关键字例如Distinct
+
+```java
+// 为何要这个东西，可能有些数据库关键字不一样，他有默认实现，一般情况下不需要传，除非你的数据库真是关键字不一样
+
+// 第一步需要建个类，实现IFuncKeyWord
+public class FuncKeyWordImpl implements IFuncKeyWord {
+    @Override
+    public String distinct() {
+        return "distinct";
+    }
+}
+
+// 第二部在构造器中set进去
+JoinLambdaWrapper<Users> wrapper = joinLambdaQueryWrapper(Users.class)
+                .setFuncKeyWord(new FuncKeyWordImpl())
+  
+// 后续会改进为增加全局注入，但是这种方式依旧会保留，避免你多数据源情况下两个数据库查询的关键字都不相同
+
+```
+
 
 
 下面来看构造器的使用：
@@ -341,6 +373,65 @@ where (
 ## 加料用法
 
 OK，来点丝滑的加料用法
+
+### orderBy 顺序排列
+
+```java
+// 根据index下标进行排列排序顺序 
+// @param condition 是否执行 @param isAsc     是否正序
+// @param index     下标 @param column    列
+orderBy(boolean condition, boolean isAsc, R column, int index) 
+
+// 手写排序SQL @param condition 是否执行  @param sql      SQL
+orderBySql(boolean condition, String sql, int index);
+
+JoinLambdaWrapper<Users> wrapper = joinLambdaQueryWrapper(Users.class)
+                .orderByDesc(Users::getAgeId) // 如果存在有下标的排序和无下标的排序，无下标的排序，会被存在于最前面
+                .leftJoin(UsersAge.class, UsersAge::getId, Users::getAgeId)
+                .orderByAsc(UsersAge::getId, 2)
+                .orderBySql("users.user_id asc", 0) // 可以手写排序SQL，处理一些复杂的操作，这个orderBySql字表和主表中都可以存在
+                .end()
+                .orderBySql("users_age.age_name desc", 1);
+ return super.joinList(wrapper, UsersVo.class);
+
+// SQL
+SELECT users.content_json, users_age.content_json_age as contentJsonAge
+FROM users as users
+LEFT JOIN users_age as users_age ON users_age.id = users.age_id 
+ORDER BY users.age_id DESC,users.user_id asc,users_age.age_name desc,users_age.id ASC;
+```
+
+
+
+### distinct 去重
+
+```java
+// 根据index下标进行排列排序顺序 
+// @param condition 是否执行 @param isAsc     是否正序
+// @param index     下标 @param column    列
+orderBy(boolean condition, boolean isAsc, R column, int index) 
+
+// 手写排序SQL @param condition 是否执行  @param sql      SQL
+orderBySql(boolean condition, String sql, int index);
+
+JoinLambdaWrapper<Users> wrapper = joinLambdaQueryWrapper(Users.class)
+  							.distinct() // 这个只能存在于主表
+                .orderByDesc(Users::getAgeId) // 如果存在有下标的排序和无下标的排序，无下标的排序，会被存在于最前面
+                .leftJoin(UsersAge.class, UsersAge::getId, Users::getAgeId)
+                .orderByAsc(UsersAge::getId, 2)
+                .orderBySql("users.user_id asc", 0) // 可以手写排序SQL，处理一些复杂的操作，这个orderBySql字表和主表中都可以存在
+                .end()
+                .orderBySql("users_age.age_name desc", 1);
+ return super.joinList(wrapper, UsersVo.class);
+
+// SQL
+SELECT DISTINCT users.content_json, users_age.content_json_age as contentJsonAge
+FROM users as users
+LEFT JOIN users_age as users_age ON users_age.id = users.age_id 
+ORDER BY users.age_id DESC,users.user_id asc,users_age.age_name desc,users_age.id ASC;
+```
+
+
 
 ### 自定义别名和返回map类型
 
@@ -505,7 +596,7 @@ wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId);
 wrapper.eq(UserAge::getAgeName,"95")
   		.select(UserAge::getAgeName);
 // 最后一步 需要使用end方法结束
-wrapper.end();
+wrapper = wrapper.end();
 
 // 执行查询
 usersService.joinList(wrapper,UsersVo.class);
@@ -530,6 +621,7 @@ where
 ### notDefaultSelectAll() 不默认查询主表全部的字段
 
 ```java
+
 // 如果需要根据实体查询可以采用这样的实例化
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(new Users().setUserName("name啊")
                                                                           .setUserId(1L));
@@ -543,7 +635,7 @@ wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId);
 wrapper.eq(UserAge::getAgeName,"95")
   		.select(UserAge::getAgeName);
 // 最后一步 需要使用end方法结束
-wrapper.end();
+wrapper = wrapper.end();
 
 // 执行查询
 usersService.joinList(wrapper,UsersVo.class);
@@ -601,7 +693,8 @@ wrapper.join(UsersAge.class)
     .selectAs((cb) -> {
       cb.add(UserAge::getAgeName,"user_age_name")
         .add(UserAge::getAgeDoc)
-        .add("mp永远滴神","mpnb");
+        .add("mp永远滴神","mpnb")
+        .add("sum(users_age.id)","ageIdSum",false); // 这个为false就是代表不是字符串，会原样查询
     }).end();
 // 执行查询
 usersService.joinList(wrapper,UsersVo.class);
@@ -612,7 +705,8 @@ select
 	users.user_name,
 	users_age.age_name as user_age_name,
 	users_age.age_doc,
-	'mp永远滴神' as mpnb
+	'mp永远滴神' as mpnb,
+	sum(users_age.id) as ageIdSum
 from users users
   left join users_age users_age on users_age.id = users.age_id
 where (
