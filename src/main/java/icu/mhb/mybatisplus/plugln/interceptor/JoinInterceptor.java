@@ -3,6 +3,7 @@ package icu.mhb.mybatisplus.plugln.interceptor;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.core.toolkit.StringPool;
+import icu.mhb.mybatisplus.plugln.config.MybatisPlusJoinConfig;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
 import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
@@ -23,6 +24,7 @@ import org.apache.ibatis.plugin.Signature;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 
 import java.util.List;
@@ -44,6 +46,9 @@ import java.util.stream.Collectors;
 @Order(Integer.MIN_VALUE)
 @Intercepts(@Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}))
 public class JoinInterceptor implements Interceptor {
+
+    @Autowired(required = false)
+    private MybatisPlusJoinConfig mybatisPlusJoinConfig;
 
     /**
      * 缓存MappedStatement
@@ -82,9 +87,12 @@ public class JoinInterceptor implements Interceptor {
      * 构建新的MappedStatement
      */
     private MappedStatement newMappedStatement(MappedStatement ms, JoinLambdaWrapper joinLambdaWrapper, Class<?> classType) {
-        String id = ms.getId() + StringPool.COLON + classType.getName() + StringPool.UNDERSCORE + joinLambdaWrapper.getSqlSelect();
+        String id = ms.getId();
+        if (getMybatisPlusJoinConfig().isUseMsCache()) {
+            id = ms.getId() + StringPool.COLON + classType.getName() + StringPool.UNDERSCORE + joinLambdaWrapper.getSqlSelect();
+        }
         id.replaceAll(" ", "");
-        Map<Configuration, MappedStatement> statementMap = MS_CACHE.get(id);
+        Map<Configuration, MappedStatement> statementMap = !getMybatisPlusJoinConfig().isUseMsCache() ? null : MS_CACHE.get(id);
 
         if (CollectionUtils.isNotEmpty(statementMap) && Objects.nonNull(statementMap.get(ms.getConfiguration()))) {
             return statementMap.get(ms.getConfiguration());
@@ -110,7 +118,9 @@ public class JoinInterceptor implements Interceptor {
 
         if (statementMap == null) {
             statementMap = new ConcurrentHashMap<>();
-            MS_CACHE.put(id, statementMap);
+            if (getMybatisPlusJoinConfig().isUseMsCache()) {
+                MS_CACHE.put(id, statementMap);
+            }
         }
         statementMap.put(ms.getConfiguration(), mappedStatement);
         return mappedStatement;
@@ -196,6 +206,13 @@ public class JoinInterceptor implements Interceptor {
                     return builder.build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    public MybatisPlusJoinConfig getMybatisPlusJoinConfig() {
+        if (this.mybatisPlusJoinConfig == null) {
+            this.mybatisPlusJoinConfig = MybatisPlusJoinConfig.builder().build();
+        }
+        return this.mybatisPlusJoinConfig;
     }
 
 }

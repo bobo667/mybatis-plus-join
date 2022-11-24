@@ -79,6 +79,7 @@ public class As<T> {
         this.columnStr = "";
     }
 
+
     /**
      * 设置字段名 并添加别名、属性名
      *

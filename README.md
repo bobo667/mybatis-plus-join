@@ -38,7 +38,7 @@ mybatis plus：3.2.0版本依赖地址：
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.1.4</version>
+    <version>1.1.5</version>
  </dependency>
 ```
 
@@ -52,7 +52,7 @@ mybatis plus：3.2.0版本依赖地址：
 | ------------ | ------------------------------------------------------------ |
 | 3.2.0        | 1.2.0                                                        |
 | 3.3.1 - 3.42 | 1.0.2                                                        |
-| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4 |
+| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4、1.1.5 |
 
 
 
@@ -169,6 +169,11 @@ mybatis plus：3.2.0版本依赖地址：
 7. 增加distinct函数方法
 8. 优化了代码结构
 
+### 1.1.5 版本
+
+1. MybatisPlusJoinConfig增加isUseMsCache方法，代表使用不使用MappedStatement的缓存，如果为true，就会更改他的id如果是使用mate的某些插件特效出现classNotFoud，因为更改了MappedStatement Id报错，可以尝试把这个改成false，就不会更改id内容
+2. 增加方法JoinLambdaWrapper#changeQueryWrapper 转换查询条件
+
 
 
 ### 其他版本
@@ -280,17 +285,15 @@ public class MyBatisPlusConfig extends JoinDefaultSqlInjector {
 // 为何要这个东西，因为在不同数据库之间，别名关键字不一样，例如Mysql表别名是 As 而oracle中 是 is 关键字所以需要
 
 // 以oracle 关键字为例
-// 解释一下为什么要这样声明，因为注入器在启动的时候就进行初始化，所以这个构建需要在初始化之前，最简单的办法就是在注入MybatisPlusPropertiesCustomizer的地方进行实例化
- @Bean
-public MybatisPlusPropertiesCustomizer plusPropertiesCustomizer() {
-      MybatisPlusJoinConfig.builder()
+  @Bean
+    public MybatisPlusJoinConfig mybatisPlusJoinConfig() {
+        return MybatisPlusJoinConfig.builder()
                 // 查询字段别名关键字
-                .columnAliasKeyword("as")
+                .columnAliasKeyword("is")
                 // 表、left join、right join、inner join 表别名关键字
                 .tableAliasKeyword("is")
                 .build();
-    return MybatisPlusProperties::getGlobalConfig;
-}
+    }
 
 // 运行的SQL
 SELECT 1 as id
@@ -299,6 +302,36 @@ SELECT 1 as id
  ON users_age.id = users.age_id
 
 ```
+
+
+
+## 自定义是否使用MappedStatement缓存（如果有出现classNotFoud情况，可以尝试关闭）
+
+```java
+// 为何要这个东西，因为在不同数据库之间，别名关键字不一样，例如Mysql表别名是 As 而oracle中 是 is 关键字所以需要
+
+// 以oracle 关键字为例
+  @Bean
+    public MybatisPlusJoinConfig mybatisPlusJoinConfig() {
+        return MybatisPlusJoinConfig.builder()
+                /*
+                  是否使用MappedStatement缓存，如果使用在JoinInterceptor中就会更改
+                  MappedStatement的id，导致mybatis-plus-mate 的某些拦截器插件报错，
+                  设置成false，代表不使用缓存则不会更改MappedStatement的id
+                 */
+                .isUseMsCache(false)
+                .build();
+    }
+
+// 运行的SQL
+SELECT 1 as id
+ FROM users is users
+ LEFT JOIN users_age is users_age
+ ON users_age.id = users.age_id
+
+```
+
+
 
 ## 自定义函数关键字例如Distinct
 
@@ -373,6 +406,32 @@ where (
 ## 加料用法
 
 OK，来点丝滑的加料用法
+
+### changeQueryWrapper 转换条件构造器
+
+```java
+//  转换查询Wrapper 会把 查询条件，group，order by，having转换
+//  注意该方法无法给 多个入参添加别名，例如 orderByDesc("id","id2") 这种情况下别名就会添加错误 
+ QueryWrapper<Users> wrapper1 = new QueryWrapper<>();
+        wrapper1.eq("user_id", 1)
+                .and(w -> {
+                    w.like("user_id", 2).or()
+                            .le("user_id", 34);
+                })
+                .orderByDesc("user_id")
+                .groupBy("user_id")
+                .having("1={0}", 1);
+ wrapper.changeQueryWrapper(wrapper1);
+
+// SQL
+SELECT users.create_time, users.content_json, users.user_id, u_age.age_doc, u_age.age_name, u_age.id, u_age.content_json_age, u_age.id AS ageTableId, '1' AS mpnb, sum(u_age.id) AS ageIds
+ FROM users AS users
+ LEFT JOIN users_age AS u_age
+ ON u_age.id = users.age_id
+WHERE (users.user_id = 1 AND (user_id LIKE '%2%' OR user_id <= 34)) GROUP BY users.user_id HAVING 1 = 1 ORDER BY users.user_id DESC;
+```
+
+
 
 ### orderBy 顺序排列
 
@@ -621,7 +680,6 @@ where
 ### notDefaultSelectAll() 不默认查询主表全部的字段
 
 ```java
-
 // 如果需要根据实体查询可以采用这样的实例化
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(new Users().setUserName("name啊")
                                                                           .setUserId(1L));

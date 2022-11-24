@@ -23,13 +23,22 @@ public class MybatisPlusJoinConfig {
     @Getter
     private String tableAliasKeyword;
 
+    /**
+     * 是否使用MappedStatement缓存，如果使用在JoinInterceptor中就会更改
+     * MappedStatement的id，导致mybatis-plus-mate 的某些拦截器插件报错，
+     * 设置成false，代表不使用缓存则不会更改MappedStatement的id
+     */
+    @Getter
+    private boolean isUseMsCache = true;
+
     private MybatisPlusJoinConfig() {
 
     }
 
-    private MybatisPlusJoinConfig(String columnAliasKeyword, String tableAliasKeyword) {
+    private MybatisPlusJoinConfig(String columnAliasKeyword, String tableAliasKeyword, boolean isUseMsCache) {
         this.columnAliasKeyword = columnAliasKeyword;
         this.tableAliasKeyword = tableAliasKeyword;
+        this.isUseMsCache = isUseMsCache;
     }
 
     public static MybatisPlusJoinConfigBuilder builder() {
@@ -48,8 +57,21 @@ public class MybatisPlusJoinConfig {
          */
         private String tableAliasKeyword;
 
+
+        /**
+         * 是否使用MappedStatement缓存，如果使用在JoinInterceptor中就会更改
+         * MappedStatement的id，导致mybatis-plus-mate 的某些拦截器插件报错，
+         * 设置成false，代表不使用缓存则不会更改MappedStatement的id
+         */
+        private boolean isUseMsCache = true;
+
         public MybatisPlusJoinConfigBuilder columnAliasKeyword(String columnAliasKeyword) {
             this.columnAliasKeyword = columnAliasKeyword;
+            return this;
+        }
+
+        public MybatisPlusJoinConfigBuilder isUseMsCache(boolean isUseMsCache) {
+            this.isUseMsCache = isUseMsCache;
             return this;
         }
 
@@ -71,7 +93,7 @@ public class MybatisPlusJoinConfig {
                 SqlExcerpt.INNER_JOIN.updateValue(" INNER JOIN %s " + tableAliasKeyword + " %s ON %s.%s = %s.%s", "");
             }
 
-            return new MybatisPlusJoinConfig(columnAliasKeyword, tableAliasKeyword);
+            return new MybatisPlusJoinConfig(columnAliasKeyword, tableAliasKeyword, isUseMsCache);
         }
 
     }
