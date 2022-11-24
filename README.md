@@ -310,7 +310,6 @@ SELECT 1 as id
 ```java
 // 为何要这个东西，因为在不同数据库之间，别名关键字不一样，例如Mysql表别名是 As 而oracle中 是 is 关键字所以需要
 
-// 以oracle 关键字为例
   @Bean
     public MybatisPlusJoinConfig mybatisPlusJoinConfig() {
         return MybatisPlusJoinConfig.builder()
@@ -322,12 +321,6 @@ SELECT 1 as id
                 .isUseMsCache(false)
                 .build();
     }
-
-// 运行的SQL
-SELECT 1 as id
- FROM users is users
- LEFT JOIN users_age is users_age
- ON users_age.id = users.age_id
 
 ```
 
@@ -411,7 +404,7 @@ OK，来点丝滑的加料用法
 
 ```java
 //  转换查询Wrapper 会把 查询条件，group，order by，having转换
-//  注意该方法无法给 多个入参添加别名，例如 orderByDesc("id","id2") 这种情况下别名就会添加错误 
+//  注意该方法无法给 多个入参添加别名，例如 orderByDesc("id","id2") 这种情况下别名就会添加错误
  QueryWrapper<Users> wrapper1 = new QueryWrapper<>();
         wrapper1.eq("user_id", 1)
                 .and(w -> {
