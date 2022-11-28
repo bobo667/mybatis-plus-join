@@ -1,31 +1,49 @@
 package icu.mhb.mybatisplus.plugln.core.support;
+
+import static com.baomidou.mybatisplus.core.toolkit.StringPool.COMMA;
+import static java.util.stream.Collectors.joining;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import org.apache.ibatis.reflection.property.PropertyNamer;
+
 import com.baomidou.mybatisplus.core.conditions.AbstractWrapper;
 import com.baomidou.mybatisplus.core.conditions.SharedString;
 import com.baomidou.mybatisplus.core.exceptions.MybatisPlusException;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
-import com.baomidou.mybatisplus.core.toolkit.*;
+import com.baomidou.mybatisplus.core.toolkit.Assert;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
+import com.baomidou.mybatisplus.core.toolkit.StringPool;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.support.ColumnCache;
 import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
+
 import icu.mhb.mybatisplus.plugln.annotations.TableAlias;
 import icu.mhb.mybatisplus.plugln.core.func.JoinOrderFunc;
-import icu.mhb.mybatisplus.plugln.entity.*;
+import icu.mhb.mybatisplus.plugln.entity.As;
+import icu.mhb.mybatisplus.plugln.entity.ColumnsBuilder;
+import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
+import icu.mhb.mybatisplus.plugln.entity.OrderByBuild;
+import icu.mhb.mybatisplus.plugln.entity.TableFieldInfoExt;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 import icu.mhb.mybatisplus.plugln.tookit.Lists;
 import icu.mhb.mybatisplus.plugln.tookit.TableAliasCache;
 import lombok.Getter;
-import org.apache.ibatis.reflection.property.PropertyNamer;
-
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import static com.baomidou.mybatisplus.core.toolkit.StringPool.COMMA;
-import static java.util.stream.Collectors.joining;
 
 /**
  * Join lambda解析
@@ -321,7 +339,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         Assert.notNull(columnMap.get(aClass), "can not find lambda cache for this entity [%s]", aClass.getName());
         ColumnCache columnCache = columnMap.get(aClass).get(LambdaUtils.formatKey(fieldName));
         Assert.notNull(columnCache, "can not find lambda cache for this property [%s] of entity [%s]",
-                       fieldName, aClass.getName());
+                fieldName, aClass.getName());
         String column = onlyColumn ? columnCache.getColumn() : columnCache.getColumnSelect();
         if (saveField) {
             setFieldMappingList(fieldName, column);
@@ -378,6 +396,9 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
 
     protected TableFieldInfo getTableFieldInfoByFieldName(String fieldName, Class<?> clz) {
         TableInfo tableInfo = TableInfoHelper.getTableInfo(clz);
+        if (null == tableInfo) {
+            return null;
+        }
         Optional<TableFieldInfo> fieldInfoOpt = tableInfo.getFieldList()
                 .stream()
                 .filter(i -> i.getProperty().equals(fieldName))

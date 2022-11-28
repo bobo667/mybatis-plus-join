@@ -1,19 +1,4 @@
 package icu.mhb.mybatisplus.plugln.core;
-import com.baomidou.mybatisplus.core.conditions.SharedString;
-import com.baomidou.mybatisplus.core.conditions.query.Query;
-import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
-import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
-import com.baomidou.mybatisplus.core.metadata.TableInfo;
-import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
-import com.baomidou.mybatisplus.core.toolkit.*;
-import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
-import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
-import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
-import icu.mhb.mybatisplus.plugln.entity.*;
-import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
-import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
-import lombok.SneakyThrows;
-import org.apache.ibatis.reflection.property.PropertyNamer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +6,37 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+
+import org.apache.ibatis.reflection.property.PropertyNamer;
+
+import com.baomidou.mybatisplus.core.conditions.SharedString;
+import com.baomidou.mybatisplus.core.conditions.query.Query;
+import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
+import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
+import com.baomidou.mybatisplus.core.metadata.TableInfo;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
+import com.baomidou.mybatisplus.core.toolkit.Assert;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.Constants;
+import com.baomidou.mybatisplus.core.toolkit.ExceptionUtils;
+import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+
+import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
+import icu.mhb.mybatisplus.plugln.entity.As;
+import icu.mhb.mybatisplus.plugln.entity.ColumnsBuilder;
+import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
+import icu.mhb.mybatisplus.plugln.entity.HavingBuild;
+import icu.mhb.mybatisplus.plugln.entity.ManyToManySelectBuild;
+import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
+import icu.mhb.mybatisplus.plugln.entity.TableFieldInfoExt;
+import icu.mhb.mybatisplus.plugln.entity.TableInfoExt;
+import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
+import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
+import lombok.SneakyThrows;
 
 /**
  * 多表关联对象
@@ -231,7 +247,10 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
             if (null != as.getClassType()) {
                 TableFieldInfo fieldInfo = getTableFieldInfoByFieldName(as.getFieldName(), as.getClassType());
                 if (null != fieldInfo) {
-                    belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName(), new TableFieldInfoExt(fieldInfo)));
+                    TableFieldInfoExt fieldInfoExt = new TableFieldInfoExt(fieldInfo);
+                    fieldInfoExt.setColumn(columnNoAlias);
+                    fieldInfoExt.setProperty(as.getFieldName());
+                    belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName(), fieldInfoExt));
                 } else {
                     belongsColumns.add(new FieldMapping(columnNoAlias, as.getFieldName(), null));
                 }
@@ -275,7 +294,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @Override
     protected JoinWrapper<T, J> instance() {
         return new JoinWrapper<>(getEntity(), getEntityClass(), null, paramNameSeq, paramNameValuePairs,
-                                 new MergeSegments(), this.aliasMap, SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
+                new MergeSegments(), this.aliasMap, SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
     }
 
     @Override
