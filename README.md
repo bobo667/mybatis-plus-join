@@ -38,8 +38,8 @@ mybatis plus：3.2.0版本依赖地址：
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.1.6</version>
-</dependency>
+    <version>1.3.1</version>
+ </dependency>
 ```
 
 
@@ -52,7 +52,7 @@ mybatis plus：3.2.0版本依赖地址：
 | ------------ | ------------------------------------------------------------ |
 | 3.2.0        | 1.2.0                                                        |
 | 3.3.1 - 3.42 | 1.0.2                                                        |
-| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.6 |
+| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.6、1.3.1 |
 
 
 
@@ -178,6 +178,10 @@ mybatis plus：3.2.0版本依赖地址：
 
 1. 修复一对一，多对多的情况下主表和字表字段名字重复，出现赋值错误的情况
 2. 修复getTableFieldInfoByFieldName 获取不到tableInfo的情况下会报错的问题
+
+### 1.3.1版本
+
+1. 单纯的升级个版本跨过1.2.0
 
 
 
@@ -648,12 +652,12 @@ JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(new Users().setUserNa
 // wrapper.setEntity(new Users().setUserName("name啊"));
 
 // 这一部分一个参数是join中定义的连接的表，第二个参数是随意的表，但是是要出现构造器中的
-wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId);
+wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
 // 然后可以设置多表中的查询条件，这一步和mp一致
-wrapper.eq(UserAge::getAgeName,"95")
-  		.select(UserAge::getAgeName);
+			.eq(UserAge::getAgeName,"95")
+  		.select(UserAge::getAgeName)
 // 最后一步 需要使用end方法结束
-wrapper = wrapper.end();
+      wrapper.end();
 
 // 执行查询
 usersService.joinList(wrapper,UsersVo.class);
@@ -678,6 +682,7 @@ where
 ### notDefaultSelectAll() 不默认查询主表全部的字段
 
 ```java
+
 // 如果需要根据实体查询可以采用这样的实例化
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(new Users().setUserName("name啊")
                                                                           .setUserId(1L));
@@ -686,12 +691,12 @@ JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(new Users().setUserNa
 wrapper.notDefaultSelectAll();
 
 // 这一部分一个参数是join中定义的连接的表，第二个参数是随意的表，但是是要出现构造器中的
-wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId);
+wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
 // 然后可以设置多表中的查询条件，这一步和mp一致
-wrapper.eq(UserAge::getAgeName,"95")
-  		.select(UserAge::getAgeName);
+			.eq(UserAge::getAgeName,"95")
+  		.select(UserAge::getAgeName)
 // 最后一步 需要使用end方法结束
-wrapper = wrapper.end();
+			.end();
 
 // 执行查询
 usersService.joinList(wrapper,UsersVo.class);

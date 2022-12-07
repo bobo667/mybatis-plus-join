@@ -1,5 +1,7 @@
 package icu.mhb.mybatisplus.plugln.config;
+
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import lombok.Getter;
 
@@ -81,7 +83,6 @@ public class MybatisPlusJoinConfig {
         }
 
         public MybatisPlusJoinConfig build() {
-
             if (StringUtils.isNotBlank(columnAliasKeyword)) {
                 SqlExcerpt.COLUMNS_AS.updateValue(" %s " + columnAliasKeyword + " %s ", "");
             }
