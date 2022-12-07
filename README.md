@@ -11,10 +11,14 @@ mybatis-plus-join示例：
 
 ### 关于该插件的一点问题
 
-1. 出现了bug怎么办，不是mybatis plus官方的会不会不稳定啊？ 这个大可以放心，这个插件我已经在生产环境跑了半年多了，没出过什么问题，如果遇到问题可以在 Issues 上提出，我看见就会解决，上午提的，不忙的话下午就能打包新版本，忙的话大概就需要晚上就差不多了
+1. 出现了bug怎么办，不是mybatis plus官方的会不会不稳定啊？ 这个大可以放心，这个插件我已经在生产环境跑了一年多了，已经有许多开发者再用，没出过什么问题，如果遇到问题可以在 Issues 上提出，我看见就会解决，上午提的，不忙的话下午就能打包新版本，忙的话大概就需要晚上就差不多了
 2. 关于维护到啥时候？mybatis plus不倒我不倒（当然，如果长期没有star，哪怕是我得先倒了，还是那，您的star就是作者更新的动力，手动ღ( ´･ᴗ･` )比心）
 3. 有什么有想法的新功能啊，或者改善啊，可以在Issues 上提出
 4. 如果想联系作者，可以在wx上搜索小程序 <u>马汇博的博客</u>在关于我中有微信号，欢迎来扰
+
+如果需要加群，请加我微信我拉您进群
+
+<img src="https://www.mhba.work/upload/2022/12/tmp_9c854beed43b4f9eaf4984f42eefa027-2fe7c9b96b9b451db7317ee7bac9c0e5.jpg" alt="tmp_9c854beed43b4f9eaf4984f42eefa027" style="zoom:25%;" />
 
 
 
@@ -29,7 +33,7 @@ mybatis plus：3.2.0版本依赖地址：
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
     <version>1.2.0</version>
-</dependency>
+ </dependency>
 ```
 
 最新版本依赖地址：
@@ -682,7 +686,6 @@ where
 ### notDefaultSelectAll() 不默认查询主表全部的字段
 
 ```java
-
 // 如果需要根据实体查询可以采用这样的实例化
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(new Users().setUserName("name啊")
                                                                           .setUserId(1L));
