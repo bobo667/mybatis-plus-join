@@ -1,10 +1,13 @@
 package icu.mhb.mybatisplus.plugln.entity;
+
+import org.apache.ibatis.reflection.property.PropertyNamer;
+
 import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
 import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+
 import lombok.Getter;
 import lombok.SneakyThrows;
-import org.apache.ibatis.reflection.property.PropertyNamer;
 
 /**
  * @author mahuibo
@@ -79,6 +82,16 @@ public class As<T> {
         this.columnStr = "";
     }
 
+    public <J> As(SFunction<T, ?> column, SFunction<J, ?> alias) {
+        this.column = column;
+        LambdaMeta extract = LambdaUtils.extract(column);
+        this.classType = extract.getInstantiatedClass();
+        this.fieldName = PropertyNamer.methodToProperty(extract.getImplMethodName());
+        LambdaMeta extractAlias = LambdaUtils.extract(alias);
+        this.alias = PropertyNamer.methodToProperty(extractAlias.getImplMethodName());
+        this.columnStr = "";
+    }
+
 
     /**
      * 设置字段名 并添加别名、属性名
@@ -92,6 +105,21 @@ public class As<T> {
         this.fieldName = PropertyNamer.methodToProperty(extract.getImplMethodName());
         this.classType = extract.getInstantiatedClass();
         this.alias = alias;
+        this.columnStr = "";
+    }
+
+    /**
+     * 设置字段名 并自动设置别名加上表名前缀、属性名
+     *
+     * @param column 字段
+     * @param alias  别名
+     */
+    public As(String tableName, SFunction<T, ?> column) {
+        LambdaMeta extract = LambdaUtils.extract(column);
+        this.fieldName = PropertyNamer.methodToProperty(extract.getImplMethodName());
+        this.classType = extract.getInstantiatedClass();
+        this.column = column;
+        this.alias = tableName + "_" + this.fieldName;
         this.columnStr = "";
     }
 
@@ -131,7 +159,6 @@ public class As<T> {
         this.columnStr = columnStr;
         this.ifQuotes = isQuotes;
     }
-
 
 //    private void initFieldAndColumn(SFunction<T, ?> column, SFunction<T, ?> fieldName) {
 //        this.column = column;

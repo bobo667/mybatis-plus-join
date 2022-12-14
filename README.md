@@ -1,6 +1,6 @@
 # mybatis-plus-join
 
-mybatis-plus-join是mybatis plus的一个多表插件，上手简单，十分钟不到就能学会全部使用方式，只要会用mp就会用这个插件，仅仅依赖了lombok，而且是扩展mp的构造器并非更改原本的构造器，不会对原有项目产生一点点影响，相信大多数项目都有这俩插件，四舍五入就是没依赖。
+mybatis-plus-join是mybatis plus的一个多表插件，上手简单，十分钟不到就能学会全部使用方式，只要会用mp就会用这个插件，仅仅依赖了lombok，而且是扩展mp的构造器并非更改原本的构造器，不会对原有项目产生一点点影响，相信大多数项目都有这插件，四舍五入就是没依赖。
 
 mybatis-plus-join示例：
 
@@ -42,7 +42,7 @@ mybatis plus：3.2.0版本依赖地址：
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.3.1</version>
+    <version>1.3.2</version>
  </dependency>
 ```
 
@@ -56,7 +56,7 @@ mybatis plus：3.2.0版本依赖地址：
 | ------------ | ------------------------------------------------------------ |
 | 3.2.0        | 1.2.0                                                        |
 | 3.3.1 - 3.42 | 1.0.2                                                        |
-| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.6、1.3.1 |
+| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.6、1.3.1、1.3.2 |
 
 
 
@@ -187,7 +187,11 @@ mybatis plus：3.2.0版本依赖地址：
 
 1. 单纯的升级个版本跨过1.2.0
 
+### 1.3.2版本
 
+1.  selectAs(cb -> {cb.add()})方式，自动增加表前缀，在一对一，多对多的场景下，相同字段名可以无需写别名即可映射
+2. 修复gitee /issues/I64AZ0 分页参数传递的问题
+3. 增加selectAs(SFunction<T, ?> column, SFunction<J, ?> alias) 和  selectAs#addFunAlias 支持用函数来表示别名
 
 ### 其他版本
 
@@ -265,7 +269,7 @@ mybatis plus：3.2.0版本依赖地址：
 
 3.impl 继承 JoinServiceImpl<M,T>
 
-4.注入mp自定义方法，主要是继承JoinDefaultSqlInjector
+4.注入mp自定义方法，主要是继承JoinDefaultSqlInjector （因为版本更新，这里的参数可能有所变化，改一下传递一下就行了）
 
 ```java
 package icu.mhb.mpj.example.config;
@@ -547,7 +551,9 @@ FROM
 							 |fieldName : 字段名称
                add(SFunction<T, ?> column, String alias, SFunction<F, ?> fieldName)
                */
-               .add(UsersAge::getId, "ageId", UsersAge::getId);
+               .add(UsersAge::getId, "ageId", UsersAge::getId)
+          		// 在1.3.2版本后 属性名和映射vo的属性名相同的情况下，可以不必写别名，就可以完成自动映射
+          	 .add(UsersAge::getId);
          }).end();
 
  return super.joinList(wrapper, UsersVo.class);
@@ -592,6 +598,7 @@ wrapper.leftJoin(Users.class, Users::getAgeId, UsersAge::getId)
         // 第二个参数代表list中的实体类型 例如 List<Users> 这里的实体类型就是Users
   			// 第三个就是要查询的字段
         .manyToManySelect(UsersAgesVo::getUsersList, Users.class, (cb) -> {
+          	// 在1.3.2版本后 属性名和映射vo的属性名相同的情况下，可以不必写别名，就可以完成自动映射
            cb.add(Users::getUserName, Users::getUserId, Users::getCreateTime);
          }).end();
 return super.joinList(wrapper, UsersAgesVo.class);
@@ -686,6 +693,7 @@ where
 ### notDefaultSelectAll() 不默认查询主表全部的字段
 
 ```java
+
 // 如果需要根据实体查询可以采用这样的实例化
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(new Users().setUserName("name啊")
                                                                           .setUserId(1L));
@@ -733,6 +741,8 @@ JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
 wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
   	.eq(UserAge::getAgeName,"95")
   	.selectAs(UserAge::getAgeName,"user_age_name")
+  	// 在1.3.2版本后可以采用函数的方式写别名
+  		.selectAs(UserAge::getAgeName,UsersVo::getUserAgeName)
   	.end();
 // 执行查询
 usersService.joinList(wrapper,UsersVo.class);
@@ -757,8 +767,9 @@ wrapper.join(UsersAge.class)
     .selectAs((cb) -> {
       cb.add(UserAge::getAgeName,"user_age_name")
         .add(UserAge::getAgeDoc)
+        .addFunAlias(UserAge::getAgeName,UsersVo::getUserAgeName) // 该方法在1.3.2版本后支持
         .add("mp永远滴神","mpnb")
-        .add("sum(users_age.id)","ageIdSum",false); // 这个为false就是代表不是字符串，会原样查询
+        .add("sum(users_age.id)","ageIdSum",false); // 这个为false就是代表不是字符串，会原样查询 在1.3.1版本后支持
     }).end();
 // 执行查询
 usersService.joinList(wrapper,UsersVo.class);

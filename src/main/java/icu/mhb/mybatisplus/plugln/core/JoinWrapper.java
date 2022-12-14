@@ -218,6 +218,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
 
     private <P> List<FieldMapping> buildField(SFunction<P, ?> column, Consumer<ColumnsBuilder<T>> consumer) {
         ColumnsBuilder<T> columnsBuilder = new ColumnsBuilder<>();
+        columnsBuilder.setTableName(getAlias());
         // 执行用户自定义定义
         consumer.accept(columnsBuilder);
 

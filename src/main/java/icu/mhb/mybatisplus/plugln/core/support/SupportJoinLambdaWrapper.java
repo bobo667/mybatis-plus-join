@@ -259,6 +259,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      */
     public Children selectAs(Consumer<ColumnsBuilder<T>> consumer) {
         ColumnsBuilder<T> columnsBuilder = new ColumnsBuilder<>();
+        columnsBuilder.setTableName(getAlias());
         // 执行用户自定义定义
         consumer.accept(columnsBuilder);
         // 进行构建
@@ -285,6 +286,10 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         return this.selectAs(getSelectColumn(Collections.singletonList(new As<>(column, alias))));
     }
 
+    public <J> Children selectAs(SFunction<T, ?> column, SFunction<J, ?> alias) {
+        return this.selectAs(getSelectColumn(Collections.singletonList(new As<>(column, alias))));
+    }
+
     /**
      * 获取查询列
      *
@@ -302,14 +307,14 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
                     columnNotAlias = columnToStringNoAlias(as.getColumn(), false);
                     column = getAliasAndField(columnNotAlias);
                     // 因为增加了别名之后数据库名称和属性名则都是别名
-                    setFieldMappingList(as.getAlias(), as.getAlias());
+                    setFieldMappingList(StringUtils.isNotBlank(as.getFieldName()) ? as.getFieldName() : as.getAlias(), as.getAlias());
                 } else {
                     column = columnToString(as.getColumn(), true, true);
                 }
 
             } else {
                 column = as.isIfQuotes() ? StringUtils.quotaMark(column) : column;
-                setFieldMappingList(as.getAlias(), as.getAlias());
+                setFieldMappingList(StringUtils.isNotBlank(as.getFieldName()) ? as.getFieldName() : as.getAlias(), as.getAlias());
             }
 
             if (StringUtils.isNotBlank(as.getAlias())) {

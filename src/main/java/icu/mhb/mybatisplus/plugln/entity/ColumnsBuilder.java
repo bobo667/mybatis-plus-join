@@ -1,14 +1,17 @@
 package icu.mhb.mybatisplus.plugln.entity;
 
-import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
-import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
-import lombok.Getter;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+
+import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 查询列表构建实体
@@ -23,6 +26,12 @@ public class ColumnsBuilder<T> {
      */
     private List<As<T>> columnsBuilderList;
 
+    /**
+     * 表名，用于自动映射
+     */
+    @Setter
+    private String tableName;
+
     public ColumnsBuilder() {
         this.columnsBuilderList = new ArrayList<>();
     }
@@ -34,7 +43,7 @@ public class ColumnsBuilder<T> {
         }
 
         for (SFunction<T, ?> column : columns) {
-            columnsBuilderList.add(new As<>(column));
+            columnsBuilderList.add(new As<>(tableName, column));
         }
 
         return this;
@@ -56,7 +65,16 @@ public class ColumnsBuilder<T> {
             return this;
         }
 
-        columnsBuilderList.add(new As<>(column));
+        return add(Collections.singletonList(column));
+    }
+
+    public <J> ColumnsBuilder<T> addFunAlias(SFunction<T, ?> column, SFunction<J, ?> alias) {
+
+        if (column == null) {
+            return this;
+        }
+
+        columnsBuilderList.add(new As<>(column, alias));
         return this;
     }
 
