@@ -608,16 +608,6 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         final Class<T> entityClass = getEntityClass();
     }
 
-//    @Override
-//    protected void setFieldMappingList(String fieldName, String columns) {
-//        TableFieldInfo info = getTableFieldInfoByFieldName(fieldName);
-//        if (null != info && (info.getTypeHandler() != null || info.getJdbcType() != null)) {
-//            fieldMappingList.add(new FieldMapping(columns, fieldName, new TableFieldInfoExt(info)));
-//            return;
-//        }
-//        fieldMappingList.add(new FieldMapping(columns, fieldName, null));
-//    }
-
 
     public List<FieldMapping> getFieldMappingList() {
         return this.fieldMappingList;

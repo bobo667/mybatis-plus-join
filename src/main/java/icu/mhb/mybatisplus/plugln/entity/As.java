@@ -77,7 +77,7 @@ public class As<T> {
         this.column = column;
         LambdaMeta extract = LambdaUtils.extract(column);
         this.classType = extract.getInstantiatedClass();
-        this.fieldName = PropertyNamer.methodToProperty(extract.getImplMethodName());
+//        this.fieldName = PropertyNamer.methodToProperty(extract.getImplMethodName());
         this.alias = alias;
         this.columnStr = "";
     }
@@ -86,7 +86,7 @@ public class As<T> {
         this.column = column;
         LambdaMeta extract = LambdaUtils.extract(column);
         this.classType = extract.getInstantiatedClass();
-        this.fieldName = PropertyNamer.methodToProperty(extract.getImplMethodName());
+//        this.fieldName = PropertyNamer.methodToProperty(extract.getImplMethodName());
         LambdaMeta extractAlias = LambdaUtils.extract(alias);
         this.alias = PropertyNamer.methodToProperty(extractAlias.getImplMethodName());
         this.columnStr = "";
