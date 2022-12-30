@@ -14,6 +14,14 @@ import org.apache.ibatis.mapping.SqlSource;
  */
 public class JoinSelectOne extends JoinAbstractMethod {
 
+    public JoinSelectOne(String methodName) {
+        super(methodName);
+    }
+
+    public JoinSelectOne() {
+        super(JoinSqlMethod.JOIN_SELECT_ONE.name());
+    }
+
     @Override
     @SuppressWarnings("all")
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {

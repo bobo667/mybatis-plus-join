@@ -1,20 +1,16 @@
 package icu.mhb.mybatisplus.plugln.base.service.impl;
 
-import java.util.List;
-
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-
 import icu.mhb.mybatisplus.plugln.base.mapper.JoinBaseMapper;
 import icu.mhb.mybatisplus.plugln.base.service.JoinIService;
 import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.List;
 
 /**
  * @author mahuibo
@@ -47,10 +43,8 @@ public class JoinServiceImpl<M extends JoinBaseMapper<T>, T> extends ServiceImpl
     }
 
     @Override
-    public <EV, E extends IPage<EV>, C> Page<EV> joinPage(E page, Wrapper<C> wrapper, Class<EV> clz) {
-        Page<EV> evPage = new Page<>();
-        BeanUtils.copyProperties(page, evPage);
-        return joinMapper.joinSelectPage(evPage, wrapper, clz);
+    public <E extends IPage<EV>, EV, C> E joinPage(E page, Wrapper<C> wrapper, Class<EV> clz) {
+        return joinMapper.joinSelectPage(page, wrapper, clz);
     }
 
     protected LambdaQueryWrapper<T> lambdaQueryWrapper() {

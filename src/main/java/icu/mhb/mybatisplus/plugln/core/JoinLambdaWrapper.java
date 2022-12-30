@@ -11,8 +11,11 @@ import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.*;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
+import icu.mhb.mybatisplus.plugln.base.mapper.JoinBaseMapper;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.func.JoinMethodFunc;
+import icu.mhb.mybatisplus.plugln.core.func.JoinQueryFunc;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
 import icu.mhb.mybatisplus.plugln.entity.*;
 import icu.mhb.mybatisplus.plugln.keyword.DefaultFuncKeyWord;
@@ -38,7 +41,7 @@ import static com.baomidou.mybatisplus.core.toolkit.StringPool.NEWLINE;
  */
 @SuppressWarnings("all")
 public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambdaWrapper<T>>
-        implements Query<JoinLambdaWrapper<T>, T, SFunction<T, ?>>, JoinMethodFunc<T> {
+        implements Query<JoinLambdaWrapper<T>, T, SFunction<T, ?>>, JoinMethodFunc<T>, JoinQueryFunc<T, JoinLambdaWrapper<T>> {
 
     /**
      * 关键字获取
@@ -623,6 +626,11 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     public JoinLambdaWrapper<T> setFuncKeyWord(IFuncKeyWord funcKeyWord) {
         this.funcKeyWord = funcKeyWord;
         return typedThis;
+    }
+
+    @Override
+    public JoinBaseMapper<T> getJoinBaseMapper() {
+        return (JoinBaseMapper<T>) SqlHelper.getMapper(getEntityOrMasterClass(), SqlHelper.sqlSession(getEntityOrMasterClass()));
     }
 
 }

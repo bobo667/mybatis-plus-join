@@ -1,42 +1,28 @@
 package icu.mhb.mybatisplus.plugln.core;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-
-import org.apache.ibatis.reflection.property.PropertyNamer;
-
 import com.baomidou.mybatisplus.core.conditions.SharedString;
 import com.baomidou.mybatisplus.core.conditions.query.Query;
 import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
-import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
-import com.baomidou.mybatisplus.core.toolkit.Assert;
-import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import com.baomidou.mybatisplus.core.toolkit.Constants;
-import com.baomidou.mybatisplus.core.toolkit.ExceptionUtils;
-import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.core.toolkit.*;
 import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
-
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
-import icu.mhb.mybatisplus.plugln.entity.As;
-import icu.mhb.mybatisplus.plugln.entity.ColumnsBuilder;
-import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
-import icu.mhb.mybatisplus.plugln.entity.HavingBuild;
-import icu.mhb.mybatisplus.plugln.entity.ManyToManySelectBuild;
-import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
-import icu.mhb.mybatisplus.plugln.entity.TableFieldInfoExt;
-import icu.mhb.mybatisplus.plugln.entity.TableInfoExt;
+import icu.mhb.mybatisplus.plugln.entity.*;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
+import icu.mhb.mybatisplus.plugln.tookit.Lambdas;
 import lombok.SneakyThrows;
+import org.apache.ibatis.reflection.property.PropertyNamer;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * 多表关联对象
@@ -177,6 +163,25 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         return typedThis;
     }
 
+    /**
+     * 多对多方法，使用该方法，可以不需要指定列，默认查询全部字段
+     *
+     * @param column 列
+     */
+    public <P> JoinWrapper<T, J> manyToManySelect(SFunction<P, ?> column, Class<?> manyToManyClass) {
+        // 获取当前类全部字段属性
+        TableInfo tableInfo = TableInfoHelper.getTableInfo(manyToManyClass);
+        Assert.notNull(tableInfo, "cat not get tableInfo from Class: \"%s\".", manyToManyClass.getName());
+        return manyToManySelect(column, manyToManyClass, cb -> {
+            tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect)
+                    .forEach(fieldInfo -> cb.add(Lambdas.getSFunction(manyToManyClass, fieldInfo.getPropertyType(), fieldInfo.getProperty())));
+
+            if (tableInfo.havePK()) {
+                cb.add(Lambdas.getSFunction(manyToManyClass, tableInfo.getKeyType(), tableInfo.getKeyProperty()));
+            }
+        });
+    }
+
     @SneakyThrows
     public <P> JoinWrapper<T, J> manyToManySelect(SFunction<P, ?> column, Class<?> manyToManyClass, Consumer<ColumnsBuilder<T>> consumer) {
 
@@ -195,6 +200,23 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
                 .build();
 
         return typedThis;
+    }
+
+    /**
+     * 一对一方法，使用该方法，可以不需要指定列，默认查询全部字段
+     *
+     * @param column 列
+     */
+    public <P> JoinWrapper<T, J> oneToOneSelect(SFunction<P, ?> column, Class<?> modelClass) {
+        TableInfo tableInfo = TableInfoHelper.getTableInfo(modelClass);
+        Assert.notNull(tableInfo, "cat not get tableInfo from Class: \"%s\".", modelClass.getName());
+        return oneToOneSelect(column, cb -> {
+            tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect)
+                    .forEach(fieldInfo -> cb.add(Lambdas.getSFunction(modelClass, fieldInfo.getPropertyType(), fieldInfo.getProperty())));
+            if (tableInfo.havePK()) {
+                cb.add(Lambdas.getSFunction(modelClass, tableInfo.getKeyType(), tableInfo.getKeyProperty()));
+            }
+        });
     }
 
     @SneakyThrows
@@ -295,7 +317,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @Override
     protected JoinWrapper<T, J> instance() {
         return new JoinWrapper<>(getEntity(), getEntityClass(), null, paramNameSeq, paramNameValuePairs,
-                new MergeSegments(), this.aliasMap, SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
+                                 new MergeSegments(), this.aliasMap, SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
     }
 
     @Override

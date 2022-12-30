@@ -52,6 +52,6 @@ public interface JoinIService<T> extends IService<T> {
      * @param page    翻页对象
      * @param wrapper 实体对象封装操作类
      */
-    <EV, E extends IPage<EV>, C> IPage<EV> joinPage(E page, Wrapper<C> wrapper, Class<EV> clz);
+    <E extends IPage<EV>, EV, C> E  joinPage(E page, Wrapper<C> wrapper, Class<EV> clz);
 
 }

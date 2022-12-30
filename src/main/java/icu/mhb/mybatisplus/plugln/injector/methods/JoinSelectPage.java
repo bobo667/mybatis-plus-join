@@ -7,8 +7,6 @@ import icu.mhb.mybatisplus.plugln.injector.JoinDefaultResultType;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.SqlSource;
 
-import java.util.Map;
-
 /**
  * @author mahuibo
  * @Title: JoinSelectPage
@@ -16,6 +14,14 @@ import java.util.Map;
  */
 @SuppressWarnings("all")
 public class JoinSelectPage extends JoinAbstractMethod {
+
+    protected JoinSelectPage(String methodName) {
+        super(methodName);
+    }
+
+    public JoinSelectPage() {
+        super(JoinSqlMethod.JOIN_SELECT_PAGE.name());
+    }
 
     @Override
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {

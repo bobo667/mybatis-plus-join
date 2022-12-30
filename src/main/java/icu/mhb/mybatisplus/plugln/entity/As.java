@@ -166,7 +166,7 @@ public class As<T> {
 //        if (fieldName != null) {
 //            parsing = fieldName;
 //        }
-//        LambdaMeta lambdaMeta = LambdaUtils.extract(parsing);
+//        LambdaMeta lambdaMeta = Lambdas.extract(parsing);
 //        Class<?> metaInstantiatedClass = lambdaMeta.getInstantiatedClass();
 //        this.fieldName = PropertyNamer.methodToProperty(lambdaMeta.getImplMethodName());
 //        this.javaType = EntityFieldCache.computeIfAbsent(metaInstantiatedClass.getName() + this.fieldName, (v) -> ReflectionUtils.findField(metaInstantiatedClass, this.fieldName).getType());

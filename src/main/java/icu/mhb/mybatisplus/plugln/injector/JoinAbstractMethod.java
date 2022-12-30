@@ -16,6 +16,10 @@ public abstract class JoinAbstractMethod extends AbstractMethod {
 
     private TableInfoExt table;
 
+    protected JoinAbstractMethod(String methodName) {
+        super(methodName);
+    }
+
     protected TableInfoExt getTableInfo() {
         return this.table;
     }

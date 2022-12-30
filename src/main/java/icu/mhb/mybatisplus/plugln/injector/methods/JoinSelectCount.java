@@ -13,6 +13,13 @@ import org.apache.ibatis.mapping.SqlSource;
  */
 public class JoinSelectCount extends JoinAbstractMethod {
 
+    public JoinSelectCount(String methodName) {
+        super(methodName);
+    }
+    public JoinSelectCount() {
+        super(JoinSqlMethod.JOIN_SELECT_COUNT.name());
+    }
+
     @Override
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         JoinSqlMethod sqlMethod = JoinSqlMethod.JOIN_SELECT_COUNT;
