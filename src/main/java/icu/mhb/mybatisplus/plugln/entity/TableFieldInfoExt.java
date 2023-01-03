@@ -12,7 +12,10 @@ import org.apache.ibatis.type.TypeHandler;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 import org.apache.ibatis.type.UnknownTypeHandler;
 
+import java.util.function.Predicate;
+
 import static com.baomidou.mybatisplus.core.toolkit.StringPool.EMPTY;
+import static java.util.stream.Collectors.joining;
 
 /**
  * tableField的扩展类
@@ -72,6 +75,7 @@ public class TableFieldInfoExt {
     private String convertIfProperty(String prefix, String property) {
         return StringUtils.isNotBlank(prefix) ? prefix.substring(0, prefix.length() - 1) + "['" + property + "']" : property;
     }
+
 
     /**
      * 转换成 if 标签的脚本片段

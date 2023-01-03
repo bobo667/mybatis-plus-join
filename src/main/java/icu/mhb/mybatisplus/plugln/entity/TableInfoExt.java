@@ -1,11 +1,12 @@
 package icu.mhb.mybatisplus.plugln.entity;
+import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
-import lombok.Data;
 import lombok.Getter;
 
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import static com.baomidou.mybatisplus.core.toolkit.StringPool.*;
 import static java.util.stream.Collectors.joining;
@@ -25,6 +26,26 @@ public class TableInfoExt {
     public TableInfoExt(TableInfo tableInfo) {
         this.tableInfo = tableInfo;
     }
+
+    /**
+     * 获取需要进行查询的 select sql 片段
+     *
+     * @param predicate 过滤条件
+     * @return sql 片段
+     */
+    public String chooseSelect(Predicate<TableFieldInfo> predicate, String alias) {
+        String sqlSelect = TableFieldInfoExt.getAliasColumn(tableInfo.getKeySqlSelect(), alias);
+        String fieldsSqlSelect = tableInfo.getFieldList().stream().filter(predicate)
+                .map(TableFieldInfo::getSqlSelect).map(i -> TableFieldInfoExt.getAliasColumn(i, alias))
+                .collect(joining(COMMA));
+        if (StringUtils.isNotBlank(sqlSelect) && StringUtils.isNotBlank(fieldsSqlSelect)) {
+            return sqlSelect + COMMA + fieldsSqlSelect;
+        } else if (StringUtils.isNotBlank(fieldsSqlSelect)) {
+            return fieldsSqlSelect;
+        }
+        return sqlSelect;
+    }
+
 
     /**
      * 获取所有的查询的 sql 片段
