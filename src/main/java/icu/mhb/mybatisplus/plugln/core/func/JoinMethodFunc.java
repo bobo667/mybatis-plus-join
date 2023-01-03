@@ -53,11 +53,11 @@ public interface JoinMethodFunc<T> {
             return (JoinLambdaWrapper<T>) this;
         }
 
-        JoinWrapper<Object, T> joinWrapper = null;
+        JoinLambdaWrapper<T> joinWrapper = null;
         for (SFunction<F, Object> pushJoinField : pushJoinFields) {
-            joinWrapper = pushJoin(pushJoinField, null, sqlExcerpt);
+            joinWrapper = pushJoin(pushJoinField, null, sqlExcerpt).end();
         }
-        return joinWrapper.end();
+        return joinWrapper;
     }
 
     @SuppressWarnings("all")

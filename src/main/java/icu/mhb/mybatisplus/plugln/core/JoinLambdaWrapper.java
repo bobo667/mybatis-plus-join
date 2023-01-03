@@ -22,6 +22,8 @@ import icu.mhb.mybatisplus.plugln.keyword.DefaultFuncKeyWord;
 import icu.mhb.mybatisplus.plugln.keyword.IFuncKeyWord;
 import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
 import lombok.Getter;
+import org.apache.ibatis.session.SqlSession;
+import org.mybatis.spring.SqlSessionUtils;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -629,8 +631,14 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     }
 
     @Override
-    public JoinBaseMapper<T> getJoinBaseMapper() {
-        return (JoinBaseMapper<T>) SqlHelper.getMapper(getEntityOrMasterClass(), SqlHelper.sqlSession(getEntityOrMasterClass()));
+    public <R> R executeQuery(SFunction<JoinBaseMapper<T>, R> function) {
+        SqlSession sqlSession = SqlHelper.sqlSession(getEntityOrMasterClass());
+        try {
+            return function.apply((JoinBaseMapper<T>) SqlHelper.getMapper(getEntityOrMasterClass(), sqlSession));
+        } finally {
+            SqlSessionUtils.closeSqlSession(sqlSession, GlobalConfigUtils.currentSessionFactory(getEntityOrMasterClass()));
+        }
     }
+
 
 }

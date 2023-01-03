@@ -1,5 +1,6 @@
 package icu.mhb.mybatisplus.plugln.core.func;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import icu.mhb.mybatisplus.plugln.base.mapper.JoinBaseMapper;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
 
@@ -14,27 +15,28 @@ import java.util.List;
 public interface JoinQueryFunc<T, Children extends SupportJoinLambdaWrapper<T, Children>> {
 
     default <EV> List<EV> joinList(Class<EV> clz) {
-        return getJoinBaseMapper().joinSelectList(getSunWrapper(), clz);
+        return executeQuery(mapper -> mapper.joinSelectList(getSunWrapper(), clz));
     }
 
     default <EV> EV joinGetOne(Class<EV> clz) {
-        return getJoinBaseMapper().joinSelectOne(getSunWrapper(), clz);
+        return executeQuery(mapper -> mapper.joinSelectOne(getSunWrapper(), clz));
     }
 
     default int joinCount() {
-        return getJoinBaseMapper().joinSelectCount(getSunWrapper());
+        return executeQuery(mapper -> mapper.joinSelectCount(getSunWrapper()));
     }
 
     default <E extends IPage<EV>, EV> E joinPage(E page, Class<EV> clz) {
-        return getJoinBaseMapper().joinSelectPage(page, getSunWrapper(), clz);
+        return executeQuery(mapper -> mapper.joinSelectPage(page, getSunWrapper(), clz));
     }
 
     /**
-     * 获取baseMapper
+     * 执行查询
      *
      * @return
      */
-    JoinBaseMapper<T> getJoinBaseMapper();
+    <R> R executeQuery(SFunction<JoinBaseMapper<T>, R> function);
+
 
     default Children getSunWrapper() {
         return (Children) this;

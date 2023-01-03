@@ -1,49 +1,35 @@
 package icu.mhb.mybatisplus.plugln.core.support;
 
-import static com.baomidou.mybatisplus.core.toolkit.StringPool.COMMA;
-import static java.util.stream.Collectors.joining;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import org.apache.ibatis.reflection.property.PropertyNamer;
-
 import com.baomidou.mybatisplus.core.conditions.AbstractWrapper;
 import com.baomidou.mybatisplus.core.conditions.SharedString;
+import com.baomidou.mybatisplus.core.enums.SqlKeyword;
 import com.baomidou.mybatisplus.core.exceptions.MybatisPlusException;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
-import com.baomidou.mybatisplus.core.toolkit.Assert;
-import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
-import com.baomidou.mybatisplus.core.toolkit.StringPool;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.core.toolkit.*;
 import com.baomidou.mybatisplus.core.toolkit.support.ColumnCache;
 import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
-
 import icu.mhb.mybatisplus.plugln.annotations.TableAlias;
+import icu.mhb.mybatisplus.plugln.core.func.JoinCompareFun;
 import icu.mhb.mybatisplus.plugln.core.func.JoinOrderFunc;
-import icu.mhb.mybatisplus.plugln.entity.As;
-import icu.mhb.mybatisplus.plugln.entity.ColumnsBuilder;
-import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
-import icu.mhb.mybatisplus.plugln.entity.OrderByBuild;
-import icu.mhb.mybatisplus.plugln.entity.TableFieldInfoExt;
+import icu.mhb.mybatisplus.plugln.entity.*;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 import icu.mhb.mybatisplus.plugln.tookit.Lists;
 import icu.mhb.mybatisplus.plugln.tookit.TableAliasCache;
 import lombok.Getter;
+import org.apache.ibatis.reflection.property.PropertyNamer;
+
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import static com.baomidou.mybatisplus.core.enums.SqlKeyword.*;
+import static com.baomidou.mybatisplus.core.toolkit.StringPool.COMMA;
+import static java.util.stream.Collectors.joining;
 
 /**
  * Join lambda解析
@@ -55,7 +41,7 @@ import lombok.Getter;
  * @see com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
  */
 public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLambdaWrapper<T, Children>>
-        extends AbstractWrapper<T, SFunction<T, ?>, Children> implements JoinOrderFunc<Children, SFunction<T, ?>> {
+        extends AbstractWrapper<T, SFunction<T, ?>, Children> implements JoinOrderFunc<Children, SFunction<T, ?>>, JoinCompareFun<Children, T> {
 
     /**
      * 查询的字段映射列表
@@ -104,10 +90,11 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         return getColumn(LambdaUtils.extract(column), true, saveType);
     }
 
-    protected String columnToString(SFunction<T, ?> column, boolean onlyColumn, boolean saveType) {
-        String columnToString = getColumn(LambdaUtils.extract(column), true, saveType);
+    protected String columnToString(SFunction<?, ?> column, boolean onlyColumn, boolean saveType) {
+        LambdaMeta lambdaMeta = LambdaUtils.extract(column);
+        String columnToString = getColumn(lambdaMeta, true, saveType);
         if (StringUtils.isNotBlank(columnToString)) {
-            return getAliasAndField(columnToString);
+            return getAliasAndField(lambdaMeta.getInstantiatedClass(), columnToString);
         }
         return columnToString;
     }
@@ -234,6 +221,61 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
     }
 
 
+    @Override
+    public <J> Children eq(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val) {
+        return addCondition(condition, column, SqlKeyword.EQ, val);
+    }
+
+    @Override
+    public <J> Children ne(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val) {
+        return addCondition(condition, column, SqlKeyword.NE, val);
+    }
+
+    @Override
+    public <J> Children gt(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val) {
+        return addCondition(condition, column, SqlKeyword.GT, val);
+    }
+
+    @Override
+    public <J> Children ge(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val) {
+        return addCondition(condition, column, SqlKeyword.GE, val);
+    }
+
+    @Override
+    public <J> Children lt(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val) {
+        return addCondition(condition, column, SqlKeyword.LT, val);
+    }
+
+    @Override
+    public <J> Children le(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val) {
+        return addCondition(condition, column, SqlKeyword.LE, val);
+    }
+
+    @Override
+    public <J, J2> Children between(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val1, SFunction<J2, Object> val2) {
+        return maybeDo(condition, () -> appendSqlSegments(columnToSqlSegment(column), BETWEEN,
+                                                          () -> columnToString(val1, true, false), AND, () -> columnToString(val2, true, false)));
+    }
+
+    @Override
+    public <J, J2> Children notBetween(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val1, SFunction<J2, Object> val2) {
+        return maybeDo(condition, () -> appendSqlSegments(columnToSqlSegment(column), NOT_BETWEEN,
+                                                          () -> columnToString(val1, true, false), AND, () -> columnToString(val2, true, false)));
+    }
+
+    /**
+     * 普通查询条件
+     *
+     * @param condition  是否执行
+     * @param column     属性
+     * @param sqlKeyword SQL 关键词
+     * @param val        条件值
+     */
+    protected <J> Children addCondition(boolean condition, SFunction<T, Object> column, SqlKeyword sqlKeyword, SFunction<J, Object> val) {
+        return maybeDo(condition, () -> appendSqlSegments(columnToSqlSegment(column), sqlKeyword,
+                                                          () -> columnToString(val, true, false)));
+    }
+
     protected String getAlias() {
         return getAlias(null);
     }
@@ -248,6 +290,11 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
 
         String alias = getAlias();
 
+        return alias + StringPool.DOT + fieldName;
+    }
+
+    protected String getAliasAndField(Class<?> fieldClass, String fieldName) {
+        String alias = getAlias(fieldClass);
         return alias + StringPool.DOT + fieldName;
     }
 
@@ -344,7 +391,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         Assert.notNull(columnMap.get(aClass), "can not find lambda cache for this entity [%s]", aClass.getName());
         ColumnCache columnCache = columnMap.get(aClass).get(LambdaUtils.formatKey(fieldName));
         Assert.notNull(columnCache, "can not find lambda cache for this property [%s] of entity [%s]",
-                fieldName, aClass.getName());
+                       fieldName, aClass.getName());
         String column = onlyColumn ? columnCache.getColumn() : columnCache.getColumnSelect();
         if (saveField) {
             setFieldMappingList(fieldName, column);
