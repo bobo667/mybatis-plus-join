@@ -42,7 +42,7 @@ mybatis plus：3.2.0版本依赖地址：
  <dependency>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.3.2</version>
+    <version>1.3.3</version>
  </dependency>
 ```
 
@@ -52,11 +52,11 @@ mybatis plus：3.2.0版本依赖地址：
 
 > 标注：*号代表，从起始版本之后都是可以使用的
 
-| Mybatis-plus | Mybatis-plus-join                                            |
-| ------------ | ------------------------------------------------------------ |
-| 3.2.0        | 1.2.0                                                        |
-| 3.3.1 - 3.42 | 1.0.2                                                        |
-| 3.4.3.4 - *  | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.6、1.3.1、1.3.2 |
+| Mybatis-plus    | Mybatis-plus-join                                            |
+| --------------- | ------------------------------------------------------------ |
+| 3.2.0           | 1.2.0                                                        |
+| 3.3.1 - 3.42    | 1.0.2                                                        |
+| 3.4.3.4 - 3.5.2 | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.6、1.3.1、1.3.2、1.3.3 |
 
 
 
@@ -203,7 +203,15 @@ mybatis plus：3.2.0版本依赖地址：
 
 1.  selectAs(SFunction<T, ?> column, SFunction<J, ?> alias) 和  selectAs#addFunAlias 方法，生成的别名和属性名没有对应报错的bug
 
-### 
+### 1.3.3 版本(重大更新)
+
+1.  增加@JoinField 注解，定义映射关系，可在wrapper中用push**Join方法加入，即可查询并映射
+2.  条件构造器增加基础join查询四件套可以用wrapper直接进行查询 
+3.  manyToManySelect和oneToOneSelect 增加可以不指定查询列，查询全部列并映射
+4.  修复 JoinLambdaWrapper 和 JoinWrapper的  select(Class<T> entityClass, Predicate<TableFieldInfo> predicate) 没有加别名的问题修复
+5.  增加接口 JoinCompareFun，eq、ne..可以传入别的表的函数，实现两个表字段关联
+
+
 
 ### 其他版本
 
@@ -410,6 +418,13 @@ wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
 
 usersService.joinList(wrapper,UsersVo.class);
 
+// 或者如果你的类只有mapper继承了，那你可以
+JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
+wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
+  	.eq(UserAge::getAgeName,"95")
+  	.select(UserAge::getAgeName)
+  	.joinList(UsersVo.class);
+
 // 执行SQL 
 select 
   users.user_id,
@@ -428,6 +443,192 @@ where (
 ## 加料用法
 
 OK，来点丝滑的加料用法
+
+### 使用构建器调用join*查询方法（1.3.3版本之后）
+
+```java
+// joinList
+List<UsersVo> list = Joins.of(Users.class)
+                .leftJoin(UsersAge.class,UsersAge::getAgeId,Users::getAgeId)
+  							.eq(UsersAge::getAgeName,1).end()
+                .joinList(UsersVo.class);
+
+ // 生成SQL
+SELECT
+	users.user_name,
+	users.create_time,
+	users.age_id,
+	users.content_json,
+	users.user_id
+FROM
+	users AS users
+	LEFT JOIN users_age AS users_age ON users_age.id = users.age_id 
+WHERE
+	users_age.age_name = '1'
+    
+ // joinGetOne
+UsersVo userVo = Joins.of(Users.class)
+                .leftJoin(UsersAge.class,UsersAge::getAgeId,Users::getAgeId)
+  							.eq(UsersAge::getAgeName,1).end()
+                .joinGetOne(UsersVo.class);
+
+ // 生成SQL
+SELECT
+	users.user_name,
+	users.create_time,
+	users.age_id,
+	users.content_json,
+	users.user_id
+FROM
+	users AS users
+	LEFT JOIN users_age AS users_age ON users_age.id = users.age_id 
+WHERE
+	users_age.age_name = '1'
+    
+  // joinCount
+UsersVo userVo = Joins.of(Users.class)
+                .leftJoin(UsersAge.class,UsersAge::getAgeId,Users::getAgeId)
+  							.eq(UsersAge::getAgeName,1).end()
+                .joinCount();
+
+ // 生成SQL
+SELECT
+	count(*)
+FROM
+	users AS users
+	LEFT JOIN users_age AS users_age ON users_age.id = users.age_id 
+WHERE
+	users_age.age_name = '1'
+    
+ // joinCount
+Page<UsersVo> pageResult = Joins.of(Users.class)
+                .leftJoin(UsersAge.class,UsersAge::getAgeId,Users::getAgeId)
+  							.eq(UsersAge::getAgeName,1).end()
+                .joinPage(page,UsersVo.class);
+
+ // 生成SQL
+SELECT
+	users.user_name,
+	users.create_time,
+	users.age_id,
+	users.content_json,
+	users.user_id
+FROM
+	users AS users
+	LEFT JOIN users_age AS users_age ON users_age.id = users.age_id 
+WHERE
+	users_age.age_name = '1'
+limit 10
+    
+```
+
+
+
+
+
+### eq、ne..等两个表字段关联（1.3.3版本之后）
+
+```java
+List<UsersVo> list = Joins.of(Users.class)
+                .pushLeftJoin(UsersVo::getUsersAge)
+                .eq(Users::getAgeId, UsersAge::getId)
+                .le(Users::getAgeId, UsersAge::getId)
+                .lt(Users::getAgeId, UsersAge::getId)
+                .ge(Users::getAgeId, UsersAge::getId)
+                .gt(Users::getAgeId, UsersAge::getId)
+                .ne(Users::getAgeId, UsersAge::getId)
+                .between(Users::getAgeId, UsersAge::getId, UsersAge::getAgeName)
+                .notBetween(Users::getAgeId, UsersAge::getId, UsersAge::getAgeName)
+                .joinList(UsersVo.class);
+
+
+ // 生成SQL
+SELECT
+	users.user_name,
+	users.create_time,
+	users.age_id,
+	users.content_json,
+	users.user_id,
+	t2.age_doc AS t2_ageDoc,
+	t2.age_name AS t2_ageName,
+	t2.create_time AS t2_createTime,
+	t2.content_json_age AS t2_contentJsonAge,
+	t2.id AS t2_id 
+FROM
+	users AS users
+	LEFT JOIN users_age AS t2 ON t2.id = users.age_id 
+WHERE
+	(
+		users.age_id = t2.id 
+		AND users.age_id <= t2.id 
+		AND users.age_id < t2.id 
+		AND users.age_id >= t2.id 
+		AND users.age_id > t2.id 
+		AND users.age_id <> t2.id 
+		AND users.age_id BETWEEN t2.id 
+		AND t2.age_name 
+	AND users.age_id NOT BETWEEN t2.id 
+	AND t2.age_name)
+```
+
+
+
+
+
+### push*Join 和 @JoinField 方便构建join查询方法（1.3.3版本之后）
+
+```java
+// 第一步 在查询返回的模型中添加对象或者集合
+// 注解参数
+  // 主表对象class   
+  masterModelClass();
+  // 子表对象class
+  sunModelClass();
+  // 主表关联字段，注意不要写别名啥的，就写实体类中的属性名
+  masterModelField();
+  // 子表关联字段，注意不要写别名啥的，就写实体类中的属性名
+  sunModelField();
+  // 子表别名,如果你关联的对象中有两个相同的表，就需要显示填写一下别名，否则不用写
+  sunAlias() default "";
+  // 关联类型
+  relevancyType();
+
+
+@JoinField(masterModelClass = Users.class, masterModelField = "ageId",
+            sunModelClass = UsersAge.class, sunModelField = "id", relevancyType = RelevancyType.ONT_TO_ONE,
+            sunAlias = "t1")
+private UsersAge usersAge;
+
+@JoinField(masterModelClass = Users.class, masterModelField = "ageId",
+            sunModelClass = UsersAge.class, sunModelField = "id", relevancyType = RelevancyType.MANY_TO_MANY,
+            sunAlias = "t2")
+private List<UsersAge> usersAges;
+
+// 添加完注解之后，就可以用push*Join方法，添加进去
+ pushLeftJoin(UsersVo::getUsersAge) 
+ 
+ List<UsersVo> list = Joins.of(Users.class)
+                .pushLeftJoin(UsersVo::getUsersAge)
+                .joinList(UsersVo.class);
+// 如果你添加完这个join之后，还需要再添加条件之类的
+ List<UsersVo> list = Joins.of(Users.class)
+   							// 就需要用该参数，指定一下构建的泛型class
+                .pushLeftJoin(UsersVo::getUsersAge, UsersAge.class)
+   							.eq(UsersAge::getId, Users::getAgeId).end()
+                .joinList(UsersVo.class);
+// 执行SQL
+	SELECT 
+  users.user_name,users.create_time,users.age_id,users.content_json,users.user_id, t1.age_doc as t1_ageDoc , t1.age_name as t1_ageName , t1.create_time as t1_createTime , t1.content_json_age as t1_contentJsonAge , t1.id as t1_id 
+  FROM users as users 
+  LEFT JOIN users_age as t1 ON t1.id = users.age_id
+ 
+// 返回对象
+UsersVo(....
+        usersAge=UsersAge(id=1, ageDoc=90, ageName=90, createTime=Fri Dec 17 13:11:11 CST 2021, contentJsonAge=TestUserJson(name=456, content=呜呜呜)))
+ 
+```
+
+
 
 ### changeQueryWrapper 转换条件构造器
 
@@ -566,7 +767,11 @@ FROM
                .add(UsersAge::getId, "ageId", UsersAge::getId)
           		// 在1.3.2版本后 属性名和映射vo的属性名相同的情况下，可以不必写别名，就可以完成自动映射
           	 .add(UsersAge::getId);
-         }).end();
+         })
+   // 1.3.3版本之后可以 这样子查询这个类的所有查询字段并赋值到对象中
+     .oneToOneSelect(UsersVo::getUsersAge,UsersAge.class)
+   .end();
+
 
  return super.joinList(wrapper, UsersVo.class);
 
@@ -612,7 +817,10 @@ wrapper.leftJoin(Users.class, Users::getAgeId, UsersAge::getId)
         .manyToManySelect(UsersAgesVo::getUsersList, Users.class, (cb) -> {
           	// 在1.3.2版本后 属性名和映射vo的属性名相同的情况下，可以不必写别名，就可以完成自动映射
            cb.add(Users::getUserName, Users::getUserId, Users::getCreateTime);
-         }).end();
+         })
+  			   // 1.3.3版本之后可以 这样子查询这个类的所有查询字段并赋值到集合对象中
+    		.manyToManySelect(UsersAgesVo::getUsersList,Users.class)
+  .end();
 return super.joinList(wrapper, UsersAgesVo.class);
 
 // 执行SQL
