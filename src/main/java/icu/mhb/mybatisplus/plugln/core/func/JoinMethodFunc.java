@@ -36,6 +36,18 @@ public interface JoinMethodFunc<T> {
         return pushJoin(pushJoinField, null, SqlExcerpt.INNER_JOIN).end();
     }
 
+    default <J, X> JoinWrapper<X, T> pushInnerJoin(SFunction<J, Object> pushJoinField, Class<X> clz) {
+        return pushJoin(pushJoinField, clz, SqlExcerpt.INNER_JOIN);
+    }
+
+    default <J, X> JoinWrapper<X, T> pushLeftJoin(SFunction<J, Object> pushJoinField, Class<X> clz) {
+        return pushJoin(pushJoinField, clz, SqlExcerpt.LEFT_JOIN);
+    }
+
+    default <J, X> JoinWrapper<X, T> pushRightJoin(SFunction<J, Object> pushJoinField, Class<X> clz) {
+        return pushJoin(pushJoinField, clz, SqlExcerpt.RIGHT_JOIN);
+    }
+
     default <J> JoinLambdaWrapper<T> pushLeftJoin(SFunction<J, Object>... pushJoinFields) {
         return pushJoin(SqlExcerpt.LEFT_JOIN, pushJoinFields);
     }
