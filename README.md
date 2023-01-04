@@ -57,6 +57,7 @@ mybatis plus：3.2.0版本依赖地址：
 | 3.2.0           | 1.2.0                                                        |
 | 3.3.1 - 3.42    | 1.0.2                                                        |
 | 3.4.3.4 - 3.5.2 | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.6、1.3.1、1.3.2、1.3.3 |
+| 3.5.3 - *       | 1.3.3.1                                                      |
 
 
 
@@ -210,6 +211,10 @@ mybatis plus：3.2.0版本依赖地址：
 3.  manyToManySelect和oneToOneSelect 增加可以不指定查询列，查询全部列并映射
 4.  修复 JoinLambdaWrapper 和 JoinWrapper的  select(Class<T> entityClass, Predicate<TableFieldInfo> predicate) 没有加别名的问题修复
 5.  增加接口 JoinCompareFun，eq、ne..可以传入别的表的函数，实现两个表字段关联
+
+### 1.3.3.1 版本
+
+1.  支持了mybatis-plus 3.5.3版本往后
 
 
 

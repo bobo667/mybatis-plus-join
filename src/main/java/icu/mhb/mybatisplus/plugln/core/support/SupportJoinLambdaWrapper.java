@@ -253,13 +253,13 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
 
     @Override
     public <J, J2> Children between(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val1, SFunction<J2, Object> val2) {
-        return maybeDo(condition, () -> appendSqlSegments(columnToSqlSegment(column), BETWEEN,
+        return maybeDo(condition, () -> super.appendSqlSegments(super.columnToSqlSegment(column), BETWEEN,
                                                           () -> columnToString(val1, true, false), AND, () -> columnToString(val2, true, false)));
     }
 
     @Override
     public <J, J2> Children notBetween(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val1, SFunction<J2, Object> val2) {
-        return maybeDo(condition, () -> appendSqlSegments(columnToSqlSegment(column), NOT_BETWEEN,
+        return maybeDo(condition, () -> super.appendSqlSegments(super.columnToSqlSegment(column), NOT_BETWEEN,
                                                           () -> columnToString(val1, true, false), AND, () -> columnToString(val2, true, false)));
     }
 
@@ -272,7 +272,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      * @param val        条件值
      */
     protected <J> Children addCondition(boolean condition, SFunction<T, Object> column, SqlKeyword sqlKeyword, SFunction<J, Object> val) {
-        return maybeDo(condition, () -> appendSqlSegments(columnToSqlSegment(column), sqlKeyword,
+        return maybeDo(condition, () -> super.appendSqlSegments(super.columnToSqlSegment(column), sqlKeyword,
                                                           () -> columnToString(val, true, false)));
     }
 
