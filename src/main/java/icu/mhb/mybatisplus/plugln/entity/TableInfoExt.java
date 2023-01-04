@@ -34,7 +34,7 @@ public class TableInfoExt {
      * @return sql 片段
      */
     public String chooseSelect(Predicate<TableFieldInfo> predicate, String alias) {
-        String sqlSelect = TableFieldInfoExt.getAliasColumn(tableInfo.getKeySqlSelect(), alias);
+        String sqlSelect = tableInfo.havePK() ? TableFieldInfoExt.getAliasColumn(tableInfo.getKeySqlSelect(), alias) : "";
         String fieldsSqlSelect = tableInfo.getFieldList().stream().filter(predicate)
                 .map(TableFieldInfo::getSqlSelect).map(i -> TableFieldInfoExt.getAliasColumn(i, alias))
                 .collect(joining(COMMA));
