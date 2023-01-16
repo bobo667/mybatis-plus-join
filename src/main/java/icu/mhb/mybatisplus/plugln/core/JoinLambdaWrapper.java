@@ -1,38 +1,62 @@
 package icu.mhb.mybatisplus.plugln.core;
 
+import static com.baomidou.mybatisplus.core.enums.SqlKeyword.ASC;
+import static com.baomidou.mybatisplus.core.enums.SqlKeyword.DESC;
+import static com.baomidou.mybatisplus.core.enums.SqlKeyword.GROUP_BY;
+import static com.baomidou.mybatisplus.core.enums.SqlKeyword.HAVING;
+import static com.baomidou.mybatisplus.core.enums.SqlKeyword.ORDER_BY;
+import static com.baomidou.mybatisplus.core.toolkit.StringPool.COMMA;
+import static com.baomidou.mybatisplus.core.toolkit.StringPool.NEWLINE;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import org.apache.ibatis.session.SqlSession;
+import org.mybatis.spring.SqlSessionUtils;
+
 import com.baomidou.mybatisplus.core.conditions.AbstractWrapper;
 import com.baomidou.mybatisplus.core.conditions.ISqlSegment;
 import com.baomidou.mybatisplus.core.conditions.SharedString;
 import com.baomidou.mybatisplus.core.conditions.query.Query;
-import com.baomidou.mybatisplus.core.conditions.segments.*;
+import com.baomidou.mybatisplus.core.conditions.segments.AbstractISegmentList;
+import com.baomidou.mybatisplus.core.conditions.segments.GroupBySegmentList;
+import com.baomidou.mybatisplus.core.conditions.segments.HavingSegmentList;
+import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
+import com.baomidou.mybatisplus.core.conditions.segments.OrderBySegmentList;
 import com.baomidou.mybatisplus.core.enums.SqlKeyword;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
-import com.baomidou.mybatisplus.core.toolkit.*;
+import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.Constants;
+import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils;
+import com.baomidou.mybatisplus.core.toolkit.StringPool;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
+
 import icu.mhb.mybatisplus.plugln.base.mapper.JoinBaseMapper;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.func.JoinMethodFunc;
 import icu.mhb.mybatisplus.plugln.core.func.JoinQueryFunc;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
-import icu.mhb.mybatisplus.plugln.entity.*;
+import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
+import icu.mhb.mybatisplus.plugln.entity.HavingBuild;
+import icu.mhb.mybatisplus.plugln.entity.ManyToManySelectBuild;
+import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
+import icu.mhb.mybatisplus.plugln.entity.OrderByBuild;
+import icu.mhb.mybatisplus.plugln.entity.TableInfoExt;
 import icu.mhb.mybatisplus.plugln.keyword.DefaultFuncKeyWord;
 import icu.mhb.mybatisplus.plugln.keyword.IFuncKeyWord;
 import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
 import lombok.Getter;
-import org.apache.ibatis.session.SqlSession;
-import org.mybatis.spring.SqlSessionUtils;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
-import static com.baomidou.mybatisplus.core.enums.SqlKeyword.*;
-import static com.baomidou.mybatisplus.core.toolkit.StringPool.COMMA;
-import static com.baomidou.mybatisplus.core.toolkit.StringPool.NEWLINE;
 
 /**
  * 构建条件对象
@@ -44,6 +68,12 @@ import static com.baomidou.mybatisplus.core.toolkit.StringPool.NEWLINE;
 @SuppressWarnings("all")
 public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambdaWrapper<T>>
         implements Query<JoinLambdaWrapper<T>, T, SFunction<T, ?>>, JoinMethodFunc<T>, JoinQueryFunc<T, JoinLambdaWrapper<T>> {
+
+    /**
+     * 主表别名
+     */
+    @Getter
+    private String masterTableAlias;
 
     /**
      * 关键字获取
@@ -116,11 +146,13 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         super.setEntity(entity);
         this.initNeed();
         setAlias(alias);
+        this.masterTableAlias = getAlias();
     }
 
     public JoinLambdaWrapper(T entity) {
         super.setEntity(entity);
         this.initNeed();
+        this.masterTableAlias = getAlias();
     }
 
     /**
@@ -130,11 +162,13 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         super.setEntityClass(entityClass);
         this.initNeed();
         setAlias(alias);
+        this.masterTableAlias = getAlias();
     }
 
     public JoinLambdaWrapper(Class<T> entityClass) {
         super.setEntityClass(entityClass);
         this.initNeed();
+        this.masterTableAlias = getAlias();
     }
 
     /**
@@ -222,6 +256,14 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         }
 
         stringValue.append(joinSelectSql);
+
+        if (CollectionUtils.isNotEmpty(sunQueryList)) {
+            // 只有在拥有主表查询字段并且有子表查询的时候才需要加上','分隔符
+            if (stringValue.length() > 0) {
+                stringValue.append(COMMA);
+            }
+            sunQueryList.stream().map(SharedString::getStringValue).forEach(stringValue::append);
+        }
 
         String selectSql = stringValue.toString();
 
@@ -342,7 +384,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     @Override
     protected JoinLambdaWrapper<T> instance() {
         return new JoinLambdaWrapper<>(getEntity(), getEntityClass(), null, paramNameSeq, paramNameValuePairs,
-                                       new MergeSegments(), this.getAliasMap(), SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
+                new MergeSegments(), this.getAliasMap(), SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
     }
 
     @Override
@@ -385,7 +427,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
                     maybeDo(i.isCondition(), () -> appendSqlSegments(ORDER_BY, i.getColumn()));
                 } else {
                     maybeDo(i.isCondition(), () -> appendSqlSegments(ORDER_BY, i.getColumn(),
-                                                                     i.isAsc() ? ASC : DESC));
+                            i.isAsc() ? ASC : DESC));
                 }
             });
         }
@@ -455,19 +497,28 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     /**
      * 存入外联表 join 查询条件
      *
+     * @param sunQueryList            子查询列表
      * @param sql                     条件SQL
      * @param key                     此次外联表唯一标识码
      * @param joinParamNameValuePairs 条件SQL对应的值
      */
-    void setJoinConditionSql(String sql, String key, Map<String, Object> joinParamNameValuePairs) {
-        if (StringUtils.isNotBlank(sql)) {
+    void setJoinConditionSql(List<SharedString> sunQueryList, String sql, String key, Map<String, Object> joinParamNameValuePairs) {
+        if (CollectionUtils.isNotEmpty(joinParamNameValuePairs)) {
             // 向当前参数map存入外联表的值
             paramNameValuePairs.put(key, joinParamNameValuePairs);
+        }
+        if (StringUtils.isNotBlank(sql)) {
             // 外联表如果执行了条件会存在where标签，需要祛除
             sql = sql.replace(Constants.WHERE, StringPool.SPACE);
             // 替换外联表中的参数名字为唯一的
             sql = sql.replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
             joinConditionSql.add(sql);
+        }
+        if (CollectionUtils.isNotEmpty(sunQueryList)) {
+            sunQueryList.forEach(i -> {
+                i.setStringValue(i.getStringValue().replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key));
+            });
+            this.sunQueryList.addAll(sunQueryList);
         }
     }
 
@@ -557,6 +608,12 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     void setOderByBuildList(List<OrderByBuild> orderByBuildList) {
         if (CollectionUtils.isNotEmpty(orderByBuildList)) {
             this.orderByBuildList.addAll(orderByBuildList);
+        }
+    }
+
+    void setSunQueryList(List<SharedString> sunQueryList) {
+        if (CollectionUtils.isNotEmpty(sunQueryList)) {
+            this.sunQueryList.addAll(sunQueryList);
         }
     }
 

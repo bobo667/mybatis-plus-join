@@ -7,6 +7,8 @@ import java.lang.invoke.LambdaMetafactory;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
+import icu.mhb.mybatisplus.plugln.exception.Exceptions;
+
 /**
  * @author mahuibo
  * @Title: Lambdas
@@ -45,7 +47,7 @@ public class Lambdas {
                                                     methodType, FLAG_SERIALIZABLE);
             func = (SFunction) site.getTarget().invokeExact();
         } catch (Throwable e) {
-            throw ExceptionUtils.mpe(e);
+            throw Exceptions.mpje(e);
         }
         return func;
     }

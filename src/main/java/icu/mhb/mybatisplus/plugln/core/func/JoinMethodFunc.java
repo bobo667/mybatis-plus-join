@@ -1,9 +1,16 @@
 package icu.mhb.mybatisplus.plugln.core.func;
+
+import java.lang.reflect.Field;
+import java.util.function.Consumer;
+
+import org.apache.ibatis.reflection.property.PropertyNamer;
+
 import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
 import com.baomidou.mybatisplus.core.toolkit.Assert;
 import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
 import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+
 import icu.mhb.mybatisplus.plugln.annotations.JoinField;
 import icu.mhb.mybatisplus.plugln.constant.RelevancyType;
 import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
@@ -11,9 +18,6 @@ import icu.mhb.mybatisplus.plugln.core.JoinWrapper;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 import icu.mhb.mybatisplus.plugln.tookit.Lambdas;
-import org.apache.ibatis.reflection.property.PropertyNamer;
-
-import java.lang.reflect.Field;
 
 /**
  * @author mahuibo
@@ -46,6 +50,24 @@ public interface JoinMethodFunc<T> {
 
     default <J, X> JoinWrapper<X, T> pushRightJoin(SFunction<J, Object> pushJoinField, Class<X> clz) {
         return pushJoin(pushJoinField, clz, SqlExcerpt.RIGHT_JOIN);
+    }
+
+    default <J, X> JoinLambdaWrapper<T> pushInnerJoin(SFunction<J, Object> pushJoinField, Class<X> clz, Consumer<JoinWrapper<X, T>> consumer) {
+        JoinWrapper<X, T> joinWrapper = pushJoin(pushJoinField, clz, SqlExcerpt.INNER_JOIN);
+        consumer.accept(joinWrapper);
+        return joinWrapper.end();
+    }
+
+    default <J, X> JoinLambdaWrapper<T> pushLeftJoin(SFunction<J, Object> pushJoinField, Class<X> clz, Consumer<JoinWrapper<X, T>> consumer) {
+        JoinWrapper<X, T> joinWrapper = pushJoin(pushJoinField, clz, SqlExcerpt.LEFT_JOIN);
+        consumer.accept(joinWrapper);
+        return joinWrapper.end();
+    }
+
+    default <J, X> JoinLambdaWrapper<T> pushRightJoin(SFunction<J, Object> pushJoinField, Class<X> clz, Consumer<JoinWrapper<X, T>> consumer) {
+        JoinWrapper<X, T> joinWrapper = pushJoin(pushJoinField, clz, SqlExcerpt.RIGHT_JOIN);
+        consumer.accept(joinWrapper);
+        return joinWrapper.end();
     }
 
     default <J> JoinLambdaWrapper<T> pushLeftJoin(SFunction<J, Object>... pushJoinFields) {
@@ -120,11 +142,21 @@ public interface JoinMethodFunc<T> {
     }
 
     default <J, F> JoinWrapper<J, T> leftJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField) {
-        return leftJoin(clz, joinTableField, masterTableField, null);
+        return join(clz).leftJoin(joinTableField, masterTableField);
     }
 
     default <J, F> JoinWrapper<J, T> leftJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias) {
         return join(clz, alias).leftJoin(joinTableField, masterTableField);
+    }
+
+    default <J, F> JoinLambdaWrapper<T> leftJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, Consumer<JoinWrapper<J, T>> consumer) {
+        JoinWrapper<J, T> joinWrapper = join(clz, alias).leftJoin(joinTableField, masterTableField);
+        consumer.accept(joinWrapper);
+        return joinWrapper.end();
+    }
+
+    default <J, F> JoinLambdaWrapper<T> leftJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, Consumer<JoinWrapper<J, T>> consumer) {
+        return leftJoin(clz, joinTableField, masterTableField, null, consumer);
     }
 
     default <J, F> JoinWrapper<J, T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, boolean logicDelete) {
@@ -136,11 +168,21 @@ public interface JoinMethodFunc<T> {
     }
 
     default <J, F> JoinWrapper<J, T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField) {
-        return rightJoin(clz, joinTableField, masterTableField, null);
+        return join(clz).rightJoin(joinTableField, masterTableField);
     }
 
     default <J, F> JoinWrapper<J, T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias) {
         return join(clz, alias).rightJoin(joinTableField, masterTableField);
+    }
+
+    default <J, F> JoinLambdaWrapper<T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, Consumer<JoinWrapper<J, T>> consumer) {
+        JoinWrapper<J, T> joinWrapper = join(clz, alias).rightJoin(joinTableField, masterTableField);
+        consumer.accept(joinWrapper);
+        return joinWrapper.end();
+    }
+
+    default <J, F> JoinLambdaWrapper<T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, Consumer<JoinWrapper<J, T>> consumer) {
+        return rightJoin(clz, joinTableField, masterTableField, null, consumer);
     }
 
     default <J, F> JoinWrapper<J, T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, boolean logicDelete) {
@@ -156,9 +198,18 @@ public interface JoinMethodFunc<T> {
     }
 
     default <J, F> JoinWrapper<J, T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField) {
-        return innerJoin(clz, joinTableField, masterTableField, null);
+        return join(clz).innerJoin(joinTableField, masterTableField);
     }
 
+    default <J, F> JoinLambdaWrapper<T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, Consumer<JoinWrapper<J, T>> consumer) {
+        JoinWrapper<J, T> joinWrapper = join(clz, alias).innerJoin(joinTableField, masterTableField);
+        consumer.accept(joinWrapper);
+        return joinWrapper.end();
+    }
+
+    default <J, F> JoinLambdaWrapper<T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, Consumer<JoinWrapper<J, T>> consumer) {
+        return innerJoin(clz, joinTableField, masterTableField, null, consumer);
+    }
 
     default <J> JoinWrapper<J, T> join(Class<J> clz) {
         return join(clz, null);

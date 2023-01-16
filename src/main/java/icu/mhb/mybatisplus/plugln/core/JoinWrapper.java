@@ -1,28 +1,43 @@
 package icu.mhb.mybatisplus.plugln.core;
 
-import com.baomidou.mybatisplus.core.conditions.SharedString;
-import com.baomidou.mybatisplus.core.conditions.query.Query;
-import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
-import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
-import com.baomidou.mybatisplus.core.metadata.TableInfo;
-import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
-import com.baomidou.mybatisplus.core.toolkit.*;
-import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
-import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
-import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
-import icu.mhb.mybatisplus.plugln.entity.*;
-import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
-import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
-import icu.mhb.mybatisplus.plugln.tookit.Lambdas;
-import lombok.SneakyThrows;
-import org.apache.ibatis.reflection.property.PropertyNamer;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+
+import org.apache.ibatis.reflection.property.PropertyNamer;
+
+import com.baomidou.mybatisplus.core.conditions.SharedString;
+import com.baomidou.mybatisplus.core.conditions.query.Query;
+import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
+import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
+import com.baomidou.mybatisplus.core.metadata.TableInfo;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
+import com.baomidou.mybatisplus.core.toolkit.Assert;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.Constants;
+import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+
+import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
+import icu.mhb.mybatisplus.plugln.entity.As;
+import icu.mhb.mybatisplus.plugln.entity.ColumnsBuilder;
+import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
+import icu.mhb.mybatisplus.plugln.entity.HavingBuild;
+import icu.mhb.mybatisplus.plugln.entity.ManyToManySelectBuild;
+import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
+import icu.mhb.mybatisplus.plugln.entity.TableFieldInfoExt;
+import icu.mhb.mybatisplus.plugln.entity.TableInfoExt;
+import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
+import icu.mhb.mybatisplus.plugln.exception.Exceptions;
+import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
+import icu.mhb.mybatisplus.plugln.tookit.Lambdas;
+import lombok.SneakyThrows;
 
 /**
  * 多表关联对象
@@ -31,6 +46,7 @@ import java.util.function.Predicate;
  * @Title: JoinWrapper
  * @time 8/21/21 6:27 PM
  */
+@SuppressWarnings("all")
 public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T, J>>
         implements Query<JoinWrapper<T, J>, T, SFunction<T, ?>> {
 
@@ -74,8 +90,26 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
      */
     JoinWrapper(T entity, JoinLambdaWrapper<J> wrapper) {
+        this(entity, wrapper, null);
+    }
+
+    JoinWrapper(T entity, JoinLambdaWrapper<J> wrapper, String alias) {
+        this(entity, wrapper, alias, true);
+    }
+
+    JoinWrapper(T entity, JoinLambdaWrapper<J> wrapper, String alias, boolean logicDelete) {
         super.setEntity(entity);
         super.initNeed();
+        if (CollectionUtils.isNotEmpty(wrapper.getAliasMap())) {
+            wrapper.getAliasMap().forEach((k, v) -> aliasMap.put(k, v));
+        }
+        if (StringUtils.isBlank(alias)) {
+            aliasMap.remove(getEntityOrMasterClass());
+        } else {
+            aliasMap.put(getEntityOrMasterClass(), alias);
+        }
+
+        this.logicDeleteIsApplyJoin = logicDelete;
         this.wrapper = wrapper;
     }
 
@@ -83,18 +117,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
      */
     JoinWrapper(Class<T> entityClass, JoinLambdaWrapper<J> wrapper, String alias) {
-        super.setEntityClass(entityClass);
-        super.initNeed();
-        if (CollectionUtils.isNotEmpty(wrapper.getAliasMap())) {
-            wrapper.getAliasMap().forEach((k, v) -> aliasMap.put(k, v));
-        }
-        if (StringUtils.isBlank(alias)) {
-            aliasMap.remove(entityClass);
-        } else {
-            aliasMap.put(entityClass, alias);
-        }
-
-        this.wrapper = wrapper;
+        this(entityClass, wrapper, alias, true);
     }
 
     /**
@@ -120,14 +143,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
      */
     JoinWrapper(Class<T> entityClass, JoinLambdaWrapper<J> wrapper, boolean logicDelete) {
-        super.setEntityClass(entityClass);
-        super.initNeed();
-        if (CollectionUtils.isNotEmpty(wrapper.getAliasMap())) {
-            wrapper.getAliasMap().forEach((k, v) -> aliasMap.put(k, v));
-        }
-
-        this.logicDeleteIsApplyJoin = logicDelete;
-        this.wrapper = wrapper;
+        this(entityClass, wrapper, null, logicDelete);
     }
 
     /**
@@ -317,7 +333,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @Override
     protected JoinWrapper<T, J> instance() {
         return new JoinWrapper<>(getEntity(), getEntityClass(), null, paramNameSeq, paramNameValuePairs,
-                                 new MergeSegments(), this.aliasMap, SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
+                new MergeSegments(), this.aliasMap, SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
     }
 
     @Override
@@ -407,10 +423,27 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
 
         SharedString sql = sqlJoin.get(index);
         if (sql == null || StringUtils.isBlank(sql.getStringValue())) {
-            throw ExceptionUtils.mpe("no such subscript join");
+            throw Exceptions.mpje("no such subscript join");
         }
 
-        sql.setStringValue(sql.getStringValue() + String.format(SqlExcerpt.AND.getSql(), column, val));
+        sql.setStringValue(sql.getStringValue() + String.format(SqlExcerpt.AND.getSql(), column, StringUtils.quotaMark(val)));
+        sqlJoin.remove(index);
+        sqlJoin.add(index, sql);
+        return typedThis;
+    }
+
+
+    public <X> JoinWrapper<T, J> joinAnd(SFunction<T, Object> field, SFunction<X, Object> val, int index) {
+        // 获取列转换SQL
+        String column = columnToString(field);
+        String valColumn = columnToString(val, true, false);
+
+        SharedString sql = sqlJoin.get(index);
+        if (sql == null || StringUtils.isBlank(sql.getStringValue())) {
+            throw Exceptions.mpje("no such subscript join");
+        }
+
+        sql.setStringValue(sql.getStringValue() + String.format(SqlExcerpt.AND.getSql(), column, valColumn));
         sqlJoin.remove(index);
         sqlJoin.add(index, sql);
         return typedThis;
@@ -477,7 +510,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         expression.getOrderBy().clear();
         expression.getHaving().clear();
         expression.getGroupBy().clear();
-        wrapper.setJoinConditionSql(getCustomSqlSegment(), IdUtil.getSimpleUUID(), paramNameValuePairs);
+        wrapper.setJoinConditionSql(sunQueryList, getCustomSqlSegment(), IdUtil.getSimpleUUID(), paramNameValuePairs);
         return wrapper;
     }
 

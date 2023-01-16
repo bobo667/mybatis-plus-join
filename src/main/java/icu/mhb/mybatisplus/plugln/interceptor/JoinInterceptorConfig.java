@@ -14,6 +14,8 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Objects;
 
+import icu.mhb.mybatisplus.plugln.exception.Exceptions;
+
 
 /**
  * join拦截器配置类，用来重新排列拦截器顺序，保证类型拦截器先执行
@@ -59,7 +61,7 @@ public class JoinInterceptorConfig implements ApplicationListener<ApplicationRea
                     }
                 }
             } catch (Exception e) {
-                throw ExceptionUtils.mpe("注入mybatis-plus-join 拦截器失败！", e);
+                throw Exceptions.mpje("注入mybatis-plus-join 拦截器失败！", e);
             }
         }
     }

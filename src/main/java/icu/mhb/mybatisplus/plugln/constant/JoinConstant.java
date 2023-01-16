@@ -22,7 +22,7 @@ public final class JoinConstant {
     /**
      * 表别名 SQL片段 xml名称
      */
-    public static final String TABLE_ALIAS_NAME = "${" + Constants.WRAPPER + ".alias}";
+    public static final String TABLE_ALIAS_NAME = "${" + Constants.WRAPPER + ".masterTableAlias}";
 
     /**
      * as关键字
