@@ -6,7 +6,6 @@ import java.util.function.Consumer;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 
 import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
-import com.baomidou.mybatisplus.core.toolkit.Assert;
 import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
 import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
@@ -16,6 +15,7 @@ import icu.mhb.mybatisplus.plugln.constant.RelevancyType;
 import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
 import icu.mhb.mybatisplus.plugln.core.JoinWrapper;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
+import icu.mhb.mybatisplus.plugln.exception.Exceptions;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 import icu.mhb.mybatisplus.plugln.tookit.Lambdas;
 
@@ -101,7 +101,7 @@ public interface JoinMethodFunc<T> {
 
         Field field = ClassUtils.getDeclaredField(lambdaMeta.getInstantiatedClass(), fieldName);
         JoinField joinField = field.getAnnotation(JoinField.class);
-        Assert.isFalse(joinField == null, "There is no @JoinField annotation for this property, please add..");
+        Exceptions.throwMpje(joinField == null, "There is no @JoinField annotation for this property, please add..");
 
         Field sunField = ClassUtils.getDeclaredField(joinField.sunModelClass(), joinField.sunModelField());
         Field masterField = ClassUtils.getDeclaredField(joinField.masterModelClass(), joinField.masterModelField());

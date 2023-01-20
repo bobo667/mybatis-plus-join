@@ -20,10 +20,12 @@ import com.baomidou.mybatisplus.core.toolkit.Assert;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
+import com.baomidou.mybatisplus.core.toolkit.StringPool;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 
+import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
 import icu.mhb.mybatisplus.plugln.entity.As;
 import icu.mhb.mybatisplus.plugln.entity.ColumnsBuilder;
@@ -35,6 +37,7 @@ import icu.mhb.mybatisplus.plugln.entity.TableFieldInfoExt;
 import icu.mhb.mybatisplus.plugln.entity.TableInfoExt;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
+import icu.mhb.mybatisplus.plugln.extend.Joins;
 import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
 import icu.mhb.mybatisplus.plugln.tookit.Lambdas;
 import lombok.SneakyThrows;
@@ -432,7 +435,6 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         return typedThis;
     }
 
-
     public <X> JoinWrapper<T, J> joinAnd(SFunction<T, Object> field, SFunction<X, Object> val, int index) {
         // 获取列转换SQL
         String column = columnToString(field);
@@ -444,6 +446,31 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         }
 
         sql.setStringValue(sql.getStringValue() + String.format(SqlExcerpt.AND.getSql(), column, valColumn));
+        sqlJoin.remove(index);
+        sqlJoin.add(index, sql);
+        return typedThis;
+    }
+
+
+    public <X> JoinWrapper<T, J> joinAnd(int index, Consumer<JoinWrapper<T, J>> consumer) {
+
+        SharedString sql = sqlJoin.get(index);
+        if (sql == null || StringUtils.isBlank(sql.getStringValue())) {
+            throw Exceptions.mpje("no such subscript join");
+        }
+
+        JoinWrapper<T, J> joinWrapper = new JoinWrapper<T, J>(Joins.of((Class<J>) getEntityOrMasterClass()));
+        joinWrapper.aliasMap.putAll(this.getAliasMap());
+        consumer.accept(joinWrapper);
+        String condition = joinWrapper.getCustomSqlSegment();
+        String key = IdUtil.getSimpleUUID();
+        if (CollectionUtils.isNotEmpty(joinWrapper.getParamNameValuePairs())) {
+            paramNameValuePairs.put(key, joinWrapper.getParamNameValuePairs());
+        }
+        condition = condition.replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
+        condition = condition.replaceFirst(Constants.WHERE, StringPool.SPACE);
+
+        sql.setStringValue(sql.getStringValue() + StringPool.SPACE + StringPool.AND + condition);
         sqlJoin.remove(index);
         sqlJoin.add(index, sql);
         return typedThis;
@@ -497,7 +524,6 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     public JoinLambdaWrapper<J> end() {
         wrapper.setJoinSelect(sqlSelect);
         wrapper.setAliasMap(aliasMap);
-        wrapper.setJoinSql(sqlJoin);
         wrapper.setOderByBuildList(this.orderByBuildList);
         wrapper.setFieldMappingList(this.fieldMappingList);
         wrapper.setOrderBy(expression.getOrderBy());
@@ -510,7 +536,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         expression.getOrderBy().clear();
         expression.getHaving().clear();
         expression.getGroupBy().clear();
-        wrapper.setJoinConditionSql(sunQueryList, getCustomSqlSegment(), IdUtil.getSimpleUUID(), paramNameValuePairs);
+        wrapper.setJoinConditionSql(sunQueryList, sqlJoin, getCustomSqlSegment(), IdUtil.getSimpleUUID(), paramNameValuePairs);
         return wrapper;
     }
 

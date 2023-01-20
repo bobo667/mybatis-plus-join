@@ -80,6 +80,9 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      */
     private IFuncKeyWord funcKeyWord;
 
+    @Getter
+    private boolean masterLogicDelete = true;
+
     /**
      * 关联表的查询子段
      */
@@ -145,14 +148,14 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     public JoinLambdaWrapper(T entity, String alias) {
         super.setEntity(entity);
         this.initNeed();
-        setAlias(alias);
+        if (StringUtils.isNotBlank(alias)) {
+            setAlias(alias);
+        }
         this.masterTableAlias = getAlias();
     }
 
     public JoinLambdaWrapper(T entity) {
-        super.setEntity(entity);
-        this.initNeed();
-        this.masterTableAlias = getAlias();
+        this(entity, null);
     }
 
     /**
@@ -161,14 +164,14 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     public JoinLambdaWrapper(Class<T> entityClass, String alias) {
         super.setEntityClass(entityClass);
         this.initNeed();
-        setAlias(alias);
+        if (StringUtils.isNotBlank(alias)) {
+            setAlias(alias);
+        }
         this.masterTableAlias = getAlias();
     }
 
     public JoinLambdaWrapper(Class<T> entityClass) {
-        super.setEntityClass(entityClass);
-        this.initNeed();
-        this.masterTableAlias = getAlias();
+        this(entityClass, null);
     }
 
     /**
@@ -190,6 +193,16 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         this.sqlFirst = sqlFirst;
     }
 
+    /**
+     * 设置主表逻辑删除
+     *
+     * @param masterLogicDelete 是否设置逻辑删除，如果为false则主表不加入逻辑删除
+     * @return JoinLambdaWrapper<T>
+     */
+    public JoinLambdaWrapper<T> masterLogicDelete(boolean masterLogicDelete) {
+        this.masterLogicDelete = masterLogicDelete;
+        return typedThis;
+    }
 
     /**
      * SELECT 部分 SQL 设置
@@ -498,11 +511,12 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      * 存入外联表 join 查询条件
      *
      * @param sunQueryList            子查询列表
+     * @param joinSql                 join关联SQL
      * @param sql                     条件SQL
      * @param key                     此次外联表唯一标识码
      * @param joinParamNameValuePairs 条件SQL对应的值
      */
-    void setJoinConditionSql(List<SharedString> sunQueryList, String sql, String key, Map<String, Object> joinParamNameValuePairs) {
+    void setJoinConditionSql(List<SharedString> sunQueryList, List<SharedString> joinSql, String sql, String key, Map<String, Object> joinParamNameValuePairs) {
         if (CollectionUtils.isNotEmpty(joinParamNameValuePairs)) {
             // 向当前参数map存入外联表的值
             paramNameValuePairs.put(key, joinParamNameValuePairs);
@@ -519,6 +533,12 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
                 i.setStringValue(i.getStringValue().replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key));
             });
             this.sunQueryList.addAll(sunQueryList);
+        }
+        if (CollectionUtils.isNotEmpty(joinSql)) {
+            joinSql.forEach(i -> {
+                i.setStringValue(i.getStringValue().replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key));
+            });
+            this.joinSql.addAll(joinSql);
         }
     }
 

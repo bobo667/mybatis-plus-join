@@ -30,20 +30,20 @@ mybatis plus：3.2.0版本依赖地址：
 
 ```xml
  <dependency>
-    <groupId>icu.mhb</groupId>
-    <artifactId>mybatis-plus-join</artifactId>
-    <version>1.2.0</version>
- </dependency>
+   <groupId>icu.mhb</groupId>
+   <artifactId>mybatis-plus-join</artifactId>
+   <version>1.2.0</version>
+</dependency>
 ```
 
 最新版本依赖地址：
 
 ```xml
  <dependency>
-    <groupId>icu.mhb</groupId>
-    <artifactId>mybatis-plus-join</artifactId>
-    <version>1.3.3</version>
- </dependency>
+   <groupId>icu.mhb</groupId>
+   <artifactId>mybatis-plus-join</artifactId>
+   <version>1.3.4</version>
+</dependency>
 ```
 
 
@@ -57,7 +57,7 @@ mybatis plus：3.2.0版本依赖地址：
 | 3.2.0           | 1.2.0                                                        |
 | 3.3.1 - 3.42    | 1.0.2                                                        |
 | 3.4.3.4 - 3.5.2 | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.6、1.3.1、1.3.2、1.3.3 |
-| 3.5.3 - *       | 1.3.3.1                                                      |
+| 3.5.3 - *       | 1.3.3.1、1.3.4                                               |
 
 
 
@@ -115,9 +115,9 @@ mybatis plus：3.2.0版本依赖地址：
 
 3. 更改serviceImpl动态返回类型的处理方式，采用更优的插件式注入方式
 
-   
 
-   这次终于去掉了总是说的fastJSON依赖，现在采用动态注入resultMap方式，来构建普通多表，一对一，多对多查询，采用插件式懒加载 + 缓存机制，启动时间无影响，使用加载一下就可以直接从缓存调用，保证不影响使用中的效率。
+
+这次终于去掉了总是说的fastJSON依赖，现在采用动态注入resultMap方式，来构建普通多表，一对一，多对多查询，采用插件式懒加载 + 缓存机制，启动时间无影响，使用加载一下就可以直接从缓存调用，保证不影响使用中的效率。
 
 ### 1.0.9 版本
 
@@ -125,7 +125,7 @@ mybatis plus：3.2.0版本依赖地址：
 
 2. 增加自定义表、字段别名关键字，在不同数据库中兼容
 
-   
+
 
 ### 1.1.1 版本
 
@@ -135,9 +135,9 @@ mybatis plus：3.2.0版本依赖地址：
 
 3. 增加主表和子表自定义别名，方便多个相同子表对应一个主表
 
-   
 
-   这次更新解决了目前使用的一些特殊场景下的缺陷问题，使用的更灵活了
+
+这次更新解决了目前使用的一些特殊场景下的缺陷问题，使用的更灵活了
 
 ### 1.1.2 版本
 
@@ -147,9 +147,9 @@ mybatis plus：3.2.0版本依赖地址：
 
 3. 修复在定义typeHandler不生效的问题
 
-   
 
-   这次更新主要是修复的bug版本，目前作者没有什么特别多的思路去要写什么样的新功能，如果各位有可以提出来
+
+这次更新主要是修复的bug版本，目前作者没有什么特别多的思路去要写什么样的新功能，如果各位有可以提出来
 
 ### 1.1.3 版本
 
@@ -159,13 +159,13 @@ mybatis plus：3.2.0版本依赖地址：
 
 3. Merge pull request !1 from f_ms/N/A
 
-   
 
-   这次更新主要是修复的bug版本，目前作者没有什么特别多的思路去要写什么样的新功能，如果各位有可以提出来
+
+这次更新主要是修复的bug版本，目前作者没有什么特别多的思路去要写什么样的新功能，如果各位有可以提出来
 
 ### 1.1.4 版本
 
-1. 修复逻辑删除值错误的bug  **gitee issues-I5UY2K** 
+1. 修复逻辑删除值错误的bug  **gitee issues-I5UY2K**
 2. typeHandler 增加子表支持  **gitee issues-I5SUV6**
 3. 修复 在调用 and()方法的情况下，设置的表别名失效的问题
 4. orderBy 排序增加顺序下标，可根据下标来调整对应的排序顺序
@@ -207,7 +207,7 @@ mybatis plus：3.2.0版本依赖地址：
 ### 1.3.3 版本(重大更新)
 
 1.  增加@JoinField 注解，定义映射关系，可在wrapper中用push**Join方法加入，即可查询并映射
-2.  条件构造器增加基础join查询四件套可以用wrapper直接进行查询 
+2.  条件构造器增加基础join查询四件套可以用wrapper直接进行查询
 3.  manyToManySelect和oneToOneSelect 增加可以不指定查询列，查询全部列并映射
 4.  修复 JoinLambdaWrapper 和 JoinWrapper的  select(Class<T> entityClass, Predicate<TableFieldInfo> predicate) 没有加别名的问题修复
 5.  增加接口 JoinCompareFun，eq、ne..可以传入别的表的函数，实现两个表字段关联
@@ -215,6 +215,14 @@ mybatis plus：3.2.0版本依赖地址：
 ### 1.3.3.1 版本
 
 1.  支持了mybatis-plus 3.5.3版本往后
+
+### 1.3.4 版本
+
+1.  主表可使用masterLogicDelete方法配置是否开启逻辑删除
+2.  查询字段增加子查询 selectSunQuery方法
+3.  joinAnd 增加条件构造器，可以自由构造多条件join and
+4.  项目异常更改为mpj异常
+5.  合并 pr https://gitee.com/mhb0409/mybatis-plus-join/pulls/3
 
 
 
@@ -338,7 +346,7 @@ public class MyBatisPlusConfig extends JoinDefaultSqlInjector {
     }
 
 // 运行的SQL
-SELECT 1 as id
+SELECT 1 is id
  FROM users is users
  LEFT JOIN users_age is users_age
  ON users_age.id = users.age_id
@@ -448,6 +456,66 @@ where (
 ## 加料用法
 
 OK，来点丝滑的加料用法
+
+### 使用selectSunQuery构建子查询（1.3.4版本之后）
+
+```java
+// joinList
+List<UsersVo> list = Joins.of(Users.class)
+                .masterLogicDelete(false)
+                .pushLeftJoin(UsersVo::getUsersAge, UsersAge.class)
+                .selectSunQuery(UsersAge.class, w -> {
+                    w.eq(UsersAge::getId, Users::getAgeId)
+                            .eq(UsersAge::getId, 1)
+                            .le(UsersAge::getCreateTime, new Date())
+                      			// 需要注意的是这个查询字段只能有一个
+                            .selectAs(cb -> {
+//                                cb.add("count(1)", "counts", false);
+                                cb.add(UsersAge::getId, "counts");
+                              // 这里的话，他的关联表是需要在之前出现的，这个selectSunQuery 在主表也是一样字表也是一样的，但是需要放在后面，因为如果在前面可能关联表的别名被重写定义了，那么他就会出现SQL错误
+                            }).leftJoin(Users.class, Users::getAgeId, UsersAge::getId, w2 -> {
+                                w2.eq(Users::getUserId, 1);
+                            });
+                })
+                .joinAnd(0, w -> w.eq(UsersAge::getId, Users::getAgeId)
+                                            .ne(UsersAge::getId, 10))
+                .isNotNull(UsersAge::getId).end().joinList(UsersVo.class);
+
+ // 生成SQL
+SELECT
+	users.user_name,
+	users.create_time,
+	users.age_id,
+	users.content_json,
+	users.user_id,
+	t1.age_doc AS t1_ageDoc,
+	t1.age_name AS t1_ageName,
+	t1.create_time AS t1_createTime,
+	t1.content_json_age AS t1_contentJsonAge,
+	t1.id AS t1_id,
+	(
+	SELECT
+		t1.id AS counts 
+	FROM
+		users_age t1
+		LEFT JOIN users AS users ON users.age_id = t1.id 
+		AND users.age_id = 0 
+	WHERE
+		( users.user_id = 1 ) 
+		AND ( t1.id = users.age_id AND t1.id = 1 AND t1.create_time <= '2023-01-20 16:11:14.38' ) 
+	) AS counts 
+FROM
+	users AS users
+	LEFT JOIN users_age AS t1 ON t1.id = users.age_id 
+	AND ( t1.id = users.age_id AND t1.id <> 10 ) 
+WHERE
+	( t1.id IS NOT NULL );
+    
+```
+
+
+
+
 
 ### 使用构建器调用join*查询方法（1.3.3版本之后）
 
@@ -918,6 +986,7 @@ where
 ### notDefaultSelectAll() 不默认查询主表全部的字段
 
 ```java
+
 // 如果需要根据实体查询可以采用这样的实例化
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(new Users().setUserName("name啊")
                                                                           .setUserId(1L));
@@ -1050,7 +1119,7 @@ where (
 
 
 
-### joinAnd() join添加条件
+### joinAnd() join添加条件(1.3.4版本后可根据Wrapper设定条件)
 
 ```java
    
@@ -1084,6 +1153,19 @@ where (
 	users_age.age_name = '95'
 )
  
+// 1.3.4版本后写法
+    Joins.of(Users.class)
+                .masterLogicDelete(false)
+                .pushLeftJoin(UsersVo::getUsersAge, UsersAge.class)
+    						.joinAnd(0, w -> w.eq(UsersAge::getId, Users::getAgeId)
+                                            .ne(UsersAge::getId, 10))
+                .isNotNull(UsersAge::getId).end().joinList(UsersVo.class)
+    
+ // 执行SQL
+    SELECT 
+    users.user_name,users.create_time,users.age_id,users.content_json,users.user_id, t1.age_doc as t1_ageDoc , t1.age_name as t1_ageName , t1.create_time as t1_createTime , t1.content_json_age as t1_contentJsonAge , t1.id as t1_id 
+    FROM users as users 
+    LEFT JOIN users_age as t1 ON t1.id = users.age_id and (t1.id = users.age_id AND t1.id <> 10) WHERE (t1.id IS NOT NULL)
 ```
 
 ### 同个接口返回任意实体

@@ -28,7 +28,6 @@ import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.Assert;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import com.baomidou.mybatisplus.core.toolkit.ExceptionUtils;
 import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringPool;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
@@ -170,9 +169,8 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         if (lambdaWrapper.getFieldMappingList().size() > 1) {
             throw Exceptions.mpje("子查询只能有一个查询字段");
         }
-
-        String sql = String.format("(SELECT %s FROM %s %s %s %s) AS %s", lambdaWrapper.getSqlSelect(), TableInfoHelper.getTableInfo(clz).getTableName(), getAlias(clz), lambdaWrapper.getJoinSql(), " where " + lambdaWrapper.getSqlSegment(), lambdaWrapper.getFieldMappingList().get(0).getColumn());
-
+        String sql = String.format("(SELECT %s FROM %s %s %s %s)", lambdaWrapper.getSqlSelect(), TableInfoHelper.getTableInfo(clz).getTableName(), getAlias(clz), lambdaWrapper.getJoinSql(), " where " + lambdaWrapper.getSqlSegment());
+        sql = String.format(SqlExcerpt.COLUMNS_AS.getSql(), sql, lambdaWrapper.getFieldMappingList().get(0).getColumn());
         if (CollectionUtils.isNotEmpty(lambdaWrapper.getParamNameValuePairs())) {
             String key = IdUtil.getSimpleUUID();
             paramNameValuePairs.put(key, lambdaWrapper.getParamNameValuePairs());
@@ -182,6 +180,10 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         sunQueryList.add(new SharedString().setStringValue(sql));
         fieldMappingList.addAll(lambdaWrapper.getFieldMappingList());
         return typedThis;
+    }
+
+    public <J> Children selectSunQuery(Class<J> clz, Consumer<JoinLambdaWrapper<J>> wrapper) {
+        return selectSunQuery(true, clz, wrapper);
     }
 
     /**
