@@ -1,18 +1,17 @@
 package icu.mhb.mybatisplus.plugln.interceptor;
 
-import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import com.baomidou.mybatisplus.core.toolkit.ExceptionUtils;
+import java.lang.reflect.Field;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.plugin.InterceptorChain;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationListener;
 
-import java.lang.reflect.Field;
-import java.util.List;
-import java.util.Objects;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
 
@@ -26,7 +25,7 @@ import icu.mhb.mybatisplus.plugln.exception.Exceptions;
  * @date 2022-02-15
  */
 @SuppressWarnings("all")
-public class JoinInterceptorConfig implements ApplicationListener<ApplicationReadyEvent> {
+public class JoinInterceptorConfig implements InitializingBean {
 
     @Autowired(required = false)
     private List<SqlSessionFactory> sqlSessionFactoryList;
@@ -35,7 +34,7 @@ public class JoinInterceptorConfig implements ApplicationListener<ApplicationRea
     private JoinInterceptor joinInterceptor;
 
     @Override
-    public void onApplicationEvent(ApplicationReadyEvent event) {
+    public void afterPropertiesSet() throws Exception {
         if (CollectionUtils.isNotEmpty(sqlSessionFactoryList) && Objects.nonNull(joinInterceptor)) {
             try {
                 for (SqlSessionFactory factory : sqlSessionFactoryList) {
@@ -65,5 +64,4 @@ public class JoinInterceptorConfig implements ApplicationListener<ApplicationRea
             }
         }
     }
-
 }
