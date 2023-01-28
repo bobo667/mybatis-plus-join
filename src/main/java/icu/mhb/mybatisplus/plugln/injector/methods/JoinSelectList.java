@@ -15,14 +15,6 @@ import org.apache.ibatis.mapping.SqlSource;
  */
 public class JoinSelectList extends JoinAbstractMethod {
 
-    public JoinSelectList(String methodName) {
-        super(methodName);
-    }
-
-    public JoinSelectList() {
-        super(JoinSqlMethod.JOIN_SELECT_LIST.name());
-    }
-
     @Override
     @SuppressWarnings("all")
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {

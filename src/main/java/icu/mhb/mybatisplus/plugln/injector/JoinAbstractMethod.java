@@ -18,10 +18,6 @@ public abstract class JoinAbstractMethod extends AbstractMethod {
 
     private TableInfoExt table;
 
-    protected JoinAbstractMethod(String methodName) {
-        super(methodName);
-    }
-
     protected TableInfoExt getTableInfo() {
         return this.table;
     }
@@ -48,7 +44,7 @@ public abstract class JoinAbstractMethod extends AbstractMethod {
      * @return String
      */
     protected String sqlWhereAliasEntityWrapper(boolean newLine) {
-        if (table.getTableInfo().isWithLogicDelete()) {
+        if (table.getTableInfo().isLogicDelete()) {
             String sqlScript = table.getAllSqlWhere(true, true, WRAPPER_ENTITY_DOT);
             sqlScript = SqlScriptUtils.convertIf(sqlScript, String.format("%s != null", WRAPPER_ENTITY),
                     true);

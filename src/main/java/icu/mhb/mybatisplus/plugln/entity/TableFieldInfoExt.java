@@ -1,10 +1,7 @@
 package icu.mhb.mybatisplus.plugln.entity;
-import com.baomidou.mybatisplus.annotation.FieldStrategy;
-import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
-import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
-import lombok.Data;
+
+import static com.baomidou.mybatisplus.core.toolkit.StringPool.EMPTY;
+
 import org.apache.ibatis.mapping.ResultMapping;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.type.JdbcType;
@@ -12,10 +9,13 @@ import org.apache.ibatis.type.TypeHandler;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 import org.apache.ibatis.type.UnknownTypeHandler;
 
-import java.util.function.Predicate;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
 
-import static com.baomidou.mybatisplus.core.toolkit.StringPool.EMPTY;
-import static java.util.stream.Collectors.joining;
+import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
+import lombok.Data;
 
 /**
  * tableField的扩展类
@@ -89,12 +89,12 @@ public class TableFieldInfoExt {
         if (fieldStrategy == FieldStrategy.NEVER) {
             return null;
         }
-        if (tableFieldInfo.isPrimitive() || fieldStrategy == FieldStrategy.IGNORED) {
+        if (tableFieldInfo.getPropertyType().isPrimitive() || fieldStrategy == FieldStrategy.IGNORED) {
             return sqlScript;
         }
         if (fieldStrategy == FieldStrategy.NOT_EMPTY && tableFieldInfo.isCharSequence()) {
             return SqlScriptUtils.convertIf(sqlScript, String.format("%s != null and %s != ''", property, property),
-                                            false);
+                    false);
         }
         return SqlScriptUtils.convertIf(sqlScript, String.format("%s != null", property), false);
     }
@@ -108,7 +108,7 @@ public class TableFieldInfoExt {
      */
     public ResultMapping getResultMapping(final Configuration configuration) {
         ResultMapping.Builder builder = new ResultMapping.Builder(configuration, getProperty() == null ? tableFieldInfo.getProperty() : getProperty(),
-                                                                  StringUtils.getTargetColumn(getColumn() == null ? tableFieldInfo.getColumn() : getColumn()), tableFieldInfo.getPropertyType());
+                StringUtils.getTargetColumn(getColumn() == null ? tableFieldInfo.getColumn() : getColumn()), tableFieldInfo.getPropertyType());
         TypeHandlerRegistry registry = configuration.getTypeHandlerRegistry();
         if (tableFieldInfo.getJdbcType() != null && tableFieldInfo.getJdbcType() != JdbcType.UNDEFINED) {
             builder.jdbcType(tableFieldInfo.getJdbcType());

@@ -22,8 +22,8 @@ import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringPool;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
 
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
@@ -195,7 +195,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
             tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect)
                     .forEach(fieldInfo -> cb.add(Lambdas.getSFunction(manyToManyClass, fieldInfo.getPropertyType(), fieldInfo.getProperty())));
 
-            if (tableInfo.havePK()) {
+            if (StringUtils.isNotBlank(tableInfo.getKeyColumn())) {
                 cb.add(Lambdas.getSFunction(manyToManyClass, tableInfo.getKeyType(), tableInfo.getKeyProperty()));
             }
         });
@@ -206,14 +206,14 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
 
         List<FieldMapping> belongsColumns = buildField(column, consumer);
 
-        LambdaMeta lambdaMeta = LambdaUtils.extract(column);
+        SerializedLambda lambdaMeta = LambdaUtils.resolve(column);
         // 获取字段名
         String fieldName = PropertyNamer.methodToProperty(lambdaMeta.getImplMethodName());
 
         this.manyToManySelectBuild = ManyToManySelectBuild
                 .builder()
                 .manyToManyField(fieldName)
-                .manyToManyPropertyType(lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getType())
+                .manyToManyPropertyType(lambdaMeta.getInstantiatedType().getDeclaredField(fieldName).getType())
                 .belongsColumns(belongsColumns)
                 .manyToManyClass(manyToManyClass)
                 .build();
@@ -232,7 +232,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         return oneToOneSelect(column, cb -> {
             tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect)
                     .forEach(fieldInfo -> cb.add(Lambdas.getSFunction(modelClass, fieldInfo.getPropertyType(), fieldInfo.getProperty())));
-            if (tableInfo.havePK()) {
+            if (StringUtils.isNotBlank(tableInfo.getKeyColumn())) {
                 cb.add(Lambdas.getSFunction(modelClass, tableInfo.getKeyType(), tableInfo.getKeyProperty()));
             }
         });
@@ -243,7 +243,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
 
         List<FieldMapping> belongsColumns = buildField(column, consumer);
 
-        LambdaMeta lambdaMeta = LambdaUtils.extract(column);
+        SerializedLambda lambdaMeta = LambdaUtils.resolve(column);
         // 获取字段名
         String fieldName = PropertyNamer.methodToProperty(lambdaMeta.getImplMethodName());
 
@@ -251,7 +251,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
                 .builder()
                 .oneToOneField(fieldName)
                 .belongsColumns(belongsColumns)
-                .oneToOneClass(lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getType())
+                .oneToOneClass(lambdaMeta.getInstantiatedType().getDeclaredField(fieldName).getType())
                 .build();
 
         return typedThis;
@@ -485,11 +485,11 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      */
     private <F> void buildJoinSql(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField, SqlExcerpt sqlExcerpt) {
         // 解析方法
-        LambdaMeta joinTableResolve = LambdaUtils.extract(joinTableField);
-        LambdaMeta masterTableResolve = LambdaUtils.extract(masterTableField);
+        SerializedLambda joinTableResolve = LambdaUtils.resolve(joinTableField);
+        SerializedLambda masterTableResolve = LambdaUtils.resolve(masterTableField);
 
-        Class<?> joinTableClass = joinTableResolve.getInstantiatedClass();
-        Class<?> masterTableClass = masterTableResolve.getInstantiatedClass();
+        Class<?> joinTableClass = joinTableResolve.getInstantiatedType();
+        Class<?> masterTableClass = masterTableResolve.getInstantiatedType();
         TableInfo joinTableInfo = TableInfoHelper.getTableInfo(joinTableClass);
 
         Assert.notNull(joinTableInfo, "can not find tableInfo cache for this entity [%s]", joinTableClass.getName());

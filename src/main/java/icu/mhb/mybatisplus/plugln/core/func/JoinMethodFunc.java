@@ -7,8 +7,8 @@ import org.apache.ibatis.reflection.property.PropertyNamer;
 
 import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
 import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
-import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
 
 import icu.mhb.mybatisplus.plugln.annotations.JoinField;
 import icu.mhb.mybatisplus.plugln.constant.RelevancyType;
@@ -96,10 +96,10 @@ public interface JoinMethodFunc<T> {
 
     @SuppressWarnings("all")
     default <J, F> JoinWrapper<J, T> pushJoin(SFunction<F, Object> pushJoinField, Class<J> clz, SqlExcerpt sqlExcerpt) {
-        LambdaMeta lambdaMeta = LambdaUtils.extract(pushJoinField);
+        SerializedLambda lambdaMeta = LambdaUtils.resolve(pushJoinField);
         String fieldName = PropertyNamer.methodToProperty(lambdaMeta.getImplMethodName());
 
-        Field field = ClassUtils.getDeclaredField(lambdaMeta.getInstantiatedClass(), fieldName);
+        Field field = ClassUtils.getDeclaredField(lambdaMeta.getInstantiatedType(), fieldName);
         JoinField joinField = field.getAnnotation(JoinField.class);
         Exceptions.throwMpje(joinField == null, "There is no @JoinField annotation for this property, please add..");
 

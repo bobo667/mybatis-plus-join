@@ -1,15 +1,22 @@
 package icu.mhb.mybatisplus.plugln.entity;
-import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
-import com.baomidou.mybatisplus.core.metadata.TableInfo;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
-import lombok.Getter;
+
+import static com.baomidou.mybatisplus.core.toolkit.StringPool.COMMA;
+import static com.baomidou.mybatisplus.core.toolkit.StringPool.EMPTY;
+import static com.baomidou.mybatisplus.core.toolkit.StringPool.EQUALS;
+import static com.baomidou.mybatisplus.core.toolkit.StringPool.NEWLINE;
+import static com.baomidou.mybatisplus.core.toolkit.StringPool.NULL;
+import static java.util.stream.Collectors.joining;
 
 import java.util.Objects;
 import java.util.function.Predicate;
 
-import static com.baomidou.mybatisplus.core.toolkit.StringPool.*;
-import static java.util.stream.Collectors.joining;
+import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
+import com.baomidou.mybatisplus.core.metadata.TableInfo;
+import com.baomidou.mybatisplus.core.toolkit.ExceptionUtils;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
+
+import lombok.Getter;
 
 /**
  * tableInfo的扩展类
@@ -34,7 +41,7 @@ public class TableInfoExt {
      * @return sql 片段
      */
     public String chooseSelect(Predicate<TableFieldInfo> predicate, String alias) {
-        String sqlSelect = tableInfo.havePK() ? TableFieldInfoExt.getAliasColumn(tableInfo.getKeySqlSelect(), alias) : "";
+        String sqlSelect = StringUtils.isNotBlank(tableInfo.getKeyColumn()) ? TableFieldInfoExt.getAliasColumn(tableInfo.getKeySqlSelect(), alias) : "";
         String fieldsSqlSelect = tableInfo.getFieldList().stream().filter(predicate)
                 .map(TableFieldInfo::getSqlSelect).map(i -> TableFieldInfoExt.getAliasColumn(i, alias))
                 .collect(joining(COMMA));
@@ -60,7 +67,7 @@ public class TableInfoExt {
         String filedSqlScript = tableInfo.getFieldList().stream()
                 .filter(i -> {
                     if (ignoreLogicDelFiled) {
-                        return !(tableInfo.isWithLogicDelete() && i.isLogicDelete());
+                        return !(tableInfo.isLogicDelete() && i.isLogicDelete());
                     }
                     return true;
                 })
@@ -86,8 +93,10 @@ public class TableInfoExt {
      * @return sql 脚本
      */
     public String getLogicDeleteSql(boolean startWithAnd, boolean isWhere, String alias) {
-        if (tableInfo.isWithLogicDelete()) {
-            String logicDeleteSql = formatLogicDeleteSql(isWhere, alias);
+        if (tableInfo.isLogicDelete()) {
+            TableFieldInfo field = tableInfo.getFieldList().stream().filter(TableFieldInfo::isLogicDelete).findFirst()
+                    .orElseThrow(() -> ExceptionUtils.mpe("can't find the logicFiled from table {%s}", tableInfo.getTableName()));
+            String logicDeleteSql = formatLogicDeleteSql(field, isWhere, alias);
             if (startWithAnd) {
                 logicDeleteSql = " AND " + logicDeleteSql;
             }
@@ -107,20 +116,20 @@ public class TableInfoExt {
      * @param isWhere true: logicDeleteValue, false: logicNotDeleteValue
      * @return sql
      */
-    private String formatLogicDeleteSql(boolean isWhere, String alias) {
-        final String value = isWhere ? tableInfo.getLogicDeleteFieldInfo().getLogicNotDeleteValue() : tableInfo.getLogicDeleteFieldInfo().getLogicDeleteValue();
+    private String formatLogicDeleteSql(TableFieldInfo fieldInfo, boolean isWhere, String alias) {
+        final String value = isWhere ? fieldInfo.getLogicNotDeleteValue() : fieldInfo.getLogicDeleteValue();
         if (isWhere) {
             if (NULL.equalsIgnoreCase(value)) {
-                return TableFieldInfoExt.getAliasColumn(tableInfo.getLogicDeleteFieldInfo().getColumn(), alias) + " IS NULL";
+                return TableFieldInfoExt.getAliasColumn(fieldInfo.getColumn(), alias) + " IS NULL";
             } else {
-                return TableFieldInfoExt.getAliasColumn(tableInfo.getLogicDeleteFieldInfo().getColumn(), alias) + EQUALS + String.format(tableInfo.getLogicDeleteFieldInfo().isCharSequence() ? "'%s'" : "%s", value);
+                return TableFieldInfoExt.getAliasColumn(fieldInfo.getColumn(), alias) + EQUALS + String.format(fieldInfo.isCharSequence() ? "'%s'" : "%s", value);
             }
         }
-        final String targetStr = TableFieldInfoExt.getAliasColumn(tableInfo.getLogicDeleteFieldInfo().getColumn(), alias) + EQUALS;
+        final String targetStr = TableFieldInfoExt.getAliasColumn(fieldInfo.getColumn(), alias) + EQUALS;
         if (NULL.equalsIgnoreCase(value)) {
             return targetStr + NULL;
         } else {
-            return targetStr + String.format(tableInfo.getLogicDeleteFieldInfo().isCharSequence() ? "'%s'" : "%s", value);
+            return targetStr + String.format(fieldInfo.isCharSequence() ? "'%s'" : "%s", value);
         }
     }
 

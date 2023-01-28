@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -30,12 +31,16 @@ import com.baomidou.mybatisplus.core.conditions.segments.HavingSegmentList;
 import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
 import com.baomidou.mybatisplus.core.conditions.segments.OrderBySegmentList;
 import com.baomidou.mybatisplus.core.enums.SqlKeyword;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
+import com.baomidou.mybatisplus.core.toolkit.Assert;
+import com.baomidou.mybatisplus.core.toolkit.ClassUtils;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
+import com.baomidou.mybatisplus.core.toolkit.ExceptionUtils;
 import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringPool;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
@@ -437,10 +442,9 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
             this.orderByBuildList.forEach(i -> {
                 // 如果是手写的SQL则不需要 asc desc 排序 开发者自己写
                 if (i.isSql()) {
-                    maybeDo(i.isCondition(), () -> appendSqlSegments(ORDER_BY, i.getColumn()));
+                    doIt(i.isCondition(), ORDER_BY, i.getColumn());
                 } else {
-                    maybeDo(i.isCondition(), () -> appendSqlSegments(ORDER_BY, i.getColumn(),
-                            i.isAsc() ? ASC : DESC));
+                    doIt(i.isCondition(), ORDER_BY, i.getColumn(), i.isAsc() ? ASC : DESC);
                 }
             });
         }
@@ -457,9 +461,9 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
 
         TableInfo tableInfo = TableInfoHelper.getTableInfo(getEntityClass());
         // 如果SQL不为空或者实体不为空就是会创建where字句 否则需要自己手动创建,并且不开启逻辑删除
-        if ((sqlIsBlank && !nonEmptyOfEntity) && conditionSqlIsNotEmpty && !tableInfo.isWithLogicDelete()) {
+        if ((sqlIsBlank && !nonEmptyOfEntity) && conditionSqlIsNotEmpty && !tableInfo.isLogicDelete()) {
             sqlBuilder.append(Constants.WHERE);
-        } else if ((sqlIsBlank && !nonEmptyOfEntity) && conditionSqlIsNotEmpty && tableInfo.isWithLogicDelete()) {
+        } else if ((sqlIsBlank && !nonEmptyOfEntity) && conditionSqlIsNotEmpty && tableInfo.isLogicDelete()) {
             sqlBuilder.append(Constants.AND);
         } else if (conditionSqlIsNotEmpty && nonEmptyOfEntity && sqlIsBlank) {
             sqlBuilder.append(Constants.AND);
@@ -561,7 +565,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     void setOrderBy(OrderBySegmentList orderBy) {
         if (!orderBy.isEmpty()) {
             for (ISqlSegment iSqlSegment : orderBy) {
-                this.maybeDo(true, () -> appendSqlSegments(ORDER_BY, iSqlSegment));
+                doIt(true, ORDER_BY, iSqlSegment);
             }
         }
     }
@@ -574,7 +578,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     void setGroupBy(GroupBySegmentList groupBy) {
         if (!groupBy.isEmpty()) {
             for (ISqlSegment iSqlSegment : groupBy) {
-                this.maybeDo(true, () -> appendSqlSegments(GROUP_BY, iSqlSegment));
+                doIt(true, GROUP_BY, iSqlSegment);
             }
         }
     }
@@ -711,10 +715,34 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     public <R> R executeQuery(SFunction<JoinBaseMapper<T>, R> function) {
         SqlSession sqlSession = SqlHelper.sqlSession(getEntityOrMasterClass());
         try {
-            return function.apply((JoinBaseMapper<T>) SqlHelper.getMapper(getEntityOrMasterClass(), sqlSession));
+            return function.apply((JoinBaseMapper<T>) getMapper(getEntityOrMasterClass(), sqlSession));
         } finally {
             SqlSessionUtils.closeSqlSession(sqlSession, GlobalConfigUtils.currentSessionFactory(getEntityOrMasterClass()));
         }
+    }
+
+    /**
+     * 通过entityClass获取Mapper，记得要释放连接
+     * 例： {@code
+     * SqlSession sqlSession = SqlHelper.sqlSession(entityClass);
+     * try {
+     * BaseMapper<User> userMapper = getMapper(User.class, sqlSession);
+     * } finally {
+     * sqlSession.close();
+     * }
+     * }
+     *
+     * @param entityClass 实体
+     * @param <T>         实体类型
+     * @param <M>         Mapper类型
+     * @return Mapper
+     */
+    @SuppressWarnings("unchecked")
+    public static <T, M extends BaseMapper<T>> M getMapper(Class<T> entityClass, SqlSession sqlSession) {
+        Assert.notNull(entityClass, "entityClass can't be null!");
+        TableInfo tableInfo = Optional.ofNullable(TableInfoHelper.getTableInfo(entityClass)).orElseThrow(() -> ExceptionUtils.mpe("Can not find TableInfo from Class: \"%s\".", entityClass.getName()));
+        Class<?> mapperClass = ClassUtils.toClassConfident(tableInfo.getCurrentNamespace());
+        return (M) SqlHelper.sqlSessionFactory(entityClass).getConfiguration().getMapper(mapperClass, sqlSession);
     }
 
 

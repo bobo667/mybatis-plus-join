@@ -15,14 +15,6 @@ import org.apache.ibatis.mapping.SqlSource;
 @SuppressWarnings("all")
 public class JoinSelectPage extends JoinAbstractMethod {
 
-    protected JoinSelectPage(String methodName) {
-        super(methodName);
-    }
-
-    public JoinSelectPage() {
-        super(JoinSqlMethod.JOIN_SELECT_PAGE.name());
-    }
-
     @Override
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         JoinSqlMethod sqlMethod = JoinSqlMethod.JOIN_SELECT_PAGE;

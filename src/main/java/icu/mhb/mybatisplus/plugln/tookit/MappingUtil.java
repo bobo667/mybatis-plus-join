@@ -32,7 +32,7 @@ public class MappingUtil {
 
                 // 提取map中对应的一对一对应的值
                 oneSelectBuild.getBelongsColumns()
-                        .forEach((fieldMapping) -> MapUtil.notNullPut(StringUtils.isNotEmpty(fieldMapping.getFieldName()) ? fieldMapping.getFieldName() : fieldMapping.getColumn(), MapUtil.getAndRemove(fieldMapping.getColumn(), map), oneToOneMap));
+                        .forEach((fieldMapping) -> MapUtil.notNullPut(StringUtils.isNotBlank(fieldMapping.getFieldName()) ? fieldMapping.getFieldName() : fieldMapping.getColumn(), MapUtil.getAndRemove(fieldMapping.getColumn(), map), oneToOneMap));
 
                 map.put(oneSelectBuild.getOneToOneField(), oneToOneMap);
             }

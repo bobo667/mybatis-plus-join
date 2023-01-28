@@ -1,4 +1,5 @@
 package icu.mhb.mybatisplus.plugln.core.func;
+
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 
 /**
@@ -131,23 +132,5 @@ public interface JoinCompareFun<Children, T> {
      * @return children
      */
     <J, J2> Children between(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val1, SFunction<J2, Object> val2);
-
-    /**
-     * ignore
-     */
-    default <J, J2> Children notBetween(SFunction<T, Object> column, SFunction<J, Object> val1, SFunction<J2, Object> val2) {
-        return notBetween(true, column, val1, val2);
-    }
-
-    /**
-     * NOT BETWEEN 值1 AND 值2
-     *
-     * @param condition 执行条件
-     * @param column    字段
-     * @param val1      值1
-     * @param val2      值2
-     * @return children
-     */
-    <J, J2> Children notBetween(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val1, SFunction<J2, Object> val2);
 
 }
