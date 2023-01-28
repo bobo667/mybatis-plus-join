@@ -40,10 +40,10 @@ mybatis plus：3.2.0版本依赖地址：
 
 ```xml
  <dependency>
-   <groupId>icu.mhb</groupId>
-   <artifactId>mybatis-plus-join</artifactId>
-   <version>1.3.4</version>
-</dependency>
+    <groupId>icu.mhb</groupId>
+    <artifactId>mybatis-plus-join</artifactId>
+    <version>1.3.4</version>
+ </dependency>
 ```
 
 
@@ -55,7 +55,7 @@ mybatis plus：3.2.0版本依赖地址：
 | Mybatis-plus    | Mybatis-plus-join                                            |
 | --------------- | ------------------------------------------------------------ |
 | 3.2.0           | 1.2.0                                                        |
-| 3.3.1 - 3.42    | 1.0.2                                                        |
+| 3.3.1 - 3.42    | 1.0.2、1.3.4.1                                               |
 | 3.4.3.4 - 3.5.2 | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.6、1.3.1、1.3.2、1.3.3 |
 | 3.5.3 - *       | 1.3.3.1、1.3.4                                               |
 
@@ -223,6 +223,10 @@ mybatis plus：3.2.0版本依赖地址：
 3.  joinAnd 增加条件构造器，可以自由构造多条件join and
 4.  项目异常更改为mpj异常
 5.  合并 pr https://gitee.com/mhb0409/mybatis-plus-join/pulls/3
+
+### 1.3.4.1 版本（兼容老版本）
+
+1.  兼容 3.3.2 - 3.4.2 mp版本
 
 
 
@@ -986,7 +990,6 @@ where
 ### notDefaultSelectAll() 不默认查询主表全部的字段
 
 ```java
-
 // 如果需要根据实体查询可以采用这样的实例化
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(new Users().setUserName("name啊")
                                                                           .setUserId(1L));
