@@ -55,7 +55,7 @@ mybatis plus：3.2.0版本依赖地址：
 | Mybatis-plus    | Mybatis-plus-join                                            |
 | --------------- | ------------------------------------------------------------ |
 | 3.2.0           | 1.2.0                                                        |
-| 3.3.1 - 3.42    | 1.0.2                                                        |
+| 3.3.1 - 3.42    | 1.0.2、1.3.4.1                                               |
 | 3.4.3.4 - 3.5.2 | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.6、1.3.1、1.3.2、1.3.3 |
 | 3.5.3 - *       | 1.3.3.1、1.3.4                                               |
 
@@ -223,6 +223,10 @@ mybatis plus：3.2.0版本依赖地址：
 3.  joinAnd 增加条件构造器，可以自由构造多条件join and
 4.  项目异常更改为mpj异常
 5.  合并 pr https://gitee.com/mhb0409/mybatis-plus-join/pulls/3
+
+### 1.3.4.1 版本（兼容老版本）
+
+1.  兼容 3.3.2 - 3.4.2 mp版本
 
 
 
@@ -986,34 +990,33 @@ where
 ### notDefaultSelectAll() 不默认查询主表全部的字段
 
 ```java
-
 // 如果需要根据实体查询可以采用这样的实例化
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(new Users().setUserName("name啊")
-                                                                          .setUserId(1L));
+        .setUserId(1L));
 
 // 因为默认是查询主表所有查询字段，如果不需要查询主表全部字段就调用该方法
-wrapper.notDefaultSelectAll();
+        wrapper.notDefaultSelectAll();
 
 // 这一部分一个参数是join中定义的连接的表，第二个参数是随意的表，但是是要出现构造器中的
-wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
+        wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
 // 然后可以设置多表中的查询条件，这一步和mp一致
-			.eq(UserAge::getAgeName,"95")
-  		.select(UserAge::getAgeName)
+        .eq(UserAge::getAgeName,"95")
+        .select(UserAge::getAgeName)
 // 最后一步 需要使用end方法结束
-			.end();
+        .end();
 
 // 执行查询
-usersService.joinList(wrapper,UsersVo.class);
+        usersService.joinList(wrapper,UsersVo.class);
 
 // 执行SQL 
-select 
-  users_age.age_name
-from users users
-  left join users_age users_age on users_age.id = users.age_id
-where 
- users.user_id = 1
- and users.user_name = 'name啊'
- and users_age.age_name = '95'
+        select
+        users_age.age_name
+        from users users
+        left join users_age users_age on users_age.id = users.age_id
+        where
+        users.user_id = 1
+        and users.user_name = 'name啊'
+        and users_age.age_name = '95'
 
 
 
@@ -1031,55 +1034,55 @@ where
 */
 // 拿起来我们上面用的哪个实例。我现在需要给ageName给个别名 user_age_name
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
-wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
-  	.eq(UserAge::getAgeName,"95")
-  	.selectAs(UserAge::getAgeName,"user_age_name")
-  	// 在1.3.2版本后可以采用函数的方式写别名
-  		.selectAs(UserAge::getAgeName,UsersVo::getUserAgeName)
-  	.end();
+        wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
+        .eq(UserAge::getAgeName,"95")
+        .selectAs(UserAge::getAgeName,"user_age_name")
+        // 在1.3.2版本后可以采用函数的方式写别名
+        .selectAs(UserAge::getAgeName,UsersVo::getUserAgeName)
+        .end();
 // 执行查询
-usersService.joinList(wrapper,UsersVo.class);
+        usersService.joinList(wrapper,UsersVo.class);
 
 // 执行SQL 
-select 
-  users.user_id,
-	users.user_name,
-	users_age.age_name as user_age_name
-from users users
-  left join users_age users_age on users_age.id = users.age_id
-where (
-	users_age.age_name = '95'
-)
-    
+        select
+        users.user_id,
+        users.user_name,
+        users_age.age_name as user_age_name
+        from users users
+        left join users_age users_age on users_age.id = users.age_id
+        where (
+        users_age.age_name = '95'
+        )
+
 // 现在来个高级需求，我需要查询出users_age表中的两个字段并且需要加一个固定值
 
-JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
-wrapper.join(UsersAge.class)
-  	.leftJoin(UsersAge::getId,Users::getAgeId)
-  	.eq(UserAge::getAgeName,"95")
-    .selectAs((cb) -> {
-      cb.add(UserAge::getAgeName,"user_age_name")
+        JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
+        wrapper.join(UsersAge.class)
+        .leftJoin(UsersAge::getId,Users::getAgeId)
+        .eq(UserAge::getAgeName,"95")
+        .selectAs((cb) -> {
+        cb.add(UserAge::getAgeName,"user_age_name")
         .add(UserAge::getAgeDoc)
         .addFunAlias(UserAge::getAgeName,UsersVo::getUserAgeName) // 该方法在1.3.2版本后支持
         .add("mp永远滴神","mpnb")
         .add("sum(users_age.id)","ageIdSum",false); // 这个为false就是代表不是字符串，会原样查询 在1.3.1版本后支持
-    }).end();
+        }).end();
 // 执行查询
-usersService.joinList(wrapper,UsersVo.class);
- 
+        usersService.joinList(wrapper,UsersVo.class);
+
 // 执行SQL 
-select 
-  users.user_id,
-	users.user_name,
-	users_age.age_name as user_age_name,
-	users_age.age_doc,
-	'mp永远滴神' as mpnb,
-	sum(users_age.id) as ageIdSum
-from users users
-  left join users_age users_age on users_age.id = users.age_id
-where (
-	users_age.age_name = '95'
-)
+        select
+        users.user_id,
+        users.user_name,
+        users_age.age_name as user_age_name,
+        users_age.age_doc,
+        'mp永远滴神' as mpnb,
+        sum(users_age.id) as ageIdSum
+        from users users
+        left join users_age users_age on users_age.id = users.age_id
+        where (
+        users_age.age_name = '95'
+        )
 
  
 /*
@@ -1089,7 +1092,7 @@ where (
 			new As(UserAge::getAgeDoc)
 	))
 */
-    
+
 ```
 
 ### selectAll() 查询全部
@@ -1097,24 +1100,24 @@ where (
 ```java
 // selectAll()方法，查询出当前表所有的子段
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
-wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
-  	.eq(UserAge::getAgeName,"95")
-  	.selectAll().end();
+        wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
+        .eq(UserAge::getAgeName,"95")
+        .selectAll().end();
 // 执行查询
-usersService.joinList(wrapper,UsersVo.class);
- 
+        usersService.joinList(wrapper,UsersVo.class);
+
 // 执行SQL 
-select 
-  users.user_id,
-	users.user_name,
-	users_age.age_name,
-	users_age.age_doc,
-	users_age.id
-from users users
-  left join users_age users_age on users_age.id = users.age_id
-where (
-	users_age.age_name = '95'
-)
+        select
+        users.user_id,
+        users.user_name,
+        users_age.age_name,
+        users_age.age_doc,
+        users_age.id
+        from users users
+        left join users_age users_age on users_age.id = users.age_id
+        where (
+        users_age.age_name = '95'
+        )
 ```
 
 
@@ -1122,50 +1125,50 @@ where (
 ### joinAnd() join添加条件(1.3.4版本后可根据Wrapper设定条件)
 
 ```java
-   
+
 /*
 		相信有很多情况需要限制join的表的限制条件那么就需要 
     joinAnd(SFunction<T, Object> field, Object val, int index)
 */
 
 JoinLambdaWrapper<Users> wrapper = new JoinLambdaWrapper<>(Users.class);
-wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
-  	.joinAnd(UsersAge::getId,1,0) // 需要注意啊，这个最后一个下标是指的第几个join，因为有时候会出现多个连接，附表连接主表，附表的附表连接附表这样子
-  	.eq(UserAge::getAgeName,"95")
-  	.selectAs((cb) -> {
-      cb.add(UserAge::getAgeName,"user_age_name")
+        wrapper.leftJoin(UsersAge.class,UsersAge::getId,Users::getAgeId)
+        .joinAnd(UsersAge::getId,1,0) // 需要注意啊，这个最后一个下标是指的第几个join，因为有时候会出现多个连接，附表连接主表，附表的附表连接附表这样子
+        .eq(UserAge::getAgeName,"95")
+        .selectAs((cb) -> {
+        cb.add(UserAge::getAgeName,"user_age_name")
         .add(UserAge::getAgeDoc)
         .add("mp永远滴神","mpnb");
-    }).end();
+        }).end();
 // 执行查询
-usersService.joinList(wrapper,UsersVo.class);
+        usersService.joinList(wrapper,UsersVo.class);
 
 // 执行SQL 
-select 
-  users.user_id,
-	users.user_name,
-	users_age.age_name as user_age_name,
-	users_age.age_doc,
-	'mp永远滴神' as mpnb
-from users users
-  left join users_age users_age on users_age.id = users.age_id and users_age.id = 1
-where (
-	users_age.age_name = '95'
-)
- 
+        select
+        users.user_id,
+        users.user_name,
+        users_age.age_name as user_age_name,
+        users_age.age_doc,
+        'mp永远滴神' as mpnb
+        from users users
+        left join users_age users_age on users_age.id = users.age_id and users_age.id = 1
+        where (
+        users_age.age_name = '95'
+        )
+
 // 1.3.4版本后写法
-    Joins.of(Users.class)
-                .masterLogicDelete(false)
-                .pushLeftJoin(UsersVo::getUsersAge, UsersAge.class)
-    						.joinAnd(0, w -> w.eq(UsersAge::getId, Users::getAgeId)
-                                            .ne(UsersAge::getId, 10))
-                .isNotNull(UsersAge::getId).end().joinList(UsersVo.class)
-    
- // 执行SQL
-    SELECT 
-    users.user_name,users.create_time,users.age_id,users.content_json,users.user_id, t1.age_doc as t1_ageDoc , t1.age_name as t1_ageName , t1.create_time as t1_createTime , t1.content_json_age as t1_contentJsonAge , t1.id as t1_id 
-    FROM users as users 
-    LEFT JOIN users_age as t1 ON t1.id = users.age_id and (t1.id = users.age_id AND t1.id <> 10) WHERE (t1.id IS NOT NULL)
+        Joins.of(Users.class)
+        .masterLogicDelete(false)
+        .pushLeftJoin(UsersVo::getUsersAge, UsersAge.class)
+        .joinAnd(0, w -> w.eq(UsersAge::getId, Users::getAgeId)
+        .ne(UsersAge::getId, 10))
+        .isNotNull(UsersAge::getId).end().joinList(UsersVo.class)
+
+        // 执行SQL
+        SELECT
+        users.user_name,users.create_time,users.age_id,users.content_json,users.user_id, t1.age_doc as t1_ageDoc , t1.age_name as t1_ageName , t1.create_time as t1_createTime , t1.content_json_age as t1_contentJsonAge , t1.id as t1_id
+        FROM users as users
+        LEFT JOIN users_age as t1 ON t1.id = users.age_id and (t1.id = users.age_id AND t1.id <> 10) WHERE (t1.id IS NOT NULL)
 ```
 
 ### 同个接口返回任意实体
@@ -1189,7 +1192,7 @@ List<UsersVo> usersVoList = usersService.joinList(wrapper,UsersVo.class);
 @TableName("app_users")
 @TableAlias("users")
 public class Users implements Serializable {
-  
+
 }
 ```
 
