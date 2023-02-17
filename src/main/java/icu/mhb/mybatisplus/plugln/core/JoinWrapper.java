@@ -17,6 +17,8 @@ import icu.mhb.mybatisplus.plugln.tookit.Lambdas;
 import lombok.SneakyThrows;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -191,13 +193,24 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         // 获取字段名
         String fieldName = PropertyNamer.methodToProperty(lambdaMeta.getImplMethodName());
 
-        this.manyToManySelectBuild = ManyToManySelectBuild
-                .builder()
-                .manyToManyField(fieldName)
-                .manyToManyPropertyType(lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getType())
-                .belongsColumns(belongsColumns)
-                .manyToManyClass(manyToManyClass)
-                .build();
+        Type[] actualTypeArguments = ((ParameterizedType) lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getGenericType()).getActualTypeArguments();
+        if (actualTypeArguments == null || actualTypeArguments.length == 0) {
+            this.manyToManySelectBuild = ManyToManySelectBuild
+                    .builder()
+                    .manyToManyField(fieldName)
+                    .manyToManyPropertyType(lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getType())
+                    .belongsColumns(belongsColumns)
+                    .manyToManyClass(manyToManyClass)
+                    .build();
+        } else {
+            this.manyToManySelectBuild = ManyToManySelectBuild
+                    .builder()
+                    .manyToManyField(fieldName)
+                    .manyToManyPropertyType(lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getType())
+                    .belongsColumns(belongsColumns)
+                    .manyToManyClass((Class<?>) actualTypeArguments[0])
+                    .build();
+        }
 
         return typedThis;
     }
