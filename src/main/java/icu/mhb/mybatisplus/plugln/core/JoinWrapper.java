@@ -194,23 +194,18 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         String fieldName = PropertyNamer.methodToProperty(lambdaMeta.getImplMethodName());
 
         Type[] actualTypeArguments = ((ParameterizedType) lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getGenericType()).getActualTypeArguments();
-        if (actualTypeArguments == null || actualTypeArguments.length == 0) {
-            this.manyToManySelectBuild = ManyToManySelectBuild
-                    .builder()
-                    .manyToManyField(fieldName)
-                    .manyToManyPropertyType(lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getType())
-                    .belongsColumns(belongsColumns)
-                    .manyToManyClass(manyToManyClass)
-                    .build();
-        } else {
-            this.manyToManySelectBuild = ManyToManySelectBuild
-                    .builder()
-                    .manyToManyField(fieldName)
-                    .manyToManyPropertyType(lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getType())
-                    .belongsColumns(belongsColumns)
-                    .manyToManyClass((Class<?>) actualTypeArguments[0])
-                    .build();
+
+        if(actualTypeArguments != null && actualTypeArguments.length > 0){
+            manyToManyClass = (Class<?>) actualTypeArguments[0];
         }
+
+        this.manyToManySelectBuild = ManyToManySelectBuild
+                .builder()
+                .manyToManyField(fieldName)
+                .manyToManyPropertyType(lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getType())
+                .belongsColumns(belongsColumns)
+                .manyToManyClass(manyToManyClass)
+                .build();
 
         return typedThis;
     }
