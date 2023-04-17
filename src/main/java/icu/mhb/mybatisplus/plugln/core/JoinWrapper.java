@@ -1,5 +1,7 @@
 package icu.mhb.mybatisplus.plugln.core;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -106,11 +108,12 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         if (CollectionUtils.isNotEmpty(wrapper.getAliasMap())) {
             wrapper.getAliasMap().forEach((k, v) -> aliasMap.put(k, v));
         }
+
         if (StringUtils.isBlank(alias)) {
-            aliasMap.remove(getEntityOrMasterClass());
-        } else {
-            aliasMap.put(getEntityOrMasterClass(), alias);
+            alias = getAlias();
         }
+
+        setAlias(alias);
 
         this.logicDeleteIsApplyJoin = logicDelete;
         this.wrapper = wrapper;
@@ -133,10 +136,10 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
             wrapper.getAliasMap().forEach((k, v) -> aliasMap.put(k, v));
         }
         if (StringUtils.isBlank(alias)) {
-            aliasMap.remove(entityClass);
-        } else {
-            aliasMap.put(entityClass, alias);
+            alias = getAlias();
         }
+
+        setAlias(alias);
 
         this.logicDeleteIsApplyJoin = logicDelete;
         this.wrapper = wrapper;

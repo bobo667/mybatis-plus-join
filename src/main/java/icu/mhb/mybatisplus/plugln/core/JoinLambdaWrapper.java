@@ -148,9 +148,10 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     public JoinLambdaWrapper(T entity, String alias) {
         super.setEntity(entity);
         this.initNeed();
-        if (StringUtils.isNotBlank(alias)) {
-            setAlias(alias);
+        if (StringUtils.isBlank(alias)) {
+            alias = getAlias();
         }
+        setAlias(alias);
         this.masterTableAlias = getAlias();
     }
 
@@ -164,9 +165,10 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     public JoinLambdaWrapper(Class<T> entityClass, String alias) {
         super.setEntityClass(entityClass);
         this.initNeed();
-        if (StringUtils.isNotBlank(alias)) {
-            setAlias(alias);
+        if (StringUtils.isBlank(alias)) {
+            alias = getAlias();
         }
+        setAlias(alias);
         this.masterTableAlias = getAlias();
     }
 
