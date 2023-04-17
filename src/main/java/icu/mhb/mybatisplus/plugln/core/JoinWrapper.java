@@ -210,6 +210,12 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         // 获取字段名
         String fieldName = PropertyNamer.methodToProperty(lambdaMeta.getImplMethodName());
 
+        Type[] actualTypeArguments = ((ParameterizedType) lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getGenericType()).getActualTypeArguments();
+
+        if(actualTypeArguments != null && actualTypeArguments.length > 0){
+            manyToManyClass = (Class<?>) actualTypeArguments[0];
+        }
+
         this.manyToManySelectBuild = ManyToManySelectBuild
                 .builder()
                 .manyToManyField(fieldName)
