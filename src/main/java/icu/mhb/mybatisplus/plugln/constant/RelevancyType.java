@@ -10,7 +10,7 @@ public interface RelevancyType {
     /**
      * 一对一
      */
-    String ONT_TO_ONE = "ONT_TO_ONE";
+    String ONE_TO_ONE = "ONE_TO_ONE";
 
     /**
      * 多对多

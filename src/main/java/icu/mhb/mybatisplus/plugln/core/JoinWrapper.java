@@ -215,7 +215,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
 
         Type[] actualTypeArguments = ((ParameterizedType) lambdaMeta.getInstantiatedClass().getDeclaredField(fieldName).getGenericType()).getActualTypeArguments();
 
-        if(actualTypeArguments != null && actualTypeArguments.length > 0){
+        if (actualTypeArguments != null && actualTypeArguments.length > 0) {
             manyToManyClass = (Class<?>) actualTypeArguments[0];
         }
 
@@ -532,7 +532,9 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      */
     public JoinLambdaWrapper<J> end() {
         wrapper.setJoinSelect(sqlSelect);
-        wrapper.setAliasMap(aliasMap);
+        if (!getEntityClass().getName().equals(wrapper.getEntityClass().getName())) {
+            wrapper.setAliasMap(aliasMap);
+        }
         wrapper.setOderByBuildList(this.orderByBuildList);
         wrapper.setFieldMappingList(this.fieldMappingList);
         wrapper.setOrderBy(expression.getOrderBy());

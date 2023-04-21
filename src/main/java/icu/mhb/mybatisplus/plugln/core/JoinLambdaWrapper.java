@@ -29,6 +29,7 @@ import com.baomidou.mybatisplus.core.conditions.segments.GroupBySegmentList;
 import com.baomidou.mybatisplus.core.conditions.segments.HavingSegmentList;
 import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
 import com.baomidou.mybatisplus.core.conditions.segments.OrderBySegmentList;
+import com.baomidou.mybatisplus.core.config.GlobalConfig;
 import com.baomidou.mybatisplus.core.enums.SqlKeyword;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
@@ -53,6 +54,7 @@ import icu.mhb.mybatisplus.plugln.entity.ManyToManySelectBuild;
 import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
 import icu.mhb.mybatisplus.plugln.entity.OrderByBuild;
 import icu.mhb.mybatisplus.plugln.entity.TableInfoExt;
+import icu.mhb.mybatisplus.plugln.injector.JoinDefaultSqlInjector;
 import icu.mhb.mybatisplus.plugln.keyword.DefaultFuncKeyWord;
 import icu.mhb.mybatisplus.plugln.keyword.IFuncKeyWord;
 import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
@@ -74,6 +76,11 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      */
     @Getter
     private String masterTableAlias;
+
+    /**
+     * 主表class
+     */
+    private Class<T> masterClass;
 
     /**
      * 关键字获取

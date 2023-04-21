@@ -3,6 +3,7 @@ package icu.mhb.mybatisplus.plugln.interceptor;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.core.toolkit.StringPool;
+
 import icu.mhb.mybatisplus.plugln.config.MybatisPlusJoinConfig;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
@@ -13,6 +14,7 @@ import icu.mhb.mybatisplus.plugln.enums.PropertyType;
 import icu.mhb.mybatisplus.plugln.injector.JoinDefaultResultType;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 import icu.mhb.mybatisplus.plugln.tookit.Lists;
+
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.ResultMap;
@@ -27,6 +29,7 @@ import org.apache.ibatis.session.RowBounds;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -144,7 +147,6 @@ public class JoinInterceptor implements Interceptor {
 
         List<ResultMapping> resultMappings = buildResultMapping(configuration, joinLambdaWrapper.getFieldMappingList(), classType);
 
-
         List<OneToOneSelectBuild> oneToOneSelectBuildList = joinLambdaWrapper.getOneToOneSelectBuildList();
         // 不为空就代表有一对一映射
         if (CollectionUtils.isNotEmpty(oneToOneSelectBuildList)) {
@@ -154,12 +156,12 @@ public class JoinInterceptor implements Interceptor {
                 oneToOneId = oneToOneId.replaceAll(" ", "");
                 if (!configuration.hasResultMap(oneToOneId)) {
                     ResultMap oneToOneResultMap = new ResultMap.Builder(configuration, oneToOneId,
-                                                                        oneToOneSelectBuild.getOneToOneClass(),
-                                                                        buildResultMapping(configuration, oneToOneSelectBuild.getBelongsColumns(), oneToOneSelectBuild.getOneToOneClass())).build();
+                            oneToOneSelectBuild.getOneToOneClass(),
+                            buildResultMapping(configuration, oneToOneSelectBuild.getBelongsColumns(), oneToOneSelectBuild.getOneToOneClass())).build();
                     configuration.addResultMap(oneToOneResultMap);
                 }
                 resultMappings.add(new ResultMapping.Builder(configuration, oneToOneSelectBuild.getOneToOneField())
-                                           .javaType(oneToOneSelectBuild.getOneToOneClass()).nestedResultMapId(oneToOneId).build());
+                        .javaType(oneToOneSelectBuild.getOneToOneClass()).nestedResultMapId(oneToOneId).build());
             }
         }
 
@@ -172,12 +174,12 @@ public class JoinInterceptor implements Interceptor {
                 manyToManyId = manyToManyId.replaceAll(" ", "");
                 if (!configuration.hasResultMap(manyToManyId)) {
                     ResultMap oneToOneResultMap = new ResultMap.Builder(configuration, manyToManyId, manyToManySelectBuild.getManyToManyClass(),
-                                                                        buildResultMapping(configuration, manyToManySelectBuild.getBelongsColumns(),
-                                                                                           manyToManySelectBuild.getManyToManyClass())).build();
+                            buildResultMapping(configuration, manyToManySelectBuild.getBelongsColumns(),
+                                    manyToManySelectBuild.getManyToManyClass())).build();
                     configuration.addResultMap(oneToOneResultMap);
                 }
                 resultMappings.add(new ResultMapping.Builder(configuration, manyToManySelectBuild.getManyToManyField())
-                                           .javaType(manyToManySelectBuild.getManyToManyPropertyType()).nestedResultMapId(manyToManyId).build());
+                        .javaType(manyToManySelectBuild.getManyToManyPropertyType()).nestedResultMapId(manyToManyId).build());
             }
         }
         ResultMap resultMap = new ResultMap.Builder(configuration, id, classType, resultMappings).build();
@@ -199,14 +201,19 @@ public class JoinInterceptor implements Interceptor {
                     if (null != fieldMapping.getTableFieldInfoExt()) {
                         return fieldMapping.getTableFieldInfoExt().getResultMapping(configuration);
                     }
-                    Class<?> propertyType = ClassUtils.getDeclaredField(clz, fieldMapping.getFieldName()).getType();
-                    ResultMapping.Builder builder = new ResultMapping.Builder(configuration, fieldMapping.getFieldName(),
-                                                                              fieldMapping.getColumn(), propertyType
+                    Field field = ClassUtils.getDeclaredField(clz, fieldMapping.getFieldName());
+                    if (null == field) {
+                        return null;
+                    }
+                    Class<?> propertyType = field.getType();
+                    ResultMapping.Builder builder = new ResultMapping.Builder(configuration, field.getName(),
+                            fieldMapping.getColumn(), propertyType
                     );
                     return builder.build();
-                })
+                }).filter(i -> null != i)
                 .collect(Collectors.toList());
     }
+
 
     public MybatisPlusJoinConfig getMybatisPlusJoinConfig() {
         if (this.mybatisPlusJoinConfig == null) {

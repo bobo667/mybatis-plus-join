@@ -1,6 +1,7 @@
 package icu.mhb.mybatisplus.plugln.tookit;
 
 import java.lang.reflect.Field;
+import java.util.Locale;
 
 import com.baomidou.mybatisplus.core.toolkit.ReflectionKit;
 
@@ -40,7 +41,16 @@ public final class ClassUtils {
         Field field = ReflectionKit.getFieldMap(clz).get(name);
 
         if (field == null) {
-            throw Exceptions.mpje("获取【" + clz.getName() + "】中的属性【" + name + "】失败，请检查返回对象中是否存在！");
+            // 如果失败就尝试的试一下，把第一个首字母小写再找找，因为有些命名的方式可能是 aKeys 这种不符合规范，导致转换失败
+            // 如果第一个字母为大写就转换尝试
+            if (Character.isUpperCase(name.charAt(0))) {
+                name = name.substring(0, 1).toLowerCase(Locale.ENGLISH) + name.substring(1);
+                field = ReflectionKit.getFieldMap(clz).get(name);
+            }
+            if (field == null) {
+                return null;
+            }
+//            throw Exceptions.mpje("获取【" + clz.getName() + "】中的属性【" + name + "】失败，请检查返回对象中是否存在！");
         }
 
         return field;

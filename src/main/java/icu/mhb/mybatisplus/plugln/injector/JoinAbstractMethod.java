@@ -90,7 +90,7 @@ public abstract class JoinAbstractMethod extends AbstractMethod {
      */
     protected Class<?> getTableClass(Class<?> clz) {
         return ClassUtils.getTableClass(clz);
-    }
+     }
 
 
 }
