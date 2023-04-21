@@ -107,7 +107,7 @@ public interface JoinMethodFunc<T> {
         Field masterField = ClassUtils.getDeclaredField(joinField.masterModelClass(), joinField.masterModelField());
         return (JoinWrapper<J, T>) join(joinField.sunModelClass(), joinField.sunAlias()).func(w -> {
             // 一对一
-            if (RelevancyType.ONT_TO_ONE.equals(joinField.relevancyType())) {
+            if (RelevancyType.ONE_TO_ONE.equals(joinField.relevancyType())) {
                 w.oneToOneSelect(pushJoinField, joinField.sunModelClass());
             } else if (RelevancyType.MANY_TO_MANY.equals(joinField.relevancyType())) {
                 w.manyToManySelect(pushJoinField, joinField.sunModelClass());
