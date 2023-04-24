@@ -505,8 +505,15 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
 
         // 获取需要join表别名
         String joinTableAlias = getAlias(joinTableClass);
+
         // 获取主表别名
-        String masterTableAlias = getAlias(masterTableClass);
+        String masterTableAlias = null;
+        // 如果字表和主表一样，那么别名就需要从主表构造器中拿
+        if (joinTableClass.equals(wrapper.getEntityClass())) {
+            masterTableAlias = wrapper.getMasterTableAlias();
+        } else {
+            masterTableAlias = getAlias(masterTableClass);
+        }
 
         // 获取字段名字
         String joinColumn = getColumn(joinTableResolve, true, false);
@@ -532,7 +539,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      */
     public JoinLambdaWrapper<J> end() {
         wrapper.setJoinSelect(sqlSelect);
-        if (!getEntityClass().getName().equals(wrapper.getEntityClass().getName())) {
+        if (!getEntityClass().equals(wrapper.getEntityClass())) {
             wrapper.setAliasMap(aliasMap);
         }
         wrapper.setOderByBuildList(this.orderByBuildList);
