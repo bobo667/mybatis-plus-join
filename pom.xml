@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join</artifactId>
-    <version>1.3.5.1</version>
+    <version>1.3.6</version>
 
     <properties>
         <java.version>1.8</java.version>
@@ -79,6 +79,9 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
                         <version>1.6</version>
+                        <configuration>
+                            <executable>C:\Program Files (x86)\GNU\GnuPG\pub\gpg.exe</executable>
+                        </configuration>
                         <executions>
                             <execution>
                                 <phase>verify</phase>

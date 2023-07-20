@@ -39,4 +39,5 @@ public final class JoinConstant {
      */
     public static final String CLASS_PARAMS_NAME = "returnClassType0000000001111";
 
+    public static final String DEFAULT_JOIN_TABLE_NAME = "DEFAULT_JOIN_TABLE_NAME";
 }

@@ -98,6 +98,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         this(entity, wrapper, null);
     }
 
+
     JoinWrapper(T entity, JoinLambdaWrapper<J> wrapper, String alias) {
         this(entity, wrapper, alias, true);
     }
@@ -468,20 +469,24 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
             throw Exceptions.mpje("no such subscript join");
         }
 
-        JoinWrapper<T, J> joinWrapper = new JoinWrapper<T, J>(Joins.of((Class<J>) getEntityOrMasterClass()));
+        JoinWrapper<T, J> joinWrapper = new JoinWrapper<T, J>((Class<T>) getEntityOrMasterClass(), Joins.of((Class<J>) getEntityOrMasterClass()), JoinConstant.DEFAULT_JOIN_TABLE_NAME);
         joinWrapper.aliasMap.putAll(this.getAliasMap());
         consumer.accept(joinWrapper);
-        String condition = joinWrapper.getCustomSqlSegment();
-        String key = IdUtil.getSimpleUUID();
-        if (CollectionUtils.isNotEmpty(joinWrapper.getParamNameValuePairs())) {
-            paramNameValuePairs.put(key, joinWrapper.getParamNameValuePairs());
-        }
-        condition = condition.replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
-        condition = condition.replaceFirst(Constants.WHERE, StringPool.SPACE);
 
-        sql.setStringValue(sql.getStringValue() + StringPool.SPACE + StringPool.AND + condition);
-        sqlJoin.remove(index);
-        sqlJoin.add(index, sql);
+        String condition = joinWrapper.getCustomSqlSegment();
+
+        if(StringUtils.isNotBlank(condition)){
+            String key = IdUtil.getSimpleUUID();
+            if (CollectionUtils.isNotEmpty(joinWrapper.getParamNameValuePairs())) {
+                paramNameValuePairs.put(key, joinWrapper.getParamNameValuePairs());
+            }
+            condition = condition.replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
+            condition = condition.replaceFirst(Constants.WHERE, StringPool.SPACE);
+
+            sql.setStringValue(sql.getStringValue() + StringPool.SPACE + StringPool.AND + condition);
+            sqlJoin.remove(index);
+            sqlJoin.add(index, sql);
+        }
         return typedThis;
     }
 

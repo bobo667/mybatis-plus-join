@@ -284,7 +284,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
             if (stringValue.length() > 0) {
                 stringValue.append(COMMA);
             }
-            sunQueryList.stream().map(SharedString::getStringValue).forEach(stringValue::append);
+            stringValue.append(sunQueryList.stream().map(SharedString::getStringValue).collect(Collectors.joining(",")));
         }
 
         String selectSql = stringValue.toString();

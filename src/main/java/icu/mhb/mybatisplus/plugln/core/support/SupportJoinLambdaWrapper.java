@@ -166,19 +166,28 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         if (lambdaWrapper.getFieldMappingList().size() == 0) {
             throw Exceptions.mpje("子查询不能没有查询字段");
         }
-        if (lambdaWrapper.getFieldMappingList().size() > 1) {
-            throw Exceptions.mpje("子查询只能有一个查询字段");
+
+        List<SharedString> sqlList = Lists.newArrayList();
+
+        String select = lambdaWrapper.getSqlSelect();
+        String[] sqlSelectArray = select.split(",");
+
+        List<FieldMapping> mappingList = lambdaWrapper.getFieldMappingList();
+        for (int i = 0; i < mappingList.size(); i++) {
+            FieldMapping fieldMapping = mappingList.get(i);
+            String sql = String.format("(SELECT %s FROM %s %s %s %s)", sqlSelectArray[i], TableInfoHelper.getTableInfo(clz).getTableName(), getAlias(clz), lambdaWrapper.getJoinSql(), StringUtils.isNotBlank(lambdaWrapper.getSqlSegment()) ? " where " + lambdaWrapper.getSqlSegment() : "");
+            sql = String.format(SqlExcerpt.COLUMNS_AS.getSql(), sql, fieldMapping.getColumn());
+            sqlList.add(new SharedString(sql));
         }
-        String sql = String.format("(SELECT %s FROM %s %s %s %s)", lambdaWrapper.getSqlSelect(), TableInfoHelper.getTableInfo(clz).getTableName(), getAlias(clz), lambdaWrapper.getJoinSql(), " where " + lambdaWrapper.getSqlSegment());
-        sql = String.format(SqlExcerpt.COLUMNS_AS.getSql(), sql, lambdaWrapper.getFieldMappingList().get(0).getColumn());
+
         if (CollectionUtils.isNotEmpty(lambdaWrapper.getParamNameValuePairs())) {
             String key = IdUtil.getSimpleUUID();
             paramNameValuePairs.put(key, lambdaWrapper.getParamNameValuePairs());
-            sql = sql.replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
+            sqlList = sqlList.stream()
+                    .map(sql -> sql.setStringValue(sql.getStringValue().replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key)))
+                    .collect(Collectors.toList());
         }
-
-        sunQueryList.add(new SharedString().setStringValue(sql));
-        fieldMappingList.addAll(lambdaWrapper.getFieldMappingList());
+        sunQueryList.addAll(sqlList);
         return typedThis;
     }
 
@@ -244,7 +253,9 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
             clz = getEntityOrMasterClass();
         }
 
-        Assert.notNull(clz, "Can't get the current parser class");
+        if (null == clz) {
+            throw Exceptions.mpje("Can't get the current parser class");
+        }
 
         // 自定义别名
         String aliasCache = aliasMap.get(clz);
