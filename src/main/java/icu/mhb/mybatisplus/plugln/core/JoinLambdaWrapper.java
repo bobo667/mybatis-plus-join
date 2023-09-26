@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import icu.mhb.mybatisplus.plugln.tookit.Lists;
 import org.apache.ibatis.session.SqlSession;
 import org.mybatis.spring.SqlSessionUtils;
 
@@ -183,10 +184,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         this(entityClass, null);
     }
 
-    /**
-     * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(...)
-     */
-    JoinLambdaWrapper(T entity, Class<T> entityClass, SharedString sqlSelect, AtomicInteger paramNameSeq,
+    JoinLambdaWrapper(T entity, Class<T> entityClass, List<SharedString> sqlSelect, AtomicInteger paramNameSeq,
                       Map<String, Object> paramNameValuePairs, MergeSegments mergeSegments,
                       Map<Class<?>, String> aliasMap,
                       SharedString lastSql, SharedString sqlComment, SharedString sqlFirst) {
@@ -222,7 +220,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     @Override
     public final JoinLambdaWrapper<T> select(SFunction<T, ?>... columns) {
         if (ArrayUtils.isNotEmpty(columns)) {
-            this.sqlSelect.setStringValue(columnsToString(false, true, columns));
+            this.sqlSelect.addAll(Lists.changeList(columnsToString(false, true, columns), SharedString::new));
         }
         return typedThis;
     }
@@ -250,22 +248,25 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     @Override
     public JoinLambdaWrapper<T> select(Class<T> entityClass, Predicate<TableFieldInfo> predicate) {
         super.setEntityClass(entityClass);
-        this.sqlSelect.setStringValue(new TableInfoExt(TableInfoHelper.getTableInfo(getEntityOrMasterClass())).chooseSelect(predicate, getAlias()));
+        this.sqlSelect.addAll(Lists.changeList(new TableInfoExt(TableInfoHelper.getTableInfo(getEntityOrMasterClass())).chooseSelect(predicate, getAlias()), SharedString::new));
         return typedThis;
     }
 
-    @Override
+    public List<SharedString> getSqlSelectList() {
+        return this.sqlSelect;
+    }
+
     public String getSqlSelect() {
 
         if (sqlSelectFlag) {
             return sqlSelectCahce.getStringValue();
         }
 
-        if (StringUtils.isBlank(sqlSelect.getStringValue()) && !this.notDefaultSelectAll) {
+        if (CollectionUtils.isEmpty(sqlSelect) && !this.notDefaultSelectAll) {
             selectAll();
         }
 
-        StringBuilder stringValue = new StringBuilder(sqlSelect.getStringValue());
+        StringBuilder stringValue = new StringBuilder(sqlSelect.stream().map(SharedString::getStringValue).collect(Collectors.joining(",")));
 
         String joinSelectSql = joinSqlSelect.stream()
                 .map(SharedString::getStringValue)
@@ -412,7 +413,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     @Override
     public void clear() {
         super.clear();
-        sqlSelect.toEmpty();
+        sqlSelect.clear();
         sqlSelectCahce.toEmpty();
         sqlSelectFlag = false;
         sqlCache.toEmpty();
@@ -607,8 +608,8 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      *
      * @param select 查询字段
      */
-    void setJoinSelect(SharedString... select) {
-        joinSqlSelect.addAll(Arrays.asList(select));
+    void setJoinSelect(List<SharedString> select) {
+        joinSqlSelect.addAll(select);
     }
 
     void setAliasMap(Map<Class<?>, String> aliasCacheMap) {

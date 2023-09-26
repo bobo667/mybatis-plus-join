@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import icu.mhb.mybatisplus.plugln.tookit.*;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 
 import com.baomidou.mybatisplus.core.conditions.AbstractWrapper;
@@ -49,10 +50,6 @@ import icu.mhb.mybatisplus.plugln.entity.TableFieldInfoExt;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
 import icu.mhb.mybatisplus.plugln.extend.Joins;
-import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
-import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
-import icu.mhb.mybatisplus.plugln.tookit.Lists;
-import icu.mhb.mybatisplus.plugln.tookit.TableAliasCache;
 import lombok.Getter;
 
 /**
@@ -64,6 +61,7 @@ import lombok.Getter;
  * @time 8/24/21 6:28 PM
  * @see com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
  */
+@SuppressWarnings("all")
 public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLambdaWrapper<T, Children>> extends AbstractWrapper<T, SFunction<T, ?>, Children> implements JoinOrderFunc<Children, SFunction<T, ?>>, JoinCompareFun<Children, T> {
 
     /**
@@ -74,7 +72,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
     /**
      * 查询字段
      */
-    protected SharedString sqlSelect = SharedString.emptyString();
+    protected List<SharedString> sqlSelect = Lists.newArrayList();
 
     /**
      * 子查询列表
@@ -105,8 +103,8 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         return Arrays.stream(columns).map(i -> columnToString(i, onlyColumn, false)).collect(joining(StringPool.COMMA));
     }
 
-    protected String columnsToString(boolean onlyColumn, boolean saveType, SFunction<T, ?>... columns) {
-        return Arrays.stream(columns).map(i -> columnToString(i, onlyColumn, saveType)).collect(joining(StringPool.COMMA));
+    protected List<String> columnsToString(boolean onlyColumn, boolean saveType, SFunction<T, ?>... columns) {
+        return Arrays.stream(columns).map(i -> columnToString(i, onlyColumn, saveType)).collect(Collectors.toList());
     }
 
     @Override
@@ -169,13 +167,12 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
 
         List<SharedString> sqlList = Lists.newArrayList();
 
-        String select = lambdaWrapper.getSqlSelect();
-        String[] sqlSelectArray = select.split(",");
+        List<SharedString> selectList = lambdaWrapper.getSqlSelectList();
 
         List<FieldMapping> mappingList = lambdaWrapper.getFieldMappingList();
         for (int i = 0; i < mappingList.size(); i++) {
             FieldMapping fieldMapping = mappingList.get(i);
-            String sql = String.format("(SELECT %s FROM %s %s %s %s)", sqlSelectArray[i], TableInfoHelper.getTableInfo(clz).getTableName(), getAlias(clz), lambdaWrapper.getJoinSql(), StringUtils.isNotBlank(lambdaWrapper.getSqlSegment()) ? " where " + lambdaWrapper.getSqlSegment() : "");
+            String sql = String.format("(SELECT %s FROM %s %s %s %s)", selectList.get(i).getStringValue(), TableInfoHelper.getTableInfo(clz).getTableName(), getAlias(clz), lambdaWrapper.getJoinSql(), StringUtils.isNotBlank(lambdaWrapper.getSqlSegment()) ? " where " + lambdaWrapper.getSqlSegment() : "");
             sql = String.format(SqlExcerpt.COLUMNS_AS.getSql(), sql, fieldMapping.getColumn());
             sqlList.add(new SharedString(sql));
         }
@@ -211,7 +208,12 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         List<String> excludeList = excludeColumn.stream().map(i -> columnToString(i, true, false)).collect(Collectors.toList());
 
         TableInfo tableInfo = TableInfoHelper.getTableInfo(clz);
-        String sqlSelect = tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect).map(TableFieldInfo::getSqlSelect).map(this::getAliasAndField).filter(str -> !excludeList.contains(str)).collect(joining(COMMA));
+        List<SharedString> sqlSelectList = tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect)
+                .map(TableFieldInfo::getSqlSelect)
+                .map(this::getAliasAndField)
+                .filter(str -> !excludeList.contains(str))
+                .map(SharedString::new)
+                .collect(Collectors.toList());
 
         tableInfo.getFieldList().stream().filter(TableFieldInfo::isSelect).filter(tableFieldInfo -> !excludeList.contains(getAliasAndField(tableFieldInfo.getSqlSelect()))).forEach(tableFieldInfo -> setFieldMappingList(tableFieldInfo.getProperty(), tableFieldInfo.getColumn()));
 
@@ -220,12 +222,12 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
             String keySqlSelect = tableInfo.getKeyColumn();
             String keyField = getAliasAndField(keySqlSelect);
             if (!excludeList.contains(keyField)) {
-                sqlSelect += COMMA + getAliasAndField(keySqlSelect);
+                sqlSelectList.add(new SharedString(getAliasAndField(keySqlSelect)));
                 setFieldMappingList(tableInfo.getKeyProperty(), tableInfo.getKeyColumn());
             }
         }
 
-        this.sqlSelect.setStringValue(sqlSelect);
+        this.sqlSelect.addAll(sqlSelectList);
         return typedThis;
     }
 
@@ -381,7 +383,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      */
     protected Children selectAs(List<String> columns) {
         if (CollectionUtils.isNotEmpty(columns)) {
-            this.sqlSelect.setStringValue(String.join(",", columns));
+            this.sqlSelect.addAll(Lists.changeList(columns, SharedString::new));
         }
         return typedThis;
     }

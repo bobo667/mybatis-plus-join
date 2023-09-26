@@ -2,13 +2,16 @@ package icu.mhb.mybatisplus.plugln.core;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.nio.channels.Pipe;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
+import icu.mhb.mybatisplus.plugln.tookit.Lists;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 
 import com.baomidou.mybatisplus.core.conditions.SharedString;
@@ -43,6 +46,8 @@ import icu.mhb.mybatisplus.plugln.extend.Joins;
 import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
 import icu.mhb.mybatisplus.plugln.tookit.Lambdas;
 import lombok.SneakyThrows;
+
+import static java.util.stream.Collectors.joining;
 
 /**
  * 多表关联对象
@@ -156,7 +161,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     /**
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(...)
      */
-    JoinWrapper(T entity, Class<T> entityClass, SharedString sqlSelect, AtomicInteger paramNameSeq,
+    JoinWrapper(T entity, Class<T> entityClass, List<SharedString> sqlSelect, AtomicInteger paramNameSeq,
                 Map<String, Object> paramNameValuePairs, MergeSegments mergeSegments,
                 Map<Class<?>, String> aliasMap,
                 SharedString lastSql, SharedString sqlComment, SharedString sqlFirst) {
@@ -181,7 +186,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @Override
     public final JoinWrapper<T, J> select(SFunction<T, ?>... columns) {
         if (ArrayUtils.isNotEmpty(columns)) {
-            this.sqlSelect.setStringValue(columnsToString(false, true, columns));
+            this.sqlSelect.addAll(Lists.changeList(columnsToString(false, true, columns),SharedString::new));
         }
         return typedThis;
     }
@@ -330,13 +335,17 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @Override
     public JoinWrapper<T, J> select(Class<T> entityClass, Predicate<TableFieldInfo> predicate) {
         super.setEntityClass(entityClass);
-        this.sqlSelect.setStringValue(new TableInfoExt(TableInfoHelper.getTableInfo(getEntityOrMasterClass())).chooseSelect(predicate, getAlias()));
+        this.sqlSelect.addAll(Lists.changeList(new TableInfoExt(TableInfoHelper.getTableInfo(getEntityOrMasterClass())).chooseSelect(predicate, getAlias()),SharedString::new));
         return typedThis;
     }
 
     @Override
     public String getSqlSelect() {
-        return sqlSelect.getStringValue();
+        return sqlSelect.stream().map(SharedString::getStringValue).collect(joining(StringPool.COMMA));
+    }
+
+    public List<SharedString> getSqlSelectList(){
+        return this.sqlSelect;
     }
 
     /**
@@ -357,7 +366,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         oneToOneSelectBuild = null;
         manyToManySelectBuild = null;
         sqlJoin.clear();
-        sqlSelect.toNull();
+        sqlSelect.clear();
     }
 
 

@@ -1,12 +1,17 @@
 package icu.mhb.mybatisplus.plugln.entity;
+
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
+import icu.mhb.mybatisplus.plugln.tookit.Lists;
 import lombok.Getter;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static com.baomidou.mybatisplus.core.toolkit.StringPool.*;
 import static java.util.stream.Collectors.joining;
@@ -33,17 +38,18 @@ public class TableInfoExt {
      * @param predicate 过滤条件
      * @return sql 片段
      */
-    public String chooseSelect(Predicate<TableFieldInfo> predicate, String alias) {
+    public List<String> chooseSelect(Predicate<TableFieldInfo> predicate, String alias) {
         String sqlSelect = tableInfo.havePK() ? TableFieldInfoExt.getAliasColumn(tableInfo.getKeySqlSelect(), alias) : "";
-        String fieldsSqlSelect = tableInfo.getFieldList().stream().filter(predicate)
+        List<String> fieldsSqlSelect = tableInfo.getFieldList().stream().filter(predicate)
                 .map(TableFieldInfo::getSqlSelect).map(i -> TableFieldInfoExt.getAliasColumn(i, alias))
-                .collect(joining(COMMA));
-        if (StringUtils.isNotBlank(sqlSelect) && StringUtils.isNotBlank(fieldsSqlSelect)) {
-            return sqlSelect + COMMA + fieldsSqlSelect;
-        } else if (StringUtils.isNotBlank(fieldsSqlSelect)) {
+                .collect(Collectors.toList());
+        if (StringUtils.isNotBlank(sqlSelect) && CollectionUtils.isNotEmpty(fieldsSqlSelect)) {
+            fieldsSqlSelect.add(sqlSelect);
+        }
+        if (CollectionUtils.isNotEmpty(fieldsSqlSelect)) {
             return fieldsSqlSelect;
         }
-        return sqlSelect;
+        return StringUtils.isNotBlank(sqlSelect) ? Lists.newArrayList(sqlSelect) : Lists.newArrayList();
     }
 
 
