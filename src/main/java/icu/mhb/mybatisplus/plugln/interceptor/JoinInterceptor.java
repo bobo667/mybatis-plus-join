@@ -183,7 +183,9 @@ public class JoinInterceptor implements Interceptor {
             }
         }
         ResultMap resultMap = new ResultMap.Builder(configuration, id, classType, resultMappings).build();
-        configuration.addResultMap(resultMap);
+        if(!configuration.hasResultMap(id)){
+            configuration.addResultMap(resultMap);
+        }
 
         return resultMap;
     }
@@ -198,13 +200,16 @@ public class JoinInterceptor implements Interceptor {
     private List<ResultMapping> buildResultMapping(Configuration configuration, List<FieldMapping> fieldMappings, Class<?> clz) {
         return fieldMappings.stream()
                 .map(fieldMapping -> {
-                    if (null != fieldMapping.getTableFieldInfoExt()) {
-                        return fieldMapping.getTableFieldInfoExt().getResultMapping(configuration);
-                    }
+
                     Field field = ClassUtils.getDeclaredField(clz, fieldMapping.getFieldName());
                     if (null == field) {
                         return null;
                     }
+
+                    if (null != fieldMapping.getTableFieldInfoExt()) {
+                        return fieldMapping.getTableFieldInfoExt().getResultMapping(configuration);
+                    }
+
                     Class<?> propertyType = field.getType();
                     ResultMapping.Builder builder = new ResultMapping.Builder(configuration, field.getName(),
                             fieldMapping.getColumn(), propertyType

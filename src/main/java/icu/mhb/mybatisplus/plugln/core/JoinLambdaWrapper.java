@@ -266,7 +266,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
             selectAll();
         }
 
-        StringBuilder stringValue = new StringBuilder(sqlSelect.stream().map(SharedString::getStringValue).collect(Collectors.joining(",")));
+        StringBuilder stringValue = new StringBuilder(sqlSelect.stream().map(SharedString::getStringValue).distinct().collect(Collectors.joining(",")));
 
         String joinSelectSql = joinSqlSelect.stream()
                 .map(SharedString::getStringValue)

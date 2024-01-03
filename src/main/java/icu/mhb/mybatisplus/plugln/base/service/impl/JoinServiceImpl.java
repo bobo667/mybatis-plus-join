@@ -55,8 +55,16 @@ public class JoinServiceImpl<M extends JoinBaseMapper<T>, T> extends ServiceImpl
         return new JoinLambdaWrapper<>(clz);
     }
 
+    protected JoinLambdaWrapper<T> joinLambdaQueryWrapper() {
+        return new JoinLambdaWrapper<>(getEntityClass());
+    }
+
     protected <J> JoinLambdaWrapper<J> joinLambdaQueryWrapper(Class<J> clz, String alias) {
         return new JoinLambdaWrapper<>(clz, alias);
+    }
+
+    protected JoinLambdaWrapper<T> joinLambdaQueryWrapper(String alias) {
+        return new JoinLambdaWrapper<>(getEntityClass(), alias);
     }
 
     protected <J> JoinLambdaWrapper<J> joinLambdaQueryWrapper(J entity, String alias) {
