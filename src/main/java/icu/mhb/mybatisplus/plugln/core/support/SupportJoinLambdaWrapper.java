@@ -1,8 +1,7 @@
 package icu.mhb.mybatisplus.plugln.core.support;
 
-import static com.baomidou.mybatisplus.core.enums.SqlKeyword.AND;
-import static com.baomidou.mybatisplus.core.enums.SqlKeyword.BETWEEN;
-import static com.baomidou.mybatisplus.core.enums.SqlKeyword.NOT_BETWEEN;
+import static com.baomidou.mybatisplus.core.enums.SqlKeyword.*;
+import static com.baomidou.mybatisplus.core.enums.WrapperKeyword.APPLY;
 import static com.baomidou.mybatisplus.core.toolkit.StringPool.COMMA;
 import static java.util.stream.Collectors.joining;
 
@@ -17,6 +16,9 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import com.baomidou.mybatisplus.core.conditions.ISqlSegment;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.segments.*;
 import icu.mhb.mybatisplus.plugln.tookit.*;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 
@@ -51,6 +53,8 @@ import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
 import icu.mhb.mybatisplus.plugln.extend.Joins;
 import lombok.Getter;
+
+import javax.management.Query;
 
 /**
  * Join lambda解析
@@ -323,6 +327,127 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
     @Override
     public <J, J2> Children notBetween(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val1, SFunction<J2, Object> val2) {
         return maybeDo(condition, () -> super.appendSqlSegments(super.columnToSqlSegment(column), NOT_BETWEEN, () -> columnToString(val1, true, false), AND, () -> columnToString(val2, true, false)));
+    }
+
+    /**
+     * 转换查询Wrapper 会把 查询条件，group，order by，having转换来
+     * 注意该方法无法给 多个入参添加别名，例如 orderByDesc("id","id2")
+     * 这种别名就会添加错误
+     *
+     * @param queryWrapper
+     * @return
+     */
+    public Children changeQueryWrapper(AbstractWrapper queryWrapper) {
+        MergeSegments mergeSegments = queryWrapper.getExpression();
+
+        String id = IdUtil.getSimpleUUID();
+        final Children instance = instance();
+        readWrapperInfo(mergeSegments, id, true);
+        appendSqlSegments(APPLY, queryWrapper);
+
+        getParamNameValuePairs().put(id, queryWrapper.getParamNameValuePairs());
+
+        return typedThis;
+    }
+
+    private void readWrapperInfo(MergeSegments mergeSegments, String id, boolean isAdd) {
+        for (int i = 0; i < mergeSegments.getNormal().size(); i++) {
+            ISqlSegment iSqlSegment = mergeSegments.getNormal().get(i);
+            if (iSqlSegment instanceof SqlKeyword) {
+                continue;
+            }
+
+//            新版本中 and 就会是 QueryWrapper 这种类型
+            if (iSqlSegment instanceof AbstractWrapper) {
+                AbstractWrapper wrapper = (AbstractWrapper) iSqlSegment;
+                readWrapperInfo(wrapper.getExpression(), id, false);
+                continue;
+            }
+
+            String sqlSegment = iSqlSegment.getSqlSegment();
+            if (!sqlSegment.contains("#{")) {
+                mergeSegments.getNormal().remove(iSqlSegment);
+                String sql = getAliasAndField(sqlSegment);
+                mergeSegments.getNormal().add(i, () -> sql);
+            } else {
+                // 替换外联表中的参数名字为唯一的
+                mergeSegments.getNormal().remove(iSqlSegment);
+                String sql = sqlSegment.replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + id);
+                mergeSegments.getNormal().add(i, () -> sql);
+            }
+        }
+
+
+        GroupBySegmentList groupBy = mergeSegments.getGroupBy();
+        for (int i = 0; i < groupBy.size(); i++) {
+            ISqlSegment iSqlSegment = groupBy.get(i);
+            if (iSqlSegment instanceof SqlKeyword) {
+                continue;
+            }
+            String sqlSegment = iSqlSegment.getSqlSegment();
+            if (!sqlSegment.contains("#{")) {
+                mergeSegments.getGroupBy().remove(iSqlSegment);
+                mergeSegments.getGroupBy().add(i, () -> getAliasAndField(sqlSegment));
+            }
+        }
+
+        if (isAdd) {
+            expressionAdd(mergeSegments.getGroupBy(), GROUP_BY);
+            mergeSegments.getGroupBy().clear();
+        }
+
+        HavingSegmentList having = mergeSegments.getHaving();
+        for (int i = 0; i < having.size(); i++) {
+            ISqlSegment iSqlSegment = having.get(i);
+            if (iSqlSegment instanceof SqlKeyword) {
+                continue;
+            }
+            String sqlSegment = iSqlSegment.getSqlSegment();
+            if (sqlSegment.contains("#{")) {
+                // 替换外联表中的参数名字为唯一的
+                mergeSegments.getHaving().remove(iSqlSegment);
+                mergeSegments.getHaving().add(i, () -> sqlSegment.replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + id));
+            }
+        }
+
+        if (isAdd) {
+            expressionAdd(mergeSegments.getHaving(), HAVING);
+            mergeSegments.getHaving().clear();
+        }
+
+
+        OrderBySegmentList orderBy = mergeSegments.getOrderBy();
+        for (int i = 0; i < orderBy.size(); i++) {
+            ISqlSegment iSqlSegment = orderBy.get(i);
+            if (iSqlSegment instanceof SqlKeyword) {
+                continue;
+            }
+            String sqlSegment = iSqlSegment.getSqlSegment();
+            if (!sqlSegment.contains("#{")) {
+                mergeSegments.getOrderBy().remove(iSqlSegment);
+                mergeSegments.getOrderBy().add(i, () -> getAliasAndField(sqlSegment));
+            }
+        }
+
+        if (isAdd) {
+            expressionAdd(mergeSegments.getOrderBy(), ORDER_BY);
+            mergeSegments.getOrderBy().clear();
+        }
+
+    }
+
+    private void expressionAdd(AbstractISegmentList list, SqlKeyword sqlKeyword) {
+        if (!list.isEmpty()) {
+            if (null != sqlKeyword) {
+                list.add(0, sqlKeyword);
+            }
+            ISqlSegment[] iSqlSegmentArrays = new ISqlSegment[list.size()];
+            for (int i = 0; i < list.size(); i++) {
+                ISqlSegment sqlSegment = list.get(i);
+                iSqlSegmentArrays[i] = sqlSegment;
+            }
+            getExpression().add(iSqlSegmentArrays);
+        }
     }
 
     /**
