@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import icu.mhb.mybatisplus.plugln.base.mapper.JoinBaseMapper;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
+import icu.mhb.mybatisplus.plugln.core.support.SupportJoinWrapper;
 
 import java.util.List;
 
@@ -13,7 +14,7 @@ import java.util.List;
  * @email mhb0409@qq.com
  * @time 2022/12/29
  */
-public interface JoinQueryFunc<T, Children extends SupportJoinLambdaWrapper<T, Children>> {
+public interface JoinQueryFunc<T, R, Children extends SupportJoinWrapper<T, R, Children>> {
 
     default <EV> List<EV> joinList(Class<EV> clz) {
         return executeQuery(mapper -> mapper.joinSelectList(getSunWrapper(), clz));
