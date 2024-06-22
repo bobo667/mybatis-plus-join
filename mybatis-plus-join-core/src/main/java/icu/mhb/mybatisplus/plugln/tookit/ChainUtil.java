@@ -1,8 +1,10 @@
 package icu.mhb.mybatisplus.plugln.tookit;
 
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
+import com.sun.org.apache.regexp.internal.RE;
 import icu.mhb.mybatisplus.plugln.entity.BaseChainModel;
 import icu.mhb.mybatisplus.plugln.entity.ChainFieldData;
+import icu.mhb.mybatisplus.plugln.entity.MockChainModel;
 import icu.mhb.mybatisplus.plugln.entity.TableInfoExt;
 
 import java.util.List;
@@ -25,8 +27,20 @@ public final class ChainUtil {
         return fieldData.getAlias() + DOT + fieldData.getColumn();
     }
 
-    public static <E extends BaseChainModel<E>> void initAllChainFieldData(E model) {
-        initAllChainFieldData(model, null);
+    public static BaseChainModel<?> initAllChainFieldData(BaseChainModel<?> model) {
+        return initAllChainFieldData(model, null);
+    }
+
+    /**
+     * 字段转换成模型
+     *
+     * @param fieldData 字段
+     * @return
+     */
+    public static BaseChainModel<?> formFieldChangeToModel(ChainFieldData fieldData) {
+        MockChainModel chainModel = new MockChainModel(fieldData.getAlias(), fieldData.getModelClass());
+        chainModel.getChainFieldDataList().add(fieldData);
+        return chainModel;
     }
 
     /**
@@ -34,7 +48,7 @@ public final class ChainUtil {
      *
      * @param model model
      */
-    public static <E extends BaseChainModel<E>> void initAllChainFieldData(E model, Predicate<TableFieldInfo> predicate) {
+    public static BaseChainModel<?> initAllChainFieldData(BaseChainModel<?> model, Predicate<TableFieldInfo> predicate) {
         Class<?> modelClass = model.getModelClass();
         TableInfoExt tableInfoExt = TableInfoExt.get(modelClass);
 
@@ -47,6 +61,9 @@ public final class ChainUtil {
         }
 
         model.getChainFieldDataList().addAll(fieldDataList);
+
+        return model;
     }
+
 
 }
