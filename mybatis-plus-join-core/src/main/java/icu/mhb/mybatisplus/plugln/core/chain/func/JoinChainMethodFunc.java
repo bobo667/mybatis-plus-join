@@ -1,6 +1,7 @@
 package icu.mhb.mybatisplus.plugln.core.chain.func;
 
 import icu.mhb.mybatisplus.plugln.entity.BaseChainModel;
+import icu.mhb.mybatisplus.plugln.entity.ChainFieldData;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 
 /**
@@ -19,7 +20,7 @@ public interface JoinChainMethodFunc<T, Children> {
      * @param logicDeleteIsApplyJoin 逻辑删除是否加入join
      * @return Children
      */
-    default <L extends BaseChainModel<L>, R extends BaseChainModel<R>> Children innerJoin(L leftTableField, R rightTableField, boolean logicDeleteIsApplyJoin) {
+    default Children innerJoin(ChainFieldData leftTableField, ChainFieldData rightTableField, boolean logicDeleteIsApplyJoin) {
         return join(leftTableField, rightTableField, logicDeleteIsApplyJoin, SqlExcerpt.INNER_JOIN);
     }
 
@@ -31,7 +32,7 @@ public interface JoinChainMethodFunc<T, Children> {
      * @param rightTableField 右表字段
      * @return Children
      */
-    default <L extends BaseChainModel<L>, R extends BaseChainModel<R>> Children innerJoin(L leftTableField, R rightTableField) {
+    default Children innerJoin(ChainFieldData leftTableField, ChainFieldData rightTableField) {
         return join(leftTableField, rightTableField, true, SqlExcerpt.INNER_JOIN);
     }
 
@@ -43,7 +44,7 @@ public interface JoinChainMethodFunc<T, Children> {
      * @param logicDeleteIsApplyJoin 逻辑删除是否加入join
      * @return Children
      */
-    default <L extends BaseChainModel<L>, R extends BaseChainModel<R>> Children rightJoin(L leftTableField, R rightTableField, boolean logicDeleteIsApplyJoin) {
+    default Children rightJoin(ChainFieldData leftTableField, ChainFieldData rightTableField, boolean logicDeleteIsApplyJoin) {
         return join(leftTableField, rightTableField, logicDeleteIsApplyJoin, SqlExcerpt.RIGHT_JOIN);
     }
 
@@ -54,7 +55,7 @@ public interface JoinChainMethodFunc<T, Children> {
      * @param rightTableField 右表字段
      * @return Children
      */
-    default <L extends BaseChainModel<L>, R extends BaseChainModel<R>> Children rightJoin(L leftTableField, R rightTableField) {
+    default Children rightJoin(ChainFieldData leftTableField, ChainFieldData rightTableField) {
         return join(leftTableField, rightTableField, true, SqlExcerpt.RIGHT_JOIN);
     }
 
@@ -66,7 +67,7 @@ public interface JoinChainMethodFunc<T, Children> {
      * @param logicDeleteIsApplyJoin 逻辑删除是否加入join
      * @return Children
      */
-    default <L extends BaseChainModel<L>, R extends BaseChainModel<R>> Children leftJoin(L leftTableField, R rightTableField, boolean logicDeleteIsApplyJoin) {
+    default Children leftJoin(ChainFieldData leftTableField, ChainFieldData rightTableField, boolean logicDeleteIsApplyJoin) {
         return join(leftTableField, rightTableField, logicDeleteIsApplyJoin, SqlExcerpt.LEFT_JOIN);
     }
 
@@ -78,7 +79,7 @@ public interface JoinChainMethodFunc<T, Children> {
      * @param rightTableField 右表字段
      * @return Children
      */
-    default <L extends BaseChainModel<L>, R extends BaseChainModel<R>> Children leftJoin(L leftTableField, R rightTableField) {
+    default Children leftJoin(ChainFieldData leftTableField, ChainFieldData rightTableField) {
         return join(leftTableField, rightTableField, true, SqlExcerpt.LEFT_JOIN);
     }
 
@@ -86,12 +87,12 @@ public interface JoinChainMethodFunc<T, Children> {
     /**
      * join
      *
-     * @param leftTableField  左表字段
-     * @param rightTableField 右表字段
-     * @param joinType        连接类型
+     * @param leftTableField         左表字段
+     * @param rightTableField        右表字段
+     * @param joinType               连接类型
      * @param logicDeleteIsApplyJoin 逻辑删除是否加入join
      * @return Children
      */
-    <L extends BaseChainModel<L>, R extends BaseChainModel<R>> Children join(L leftTableField, R rightTableField, boolean logicDeleteIsApplyJoin, SqlExcerpt joinType);
+    Children join(ChainFieldData leftTableField, ChainFieldData rightTableField, boolean logicDeleteIsApplyJoin, SqlExcerpt joinType);
 
 }
