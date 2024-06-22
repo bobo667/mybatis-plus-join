@@ -3,10 +3,21 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>icu.mhb</groupId>
-    <artifactId>mybatis-plus-join</artifactId>
-    <version>1.3.8</version>
+    <artifactId>mybatis-plus-join-parent</artifactId>
+    <packaging>pom</packaging>
+    <version>${revision}</version>
+
+    <modules>
+        <module>mybatis-plus-join-annotation</module>
+        <module>mybatis-plus-join-processor</module>
+        <module>mybatis-plus-join-boot-starter</module>
+        <module>mybatis-plus-join-core</module>
+        <module>mybatis-plus-join-util</module>
+    </modules>
 
     <properties>
+        <revision>2.0.0.test</revision>
+        <autoService.version>1.0.1</autoService.version>
         <java.version>1.8</java.version>
     </properties>
 
@@ -162,6 +173,11 @@
                 <version>2.2.2.RELEASE</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.auto.service</groupId>
+                <artifactId>auto-service</artifactId>
+                <version>${autoService.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
