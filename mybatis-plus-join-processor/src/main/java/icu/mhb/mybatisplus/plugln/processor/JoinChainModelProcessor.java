@@ -67,6 +67,7 @@ public class JoinChainModelProcessor extends AbstractProcessor {
 
                 // 生成基础信息
                 buildClassBaseInfo(sb, packageName, rawPackageName, rawClassName, className);
+                sb.append(NEWLINE);
                 // 构建字段常量信息
                 buildFieldConstantInfo(sb, elementList);
                 sb.append(NEWLINE);
@@ -75,6 +76,9 @@ public class JoinChainModelProcessor extends AbstractProcessor {
                 sb.append(NEWLINE);
                 // 构建无参数的信息
                 buildConstructor(sb, className, rawClassName, false);
+                sb.append(NEWLINE);
+                // 生成setEntity 方法
+                buildSetEntityMethod(sb, packageName, rawPackageName, rawClassName, className);
                 sb.append(NEWLINE);
                 // 构建无参数创建方法
                 buildCreateMethod(sb, className, false);
@@ -101,10 +105,11 @@ public class JoinChainModelProcessor extends AbstractProcessor {
         for (Element element : elementList) {
             String fieldName = element.getSimpleName().toString();
             String fieldType = ((DeclaredType) element.asType()).asElement().getSimpleName().toString();
-
-            buildMethodHeader(writer, false, fieldName, className, new HashMap<String, String>() {{
+            HashMap<String, String> param = new HashMap<String, String>() {{
                 put(Object.class.getSimpleName(), VAL);
-            }});
+            }};
+
+            buildMethodHeader(writer, false, fieldName, className, param);
             writer.append(TAB).append(TAB).append(SUPER).append(DOT).append(ADD).append(LEFT_BRACKET).append(StringUtils.camelToUnderline(fieldName).toUpperCase()).append(COMMA).append(VAL).append(RIGHT_BRACKET).append(SEMICOLON).append(NEWLINE)
                     .append(TAB).append(TAB).append(RETURN_).append(SPACE).append(THIS).append(SEMICOLON).append(NEWLINE)
                     .append(TAB).append(RIGHT_BRACE).append(NEWLINE);
@@ -112,6 +117,16 @@ public class JoinChainModelProcessor extends AbstractProcessor {
             // 无参
             buildMethodHeader(writer, false, fieldName, className, null);
             writer.append(TAB).append(TAB).append(RETURN_).append(SPACE).append(fieldName).append(LEFT_BRACKET).append(NULL).append(RIGHT_BRACKET).append(SEMICOLON).append(NEWLINE)
+                    .append(TAB).append(RIGHT_BRACE).append(NEWLINE);
+
+            // 函數方法
+            buildMethodHeader(writer, false, UNDERSCORE + fieldName, CHAIN_FIELD_DATA, null);
+            writer.append(TAB).append(TAB).append(RETURN_).append(SPACE).append(SUPER).append(DOT).append(BUILD_CHAIN_FIELD_DATA).append(LEFT_BRACKET).append(StringUtils.camelToUnderline(fieldName).toUpperCase()).append(COMMA).append(NULL).append(RIGHT_BRACKET).append(SEMICOLON).append(NEWLINE)
+                    .append(TAB).append(RIGHT_BRACE).append(NEWLINE);
+
+            // 函數方法
+            buildMethodHeader(writer, false, UNDERSCORE + fieldName, CHAIN_FIELD_DATA, param);
+            writer.append(TAB).append(TAB).append(RETURN_).append(SPACE).append(SUPER).append(DOT).append(BUILD_CHAIN_FIELD_DATA).append(LEFT_BRACKET).append(StringUtils.camelToUnderline(fieldName).toUpperCase()).append(COMMA).append(VAL).append(RIGHT_BRACKET).append(SEMICOLON).append(NEWLINE)
                     .append(TAB).append(RIGHT_BRACE).append(NEWLINE);
         }
     }
@@ -137,10 +152,28 @@ public class JoinChainModelProcessor extends AbstractProcessor {
     private void buildClassBaseInfo(StringBuilder writer, String packageName, String rawPackageName, String rawClassName, String className) {
         writer.append(PACKAGE).append(SPACE).append(packageName).append(SEMICOLON).append(NEWLINE);
         writer.append(BASE_CHAIN_MODEL_PACKAGE).append(NEWLINE);
+        writer.append(CHAIN_FIELD_DATA_PACKAGE).append(NEWLINE);
         writer.append(IMPORT).append(SPACE).append(rawPackageName).append(DOT).append(rawClassName).append(SEMICOLON).append(NEWLINE);
         writer.append(JoinConstant.GENERATION_DESC);
         writer.append(PUBLIC).append(SPACE).append(CLASS).append(SPACE).append(className).append(SPACE).append(EXTENDS).append(SPACE).append(GENERATION_BASE_MODEL_NAME).append(LEFT_CHEV).append(className).append(RIGHT_CHEV).append(LEFT_BRACE).append(NEWLINE);
         writer.append(NEWLINE);
+    }
+
+    /**
+     * 构建 set实体方法
+     *
+     * @param writer      sb
+     * @param packageName 包名
+     * @param className   类名
+     */
+    private void buildSetEntityMethod(StringBuilder writer, String packageName, String rawPackageName, String rawClassName, String className) {
+        buildMethodHeader(writer, false, SET_ENTITY, className, new HashMap<String, String>() {{
+            put(rawClassName, VAL);
+        }});
+
+        writer.append(TAB).append(TAB).append(SUPER).append(DOT).append(SET_ENTITY).append(LEFT_BRACKET).append(VAL).append(RIGHT_BRACKET).append(SEMICOLON).append(NEWLINE)
+                .append(TAB).append(TAB).append(RETURN_).append(SPACE).append(THIS).append(SEMICOLON).append(NEWLINE)
+                .append(TAB).append(RIGHT_BRACE).append(NEWLINE);
     }
 
     /**
