@@ -17,7 +17,11 @@ import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.ISqlSegment;
 import com.baomidou.mybatisplus.core.conditions.segments.*;
+import com.baomidou.mybatisplus.core.toolkit.*;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
 import icu.mhb.mybatisplus.plugln.tookit.*;
+import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 
 import com.baomidou.mybatisplus.core.conditions.AbstractWrapper;
@@ -27,11 +31,6 @@ import com.baomidou.mybatisplus.core.exceptions.MybatisPlusException;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
-import com.baomidou.mybatisplus.core.toolkit.Assert;
-import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
-import com.baomidou.mybatisplus.core.toolkit.StringPool;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.support.ColumnCache;
 import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
@@ -64,15 +63,6 @@ import lombok.Getter;
 @SuppressWarnings("all")
 public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLambdaWrapper<T, Children>> extends SupportJoinWrapper<T, SFunction<T, ?>, Children> implements JoinOrderFunc<Children, SFunction<T, ?>>, JoinCompareFun<Children, T> {
 
-    /**
-     * 查询的字段映射列表
-     */
-    protected List<FieldMapping> fieldMappingList = new ArrayList<>();
-
-    /**
-     * 查询字段
-     */
-    protected List<SharedString> sqlSelect = Lists.newArrayList();
 
     /**
      * 子查询列表
