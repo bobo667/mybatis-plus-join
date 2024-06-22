@@ -1,5 +1,8 @@
 package icu.mhb.mybatisplus.plugln.extend;
+
 import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
+import icu.mhb.mybatisplus.plugln.core.chain.JoinChainQueryWrapper;
+import icu.mhb.mybatisplus.plugln.entity.BaseChainModel;
 
 /**
  * @author mahuibo
@@ -23,6 +26,10 @@ public class Joins {
 
     public static <T> JoinLambdaWrapper<T> of(T entity) {
         return new JoinLambdaWrapper<>(entity);
+    }
+
+    public static <T> JoinChainQueryWrapper<T> chain(BaseChainModel<?> model) {
+        return new JoinChainQueryWrapper<>(model);
     }
 
 }
