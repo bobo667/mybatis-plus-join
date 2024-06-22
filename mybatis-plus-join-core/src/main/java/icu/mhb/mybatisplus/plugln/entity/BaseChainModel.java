@@ -1,13 +1,12 @@
 package icu.mhb.mybatisplus.plugln.entity;
 
 import com.baomidou.mybatisplus.core.conditions.SharedString;
-import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
-import icu.mhb.mybatisplus.plugln.exception.MybatisPlusJoinException;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,18 +21,25 @@ public abstract class BaseChainModel<Children> {
 
     protected final Children typedThis = (Children) this;
 
-    private SharedString alias = SharedString.emptyString();
+    @Getter
+    private Object entity;
 
-    private SharedString tableName = SharedString.emptyString();
+    private final SharedString alias = SharedString.emptyString();
+
+    private final SharedString tableName = SharedString.emptyString();
 
     @Getter
-    private Class<?> modelClass;
+    private final Class<?> modelClass;
 
     @Getter
     private final List<ChainFieldData> chainFieldDataList = new ArrayList<>();
 
     protected void setAlias(String alias) {
         this.alias.setStringValue(alias);
+    }
+
+    protected void setEntity(Object entity){
+        this.entity = entity;
     }
 
     public String getAlias() {
@@ -69,15 +75,17 @@ public abstract class BaseChainModel<Children> {
     }
 
     protected void add(String property, Object val) {
+        chainFieldDataList.add(buildChainFieldData(property, val));
+    }
 
+    protected ChainFieldData buildChainFieldData(String property, Object val) {
         String colum = getTableInfo().getColumByProperty(property);
         Exceptions.throwMpje(StringUtils.isBlank(colum), "在 mybatis-plus FieldList 字段缓存中找不到属性： %s", property);
 
-        ChainFieldData chainFieldData = new ChainFieldData(property, colum, alias.getStringValue(), tableName.getStringValue(), modelClass, val);
-        chainFieldDataList.add(chainFieldData);
+        return new ChainFieldData(property, colum, alias.getStringValue(), tableName.getStringValue(), modelClass, val);
     }
 
-    public <T extends BaseChainModel> T to(T t) {
+    public <T extends BaseChainModel<T>> T to(T t) {
         t.add(chainFieldDataList);
         chainFieldDataList.clear();
         return t;
