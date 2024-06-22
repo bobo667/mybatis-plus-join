@@ -1,4 +1,6 @@
 package icu.mhb.mybatisplus.plugln.tookit;
+import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
+import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 
 import java.lang.invoke.CallSite;
@@ -7,6 +9,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
+import org.apache.ibatis.reflection.property.PropertyNamer;
 
 /**
  * @author mahuibo
@@ -50,5 +53,12 @@ public class Lambdas {
         }
         return func;
     }
+
+    public static  <P> String getSfuncName(SFunction<P, ?> column) {
+        LambdaMeta lambdaMeta = LambdaUtils.extract(column);
+        // 获取字段名
+        return PropertyNamer.methodToProperty(lambdaMeta.getImplMethodName());
+    }
+
 
 }
