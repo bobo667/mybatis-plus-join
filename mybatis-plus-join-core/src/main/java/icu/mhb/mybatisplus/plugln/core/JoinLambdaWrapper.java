@@ -52,53 +52,24 @@ import lombok.Getter;
  */
 @SuppressWarnings("all")
 public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambdaWrapper<T>>
-        implements Query<JoinLambdaWrapper<T>, T, SFunction<T, ?>>, JoinMethodFunc<T>, JoinQueryFunc<T, JoinLambdaWrapper<T>> {
-
-    /**
-     * 主表别名
-     */
-    @Getter
-    private String masterTableAlias;
+        implements Query<JoinLambdaWrapper<T>, T, SFunction<T, ?>>, JoinMethodFunc<T>, JoinQueryFunc<T, SFunction<T, ?>, JoinLambdaWrapper<T>> {
 
     /**
      * 主表class
      */
     private Class<T> masterClass;
 
-    /**
-     * 关键字获取
-     */
-    private IFuncKeyWord funcKeyWord;
-
-    @Getter
-    private boolean masterLogicDelete = true;
 
     /**
      * 关联表的查询子段
      */
     private List<SharedString> joinSqlSelect = new ArrayList<>();
 
-    /**
-     * 关联表SQL
-     */
-    private List<SharedString> joinSql = new ArrayList<>();
 
     /**
      * 关联表条件SQL
      */
     private List<String> joinConditionSql = new ArrayList<>();
-
-    /**
-     * 一对一 构建列表
-     */
-    @Getter
-    private List<OneToOneSelectBuild> oneToOneSelectBuildList = null;
-
-    /**
-     * 多对多 构建列表
-     */
-    @Getter
-    private List<ManyToManySelectBuild> manyToManySelectBuildList = null;
 
     /**
      * 判断SQL是否缓存过
@@ -110,7 +81,6 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      */
     private SharedString sqlCache = new SharedString();
 
-
     /**
      * 查询字段是否缓存过
      */
@@ -120,16 +90,6 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
      * 查询字段缓存
      */
     private SharedString sqlSelectCahce = new SharedString();
-
-    /**
-     * 是否查询主表全部字段 该条件是在没有指定查询字段的时候生效
-     */
-    private boolean notDefaultSelectAll = false;
-
-    /**
-     * 是否添加去重关键字
-     */
-    private boolean hasDistinct = false;
 
 
     /**
@@ -183,7 +143,6 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     }
 
 
-
     /**
      * SELECT 部分 SQL 设置
      *
@@ -197,7 +156,6 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         }
         return typedThis;
     }
-
 
 
     /**
@@ -272,7 +230,6 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         this.notDefaultSelectAll = true;
         return typedThis;
     }
-
 
 
     /**
@@ -560,21 +517,6 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     }
 
 
-    public List<FieldMapping> getFieldMappingList() {
-        return this.fieldMappingList;
-    }
-
-    public IFuncKeyWord getFuncKeyWord() {
-        if (this.funcKeyWord == null) {
-            this.funcKeyWord = new DefaultFuncKeyWord();
-        }
-        return funcKeyWord;
-    }
-
-    public JoinLambdaWrapper<T> setFuncKeyWord(IFuncKeyWord funcKeyWord) {
-        this.funcKeyWord = funcKeyWord;
-        return typedThis;
-    }
 
 
 
