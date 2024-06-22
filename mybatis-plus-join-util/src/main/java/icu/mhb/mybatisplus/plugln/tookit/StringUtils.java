@@ -3,6 +3,7 @@ package icu.mhb.mybatisplus.plugln.tookit;
 import icu.mhb.mybatisplus.plugln.constant.StringPool;
 
 import static icu.mhb.mybatisplus.plugln.constant.StringPool.UNDERLINE;
+
 /**
  * @author mahuibo
  * @Title: StringUtil
@@ -57,6 +58,10 @@ public class StringUtils {
             }
         }
         return sb.toString();
+    }
+
+    public static boolean isNotBlank(CharSequence cs) {
+        return !isBlank(cs);
     }
 
     /**
