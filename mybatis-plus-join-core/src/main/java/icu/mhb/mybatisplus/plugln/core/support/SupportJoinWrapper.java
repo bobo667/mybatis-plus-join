@@ -25,15 +25,20 @@ import icu.mhb.mybatisplus.plugln.entity.*;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
 import icu.mhb.mybatisplus.plugln.extend.Joins;
+import icu.mhb.mybatisplus.plugln.keyword.DefaultFuncKeyWord;
+import icu.mhb.mybatisplus.plugln.keyword.IFuncKeyWord;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
 import icu.mhb.mybatisplus.plugln.tookit.Lists;
 import icu.mhb.mybatisplus.plugln.tookit.TableAliasCache;
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 import org.apache.ibatis.session.SqlSession;
 import org.mybatis.spring.SqlSessionUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.annotation.Resource;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -56,33 +61,72 @@ import static java.util.stream.Collectors.joining;
 public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapper<T, R, Children>> extends AbstractWrapper<T, R, Children> {
 
     /**
+     * 一对一 构建列表
+     */
+    @Getter
+    protected List<OneToOneSelectBuild> oneToOneSelectBuildList;
+
+    /**
+     * 多对多 构建列表
+     */
+    @Getter
+    protected List<ManyToManySelectBuild> manyToManySelectBuildList;
+
+    /**
      * 查询的字段映射列表
      */
-    protected List<FieldMapping> fieldMappingList = new ArrayList<>();
+    @Getter
+    protected List<FieldMapping> fieldMappingList;
 
     /**
      * 查询字段
      */
-    protected List<SharedString> sqlSelect = Lists.newArrayList();
+    protected List<SharedString> sqlSelect;
 
     /**
      * 关联表SQL
      */
-    protected List<SharedString> joinSql = new ArrayList<>();
+    protected List<SharedString> joinSql;
 
     @Getter
-    protected boolean masterLogicDelete = true;
+    protected boolean masterLogicDelete;
+
+    /**
+     * 主表别名
+     */
+    @Getter
+    protected String masterTableAlias;
+
 
     /**
      * 是否查询主表全部字段 该条件是在没有指定查询字段的时候生效
      */
-    protected boolean notDefaultSelectAll = false;
+    protected boolean notDefaultSelectAll;
 
     /**
      * 是否添加去重关键字
      */
-    protected boolean hasDistinct = false;
+    protected boolean hasDistinct;
 
+
+    /**
+     * 关键字获取
+     */
+    @Autowired(required = false)
+    private IFuncKeyWord funcKeyWord;
+
+    public Children setFuncKeyWord(IFuncKeyWord funcKeyWord) {
+        this.funcKeyWord = funcKeyWord;
+        return typedThis;
+    }
+
+
+    public IFuncKeyWord getFuncKeyWord() {
+        if (this.funcKeyWord == null) {
+            this.funcKeyWord = new DefaultFuncKeyWord();
+        }
+        return funcKeyWord;
+    }
 
     /**
      * 设置主表逻辑删除
@@ -118,7 +162,6 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
         }
         return sql.toString();
     }
-
 
 
     protected void readWrapperInfo(String alias, MergeSegments mergeSegments, String id, boolean isAdd) {
@@ -242,6 +285,7 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
         return ClassUtils.getTableClass(clz);
     }
 
+
     /**
      * 获取实体并关联的
      *
@@ -269,6 +313,14 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
     @Override
     protected void initNeed() {
         super.initNeed();
+        this.fieldMappingList = Lists.newArrayList();
+        this.sqlSelect = Lists.newArrayList();
+        this.joinSql = Lists.newArrayList();
+        this.masterLogicDelete = true;
+        this.notDefaultSelectAll = false;
+        this.hasDistinct = false;
+        this.oneToOneSelectBuildList = Lists.newArrayList();
+        this.manyToManySelectBuildList = Lists.newArrayList();
         final Class<?> entityClass = getEntityOrMasterClass();
     }
 
