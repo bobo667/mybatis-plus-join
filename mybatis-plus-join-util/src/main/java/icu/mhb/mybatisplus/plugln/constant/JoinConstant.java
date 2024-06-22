@@ -24,6 +24,14 @@ public final class JoinConstant {
 
     public static final String ALIAS = "alias";
 
+    public static final String BUILD_CHAIN_FIELD_DATA = "buildChainFieldData";
+
+    public static final String CHAIN_FIELD_DATA = "ChainFieldData";
+
+    public static final String SET_ENTITY = "setEntity";
+
+    public static final String CHAIN_FIELD_DATA_PACKAGE = "import icu.mhb.mybatisplus.plugln.entity.ChainFieldData;";
+
     public static final String BASE_CHAIN_MODEL_PACKAGE = "import icu.mhb.mybatisplus.plugln.entity.BaseChainModel;";
 
     /**
