@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.toolkit.StringPool;
 import icu.mhb.mybatisplus.plugln.config.MybatisPlusJoinConfig;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
+import icu.mhb.mybatisplus.plugln.core.support.SupportJoinWrapper;
 import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
 import icu.mhb.mybatisplus.plugln.entity.ManyToManySelectBuild;
 import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
@@ -26,6 +27,8 @@ import org.apache.ibatis.plugin.Signature;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 
@@ -50,6 +53,7 @@ import java.util.stream.Collectors;
 @Intercepts(@Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}))
 public class JoinInterceptor implements Interceptor {
 
+    private static final Logger log = LoggerFactory.getLogger(JoinInterceptor.class);
     @Autowired(required = false)
     private MybatisPlusJoinConfig mybatisPlusJoinConfig;
 
@@ -68,14 +72,14 @@ public class JoinInterceptor implements Interceptor {
                 Object ew = map.containsKey(Constants.WRAPPER) ? map.get(Constants.WRAPPER) : null;
                 Object returnClass = map.containsKey(JoinConstant.CLASS_PARAMS_NAME) ? map.get(JoinConstant.CLASS_PARAMS_NAME) : null;
                 // 如果说 Wrapper 是JoinLambdaWrapper类型就代表可能需要解析多表映射
-                if ((ew instanceof JoinLambdaWrapper) && returnClass != null) {
-                    JoinLambdaWrapper joinLambdaWrapper = (JoinLambdaWrapper) ew;
+                if ((ew instanceof SupportJoinWrapper) && returnClass != null) {
+                    SupportJoinWrapper joinWrapper = (SupportJoinWrapper) ew;
                     Class<?> classType = (Class<?>) returnClass;
                     List<ResultMap> list = ms.getResultMaps();
                     if (CollectionUtils.isNotEmpty(list)) {
                         ResultMap resultMap = list.get(0);
                         if (resultMap.getType() == JoinDefaultResultType.class) {
-                            args[0] = newMappedStatement(ms, joinLambdaWrapper, classType);
+                            args[0] = newMappedStatement(ms, joinWrapper, classType);
                         }
                     }
                 }
@@ -89,7 +93,7 @@ public class JoinInterceptor implements Interceptor {
     /**
      * 构建新的MappedStatement
      */
-    private MappedStatement newMappedStatement(MappedStatement ms, JoinLambdaWrapper joinLambdaWrapper, Class<?> classType) {
+    private MappedStatement newMappedStatement(MappedStatement ms, SupportJoinWrapper joinLambdaWrapper, Class<?> classType) {
         String id = ms.getId();
         if (getMybatisPlusJoinConfig().isUseMsCache()) {
             id = ms.getId() + StringPool.COLON + classType.getName() + StringPool.UNDERSCORE + joinLambdaWrapper.getSqlSelect();
@@ -132,7 +136,7 @@ public class JoinInterceptor implements Interceptor {
     /**
      * 构建resultMap
      */
-    private ResultMap newResultMap(MappedStatement ms, JoinLambdaWrapper<?> joinLambdaWrapper, Class<?> classType) {
+    private ResultMap newResultMap(MappedStatement ms, SupportJoinWrapper joinLambdaWrapper, Class<?> classType) {
         Configuration configuration = ms.getConfiguration();
         String id = ms.getId() + StringPool.COLON + classType.getName() + StringPool.UNDERSCORE + joinLambdaWrapper.getSqlSelect();
         id = id.replaceAll(" ", "");
@@ -158,7 +162,7 @@ public class JoinInterceptor implements Interceptor {
                     ResultMap oneToOneResultMap = new ResultMap.Builder(configuration, oneToOneId,
                             oneToOneSelectBuild.getOneToOneClass(),
                             buildResultMapping(configuration, oneToOneSelectBuild.getBelongsColumns(), oneToOneSelectBuild.getOneToOneClass())).build();
-                    configuration.addResultMap(oneToOneResultMap);
+                    addResultMap(configuration, oneToOneResultMap, oneToOneId);
                 }
                 resultMappings.add(new ResultMapping.Builder(configuration, oneToOneSelectBuild.getOneToOneField())
                         .javaType(oneToOneSelectBuild.getOneToOneClass()).nestedResultMapId(oneToOneId).build());
@@ -173,21 +177,29 @@ public class JoinInterceptor implements Interceptor {
                 String manyToManyId = id + StringPool.UNDERSCORE + manyToManySelectBuild.getManyToManyField();
                 manyToManyId = manyToManyId.replaceAll(" ", "");
                 if (!configuration.hasResultMap(manyToManyId)) {
-                    ResultMap oneToOneResultMap = new ResultMap.Builder(configuration, manyToManyId, manyToManySelectBuild.getManyToManyClass(),
+                    ResultMap manyToManyResultMap = new ResultMap.Builder(configuration, manyToManyId, manyToManySelectBuild.getManyToManyClass(),
                             buildResultMapping(configuration, manyToManySelectBuild.getBelongsColumns(),
                                     manyToManySelectBuild.getManyToManyClass())).build();
-                    configuration.addResultMap(oneToOneResultMap);
+                    addResultMap(configuration, manyToManyResultMap, manyToManyId);
                 }
                 resultMappings.add(new ResultMapping.Builder(configuration, manyToManySelectBuild.getManyToManyField())
                         .javaType(manyToManySelectBuild.getManyToManyPropertyType()).nestedResultMapId(manyToManyId).build());
             }
         }
         ResultMap resultMap = new ResultMap.Builder(configuration, id, classType, resultMappings).build();
-        if(!configuration.hasResultMap(id)){
-            configuration.addResultMap(resultMap);
-        }
+        addResultMap(configuration, resultMap, id);
 
         return resultMap;
+    }
+
+    private void addResultMap(Configuration configuration, ResultMap resultMap, String id) {
+        try {
+            if (!configuration.hasResultMap(id)) {
+                configuration.addResultMap(resultMap);
+            }
+        } catch (IllegalArgumentException e) {
+            log.warn("resultMap[{}] already exists, ignore", id);
+        }
     }
 
     /**
