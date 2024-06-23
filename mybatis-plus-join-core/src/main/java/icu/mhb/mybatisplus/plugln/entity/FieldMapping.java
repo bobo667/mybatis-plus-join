@@ -1,4 +1,5 @@
 package icu.mhb.mybatisplus.plugln.entity;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -20,10 +21,26 @@ public class FieldMapping {
     private String column;
 
     /**
+     * 原始字段名
+     */
+    private String rawColumn;
+
+    /**
+     * 表別名
+     */
+    private String tableAlias;
+
+    /**
      * 属性名
      */
     private String fieldName;
 
     private TableFieldInfoExt tableFieldInfoExt;
+
+    public FieldMapping(String column, String fieldName, TableFieldInfoExt tableFieldInfoExt) {
+        this.column = column;
+        this.fieldName = fieldName;
+        this.tableFieldInfoExt = tableFieldInfoExt;
+    }
 
 }

@@ -30,6 +30,7 @@ import icu.mhb.mybatisplus.plugln.keyword.IFuncKeyWord;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
 import icu.mhb.mybatisplus.plugln.tookit.Lists;
+import icu.mhb.mybatisplus.plugln.tookit.StringUtils;
 import icu.mhb.mybatisplus.plugln.tookit.TableAliasCache;
 import lombok.Getter;
 import lombok.Setter;
@@ -271,6 +272,9 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
      * @return 别名 + 字段
      */
     protected String getAliasAndField(String alias, String fieldName) {
+        if (StringUtils.isBlank(alias)) {
+            return fieldName;
+        }
         return alias + StringPool.DOT + fieldName;
     }
 

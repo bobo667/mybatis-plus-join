@@ -143,7 +143,7 @@ public abstract class SupportJoinChainQueryWrapper<T, Children extends SupportJo
 
         this.manyToManySelectBuildList.add(manySelectBuild);
 
-        return selectAs(provider, false);
+        return selectByFieldMapping(belongsColumns, false);
     }
 
 
@@ -178,14 +178,21 @@ public abstract class SupportJoinChainQueryWrapper<T, Children extends SupportJo
 
         oneToOneSelectBuildList.add(oneToOneSelectBuild);
 
-        return selectAs(provider, false);
+        return selectByFieldMapping(belongsColumns, false);
     }
 
-    //    todo 一对一 多对多 自动别名
     private <P> List<FieldMapping> buildField(Provider<BaseChainModel<?>> provider) {
         return useChainModel(provider, (model) -> {
             return model.getChainFieldDataList().stream()
-                    .map(i -> getFieldMapping(i)).collect(Collectors.toList());
+                    .map(i -> {
+                        String rawColumn = i.getColumn();
+                        if (ObjectUtils.isEmpty(i.getVal())) {
+                            i.setColumn(model.getAlias() + UNDERSCORE + rawColumn);
+                        }
+                        FieldMapping fieldMapping = getFieldMapping(i);
+                        fieldMapping.setRawColumn(rawColumn);
+                        return fieldMapping;
+                    }).collect(Collectors.toList());
         });
     }
 
@@ -503,6 +510,7 @@ public abstract class SupportJoinChainQueryWrapper<T, Children extends SupportJo
         return selectAs(provider, true);
     }
 
+
     protected Children selectAs(Provider<BaseChainModel<?>> provider, boolean saveMapping) {
         useChainModel(provider, (model) -> {
             List<ChainFieldData> fieldDataList = model.getChainFieldDataList();
@@ -526,6 +534,31 @@ public abstract class SupportJoinChainQueryWrapper<T, Children extends SupportJo
             select(selectList);
         });
 
+        return typedThis;
+    }
+
+    /**
+     * 根据字段映射进行查询
+     * <p>
+     * 内部使用
+     *
+     * @param fieldMappingList 映射list
+     * @param saveMapping
+     * @return
+     */
+    protected Children selectByFieldMapping(List<FieldMapping> fieldMappingList, boolean saveMapping) {
+        List<String> selectList = fieldMappingList.stream()
+                .map(i -> {
+                    String column = StringUtils.isBlank(i.getRawColumn()) ? i.getColumn() : i.getRawColumn();
+                    String returnColumn = getAliasAndField(i.getTableAlias(), column);
+
+                    returnColumn = String.format(SqlExcerpt.COLUMNS_AS.getSql(), returnColumn, i.getColumn());
+
+                    FunComm.isTrue(saveMapping, () -> fieldMappingList.add(i));
+
+                    return returnColumn;
+                }).collect(Collectors.toList());
+        select(selectList);
         return typedThis;
     }
 
@@ -639,7 +672,7 @@ public abstract class SupportJoinChainQueryWrapper<T, Children extends SupportJo
                 fieldInfoExt.setProperty(property);
             }
         }
-        return new FieldMapping(column, property, fieldInfoExt);
+        return new FieldMapping(column, chainFieldData.getColumn(), chainFieldData.getAlias(), property, fieldInfoExt);
     }
 
     @Override
