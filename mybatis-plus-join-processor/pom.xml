@@ -7,14 +7,35 @@
         <groupId>icu.mhb</groupId>
         <artifactId>mybatis-plus-join-parent</artifactId>
         <version>${revision}</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <packaging>jar</packaging>
     <artifactId>mybatis-plus-join-processor</artifactId>
 
+    <name>mybatis-plus-join-processor</name>
+    <description>A multi-table plugin for Mybatis Plus.</description>
+    <url>https://github.com/bobo667/mybatis-plus-join</url>
+
+    <developers>
+        <developer>
+            <id>mhb</id>
+            <name>mahuibo</name>
+            <email>mhb0409@qq.com</email>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+    <scm>
+        <connection>https://github.com/bobo667/mybatis-plus-join.git</connection>
+        <url>https://github.com/bobo667/mybatis-plus-join</url>
+    </scm>
+
     <properties>
-        <revision>2.0.0.test</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -28,7 +49,7 @@
             <groupId>icu.mhb</groupId>
             <artifactId>mybatis-plus-join-annotation</artifactId>
             <version>${revision}</version>
-        </dependency>
+                </dependency>
     </dependencies>
 
     <build>

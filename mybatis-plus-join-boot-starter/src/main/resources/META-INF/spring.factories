@@ -1,3 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  icu.mhb.mybatisplus.plugln.interceptor.JoinInterceptorConfig,\
-  icu.mhb.mybatisplus.plugln.interceptor.JoinInterceptor
+  icu.mhb.mybatisplus.plugln.config.MybatisPlusJoinAutoConfig

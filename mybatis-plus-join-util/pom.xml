@@ -8,14 +8,39 @@
         <artifactId>mybatis-plus-join-parent</artifactId>
         <version>${revision}</version>
     </parent>
-
     <artifactId>mybatis-plus-join-util</artifactId>
 
-    <properties>
-        <revision>2.0.0.test</revision>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+    <name>mybatis-plus-join-util</name>
+    <description>A multi-table plugin for Mybatis Plus.</description>
+    <url>https://github.com/bobo667/mybatis-plus-join</url>
 
+    <developers>
+        <developer>
+            <id>mhb</id>
+            <name>mahuibo</name>
+            <email>mhb0409@qq.com</email>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+    <scm>
+        <connection>https://github.com/bobo667/mybatis-plus-join.git</connection>
+        <url>https://github.com/bobo667/mybatis-plus-join</url>
+    </scm>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+            <version>${lombok.version}</version>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
 </project>

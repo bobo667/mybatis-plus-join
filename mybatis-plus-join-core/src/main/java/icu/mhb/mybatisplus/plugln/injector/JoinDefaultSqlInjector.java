@@ -1,6 +1,9 @@
 package icu.mhb.mybatisplus.plugln.injector;
+
 import com.baomidou.mybatisplus.core.injector.AbstractMethod;
+import com.baomidou.mybatisplus.core.injector.AbstractSqlInjector;
 import com.baomidou.mybatisplus.core.injector.DefaultSqlInjector;
+import com.baomidou.mybatisplus.core.injector.ISqlInjector;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import icu.mhb.mybatisplus.plugln.injector.methods.JoinSelectCount;
 import icu.mhb.mybatisplus.plugln.injector.methods.JoinSelectList;
@@ -17,8 +20,22 @@ import java.util.List;
  */
 public class JoinDefaultSqlInjector extends DefaultSqlInjector {
 
+    private AbstractSqlInjector sqlInjector;
+
+    public JoinDefaultSqlInjector() {
+    }
+
+    public JoinDefaultSqlInjector(ISqlInjector sqlInjector) {
+        if (sqlInjector instanceof AbstractSqlInjector) {
+            this.sqlInjector = (AbstractSqlInjector) sqlInjector;
+        }
+    }
+
     @Override
     public List<AbstractMethod> getMethodList(Class<?> mapperClass, TableInfo tableInfo) {
+        if (this.sqlInjector != null) {
+            return this.sqlInjector.getMethodList(mapperClass, tableInfo);
+        }
         List<AbstractMethod> methodList = super.getMethodList(mapperClass, tableInfo);
         List<AbstractMethod> list = Arrays.asList(
                 new JoinSelectList(),
@@ -29,5 +46,6 @@ public class JoinDefaultSqlInjector extends DefaultSqlInjector {
         methodList.addAll(list);
         return methodList;
     }
+
 
 }

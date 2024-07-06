@@ -11,7 +11,7 @@ mybatis-plus-join示例：
 
 ### 关于该插件的一点问题
 
-1. 出现了bug怎么办，不是mybatis plus官方的会不会不稳定啊？ 这个大可以放心，这个插件我已经在生产环境跑了一年多了，已经有许多开发者再用，没出过什么问题，如果遇到问题可以在 Issues 上提出，我看见就会解决，上午提的，不忙的话下午就能打包新版本，忙的话大概就需要晚上就差不多了
+1. 出现了bug怎么办，不是mybatis plus官方的会不会不稳定啊？ 已经有许多开发者再用，没出过什么问题，如果遇到问题可以在 Issues 上提出，我看见就会解决，上午提的，不忙的话下午就能打包新版本，忙的话大概就需要晚上就差不多了
 2. 关于维护到啥时候？mybatis plus不倒我不倒（当然，如果长期没有star，哪怕是我得先倒了，还是那，您的star就是作者更新的动力，手动ღ( ´･ᴗ･` )比心）
 3. 有什么有想法的新功能啊，或者改善啊，可以在Issues 上提出
 4. 如果想联系作者，可以在wx上搜索小程序 <u>马汇博的博客</u>在关于我中有微信号，欢迎来扰
@@ -42,10 +42,9 @@ mybatis plus：3.2.0版本依赖地址：
  <dependency>
    <groupId>icu.mhb</groupId>
    <artifactId>mybatis-plus-join</artifactId>
-   <version>1.3.7</version>
+   <version>2.0.1</version>
 </dependency>
 ```
-
 
 
 ## 版本对应关系（此处只显示对应的最新版本）
@@ -57,7 +56,36 @@ mybatis plus：3.2.0版本依赖地址：
 | 3.2.0           | 1.2.0                                                                                      |
 | 3.3.1 - 3.42    | 1.0.2、1.3.4.1                                                                              |
 | 3.4.3.4 - 3.5.2 | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.6、1.3.1、1.3.2、1.3.3 |
-| 3.5.3 - *       | 1.3.3.1、1.3.4、1.3.5、1.3.5.1、1.3.6、1.3.7                                                    |
+| 3.5.3 - *       | 1.3.3.1、1.3.4、1.3.5、1.3.5.1、1.3.6、1.3.7、1.3.8、2.0.1                                        |
+
+
+## 2.0 版本发布啦
+在2.0版本中，支持apt进行代码生成，可使用chain方式调用，底层采用QueryWrapper实现，他几乎把字符串和lambda的优点都包含了，强烈推荐使用
+### 使用预览
+```java
+        UsersVo users = new UsersVo();
+        users.setUserName("setUserName");
+        users.setAgeName("setAgeName");
+        UsersChain usersChain = UsersChain.create();
+        UsersAgeChain ageChain = UsersAgeChain.create();
+
+        return Joins.chain(usersChain)
+                .selectAs(() -> {
+                    return usersChain.userId().userName().createTime()
+                                        .to(ageChain)
+                                        .ageDoc().ageName().id();
+                            })
+                .leftJoin(ageChain._id(), usersChain._ageId())
+                .joinAnd(ageChain, (w) -> w.eq(ageChain._id(1)))
+                .eqIfNull(() -> {
+                    return usersChain.userName(users.getUserName())
+                    .userId(users.getUserId())
+                    .ageId(users.getAgeId())
+                    .to(ageChain)
+                    .ageName(users.getAgeName())
+                    .ageDoc(users.getAgeDoc());
+                }).joinList(UsersVo.class);
+```
 
 ## 使用预览
 ```java
