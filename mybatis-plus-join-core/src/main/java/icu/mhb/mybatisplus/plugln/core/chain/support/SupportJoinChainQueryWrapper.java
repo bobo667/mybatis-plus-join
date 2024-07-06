@@ -388,7 +388,7 @@ public abstract class SupportJoinChainQueryWrapper<T, Children extends SupportJo
      */
     protected String formatParam(String mapping, Object param, boolean isSafetyParam) {
         String paramStr = onlyFormatParam(param);
-        return isSafetyParam ? SqlScriptUtils.safeParam(paramStr, mapping) : SqlScriptUtils.unSafeParam(paramStr);
+        return isSafetyParam ? SqlScriptUtils.safeParam(paramStr, mapping) : param.toString();
     }
 
     /**

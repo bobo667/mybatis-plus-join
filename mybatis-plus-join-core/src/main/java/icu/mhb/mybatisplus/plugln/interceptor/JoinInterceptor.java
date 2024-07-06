@@ -187,12 +187,14 @@ public class JoinInterceptor implements Interceptor {
             }
         }
         ResultMap resultMap = new ResultMap.Builder(configuration, id, classType, resultMappings).build();
-        addResultMap(configuration, resultMap, id);
+        if (!configuration.hasResultMap(id)) {
+            addResultMap(configuration, resultMap, id);
+        }
 
         return resultMap;
     }
 
-    private void addResultMap(Configuration configuration, ResultMap resultMap, String id) {
+    private synchronized void addResultMap(Configuration configuration, ResultMap resultMap, String id) {
         try {
             if (!configuration.hasResultMap(id)) {
                 configuration.addResultMap(resultMap);
