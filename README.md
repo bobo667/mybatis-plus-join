@@ -41,7 +41,16 @@ mybatis plus：3.2.0版本依赖地址：
 ```xml
  <dependency>
    <groupId>icu.mhb</groupId>
-   <artifactId>mybatis-plus-join</artifactId>
+   <artifactId>mybatis-plus-join-boot-starter</artifactId>
+   <version>2.0.1</version>
+</dependency>
+```
+
+apt依赖地址：
+```xml
+ <dependency>
+   <groupId>icu.mhb</groupId>
+   <artifactId>mybatis-plus-join-processor</artifactId>
    <version>2.0.1</version>
 </dependency>
 ```
