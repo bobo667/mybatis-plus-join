@@ -6,8 +6,10 @@ import icu.mhb.mybatisplus.plugln.tookit.StringUtils;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
@@ -20,7 +22,6 @@ import java.util.stream.Collectors;
 
 import static icu.mhb.mybatisplus.plugln.constant.JoinConstant.*;
 import static icu.mhb.mybatisplus.plugln.constant.StringPool.*;
-
 
 /**
  * @author mahuibo
@@ -62,11 +63,8 @@ public class JoinChainModelProcessor extends AbstractProcessor {
             try (PrintWriter writer = new PrintWriter(file.openWriter())) {
                 StringBuilder sb = new StringBuilder();
 
-                List<Element> elementList = element.getEnclosedElements()
-                        .stream()
-                        .filter(e -> e.getKind().isField())
-                        .collect(Collectors.toList());
-
+                List<Element> elementList = getAllFields(element);
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "所有的字段：：" + elementList.toString());
                 // 生成基础信息
                 buildClassBaseInfo(sb, packageName, rawPackageName, rawClassName, className);
                 sb.append(NEWLINE);
@@ -100,13 +98,33 @@ public class JoinChainModelProcessor extends AbstractProcessor {
         }
     }
 
+    private List<Element> getAllFields(TypeElement element) {
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "进入了getAllFields");
+        List<Element> fields = element.getEnclosedElements()
+                .stream()
+                .filter(e -> e.getKind().isField())
+                .filter(e -> !e.getModifiers().contains(Modifier.STATIC))
+                .filter(e -> !e.getModifiers().contains(Modifier.TRANSIENT))
+                .collect(Collectors.toList());
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, fields.toString());
+
+        TypeMirror superClass = element.getSuperclass();
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "superClass的類型是:" + superClass.toString());
+        if (superClass instanceof DeclaredType) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "進去了，superClass的類型是:" + superClass.toString());
+            TypeElement superTypeElement = (TypeElement) ((DeclaredType) superClass).asElement();
+            fields.addAll(getAllFields(superTypeElement));
+        }
+
+        return fields;
+    }
+
     /**
      * 构建字段方法
      */
     private void buildFieldMethodInfo(StringBuilder writer, String className, List<Element> elementList) {
         for (Element element : elementList) {
             String fieldName = element.getSimpleName().toString();
-            String fieldType = ((DeclaredType) element.asType()).asElement().getSimpleName().toString();
             HashMap<String, String> param = new HashMap<String, String>() {{
                 put(Object.class.getSimpleName(), VAL);
             }};
@@ -139,7 +157,6 @@ public class JoinChainModelProcessor extends AbstractProcessor {
     private void buildFieldConstantInfo(StringBuilder writer, List<Element> elements) {
         for (Element element : elements) {
             String fieldName = element.getSimpleName().toString();
-            String fieldType = ((DeclaredType) element.asType()).asElement().getSimpleName().toString();
             writer.append(TAB).append(PRIVATE).append(SPACE).append(STATIC).append(SPACE).append(FINAL).append(SPACE).append(STRING).append(SPACE).append(StringUtils.camelToUnderline(fieldName).toUpperCase()).append(SPACE).append(EQUALS).append(SPACE).append(QUOTE).append(fieldName).append(QUOTE).append(SEMICOLON).append(NEWLINE);
         }
     }
@@ -250,5 +267,4 @@ public class JoinChainModelProcessor extends AbstractProcessor {
     private String capitalize(String str) {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
-
 }

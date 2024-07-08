@@ -632,9 +632,10 @@ public abstract class SupportJoinChainQueryWrapper<T, Children extends SupportJo
         MergeSegments mergeSegments = queryWrapper.getExpression();
 
         String id = IdUtil.getSimpleUUID();
-        final Children instance = instance();
-        readWrapperInfo(model.getAlias(), mergeSegments, id, true);
-        appendSqlSegments(APPLY, queryWrapper);
+        int count = readWrapperInfo(model.getAlias(), mergeSegments, id, true);
+        if (count > 0) {
+            appendSqlSegments(APPLY, queryWrapper);
+        }
 
         getParamNameValuePairs().put(id, queryWrapper.getParamNameValuePairs());
 

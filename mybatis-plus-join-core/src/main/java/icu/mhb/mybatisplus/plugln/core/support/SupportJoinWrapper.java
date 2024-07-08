@@ -41,6 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.Resource;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -165,7 +166,8 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
     }
 
 
-    protected void readWrapperInfo(String alias, MergeSegments mergeSegments, String id, boolean isAdd) {
+    protected int readWrapperInfo(String alias, MergeSegments mergeSegments, String id, boolean isAdd) {
+        int conditionCount = 0;
         for (int i = 0; i < mergeSegments.getNormal().size(); i++) {
             ISqlSegment iSqlSegment = mergeSegments.getNormal().get(i);
             if (iSqlSegment instanceof SqlKeyword) {
@@ -175,12 +177,14 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
 //            新版本中 and 就会是 QueryWrapper 这种类型
             if (iSqlSegment instanceof AbstractWrapper) {
                 AbstractWrapper wrapper = (AbstractWrapper) iSqlSegment;
-                readWrapperInfo(alias, wrapper.getExpression(), id, false);
+                int newCount = readWrapperInfo(alias, wrapper.getExpression(), id, false);
+                conditionCount += newCount;
                 continue;
             }
 
             String sqlSegment = iSqlSegment.getSqlSegment();
             if (!sqlSegment.contains("#{")) {
+                conditionCount = conditionCount + 1;
                 mergeSegments.getNormal().remove(iSqlSegment);
                 String sql = getAliasAndField(alias, sqlSegment);
                 mergeSegments.getNormal().add(i, () -> sql);
@@ -248,7 +252,7 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
             expressionAdd(mergeSegments.getOrderBy(), ORDER_BY);
             mergeSegments.getOrderBy().clear();
         }
-
+        return conditionCount;
     }
 
     private void expressionAdd(AbstractISegmentList list, SqlKeyword sqlKeyword) {

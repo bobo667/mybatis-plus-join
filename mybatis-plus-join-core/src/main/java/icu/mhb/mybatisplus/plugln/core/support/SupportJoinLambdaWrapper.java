@@ -327,9 +327,10 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         MergeSegments mergeSegments = queryWrapper.getExpression();
 
         String id = IdUtil.getSimpleUUID();
-        final Children instance = instance();
-        readWrapperInfo(getAlias(), mergeSegments, id, true);
-        appendSqlSegments(APPLY, queryWrapper);
+        int condtionCount = readWrapperInfo(getAlias(), mergeSegments, id, true);
+        if (condtionCount > 0) {
+            appendSqlSegments(APPLY, queryWrapper);
+        }
 
         getParamNameValuePairs().put(id, queryWrapper.getParamNameValuePairs());
 
