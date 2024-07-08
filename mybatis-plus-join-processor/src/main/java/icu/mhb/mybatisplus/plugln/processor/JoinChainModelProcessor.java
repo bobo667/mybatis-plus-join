@@ -4,6 +4,7 @@ import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.tookit.StringUtils;
 
 import javax.annotation.processing.*;
+import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
@@ -27,6 +28,7 @@ import static icu.mhb.mybatisplus.plugln.constant.StringPool.*;
  * @email mhb0409@qq.com
  * @time 2024/6/21
  */
+@SupportedSourceVersion(SourceVersion.RELEASE_8)
 @SupportedAnnotationTypes("icu.mhb.mybatisplus.plugln.annotations.JoinChainModel")
 public class JoinChainModelProcessor extends AbstractProcessor {
 
