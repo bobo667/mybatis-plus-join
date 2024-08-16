@@ -3,9 +3,7 @@ package icu.mhb.mybatisplus.plugln.core;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.nio.channels.Pipe;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -46,6 +44,8 @@ import icu.mhb.mybatisplus.plugln.extend.Joins;
 import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
 import icu.mhb.mybatisplus.plugln.tookit.Lambdas;
 import lombok.SneakyThrows;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.stream.Collectors.joining;
 
@@ -59,6 +59,8 @@ import static java.util.stream.Collectors.joining;
 @SuppressWarnings("all")
 public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T, J>>
         implements Query<JoinWrapper<T, J>, T, SFunction<T, ?>> {
+
+    private static final Logger log = LoggerFactory.getLogger(JoinWrapper.class);
 
     private JoinLambdaWrapper<J> wrapper;
 
@@ -163,12 +165,13 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      */
     JoinWrapper(T entity, Class<T> entityClass, List<SharedString> sqlSelect, AtomicInteger paramNameSeq,
                 Map<String, Object> paramNameValuePairs, MergeSegments mergeSegments,
-                Map<Class<?>, String> aliasMap,
+                Map<Class<?>, String> aliasMap,Map<Class<?>, Set<String>> conflictJoinAliasMap,
                 SharedString lastSql, SharedString sqlComment, SharedString sqlFirst) {
         super.setEntity(entity);
         super.setEntityClass(entityClass);
         this.paramNameSeq = paramNameSeq;
         this.aliasMap = aliasMap;
+        this.conflictJoinMap = conflictJoinAliasMap;
         this.paramNameValuePairs = paramNameValuePairs;
         this.expression = mergeSegments;
         this.sqlSelect = sqlSelect;
@@ -355,7 +358,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @Override
     protected JoinWrapper<T, J> instance() {
         return new JoinWrapper<>(getEntity(), getEntityClass(), null, paramNameSeq, paramNameValuePairs,
-                new MergeSegments(), this.aliasMap, SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
+                new MergeSegments(), this.aliasMap, this.conflictJoinMap, SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
     }
 
     @Override
@@ -363,6 +366,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         super.clear();
         wrapper = null;
         aliasMap.clear();
+        conflictJoinMap.clear();
         oneToOneSelectBuild = null;
         manyToManySelectBuild = null;
         sqlJoin.clear();
@@ -375,11 +379,16 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      *
      * @param joinTableField   需要关联的表字段
      * @param masterTableField 主表关联表字段
+     * @param joinMasterAlias  指定关联主表的别名
      * @return this
      */
-    public <F> JoinWrapper<T, J> leftJoin(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField) {
-        buildJoinSql(joinTableField, masterTableField, SqlExcerpt.LEFT_JOIN);
+    public <F> JoinWrapper<T, J> leftJoin(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField, String joinMasterAlias) {
+        buildJoinSql(joinTableField, masterTableField, SqlExcerpt.LEFT_JOIN, joinMasterAlias);
         return typedThis;
+    }
+
+    public <F> JoinWrapper<T, J> leftJoin(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField) {
+        return leftJoin(joinTableField, masterTableField, null);
     }
 
     /**
@@ -389,9 +398,13 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * @param masterTableField 主表关联表字段
      * @return this
      */
-    public <F> JoinWrapper<T, J> rightJoin(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField) {
-        buildJoinSql(joinTableField, masterTableField, SqlExcerpt.RIGHT_JOIN);
+    public <F> JoinWrapper<T, J> rightJoin(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField, String joinMasterAlias) {
+        buildJoinSql(joinTableField, masterTableField, SqlExcerpt.RIGHT_JOIN, joinMasterAlias);
         return typedThis;
+    }
+
+    public <F> JoinWrapper<T, J> rightJoin(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField) {
+        return rightJoin(joinTableField, masterTableField, null);
     }
 
     /**
@@ -401,9 +414,13 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * @param masterTableField 主表关联表字段
      * @return this
      */
-    public <F> JoinWrapper<T, J> innerJoin(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField) {
-        buildJoinSql(joinTableField, masterTableField, SqlExcerpt.INNER_JOIN);
+    public <F> JoinWrapper<T, J> innerJoin(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField, String joinMasterAlias) {
+        buildJoinSql(joinTableField, masterTableField, SqlExcerpt.INNER_JOIN, joinMasterAlias);
         return typedThis;
+    }
+
+    public <F> JoinWrapper<T, J> innerJoin(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField) {
+        return innerJoin(joinTableField, masterTableField, null);
     }
 
     /**
@@ -505,14 +522,18 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * @param joinTableField   需要关联的表字段
      * @param masterTableField 主表关联表字段
      * @param sqlExcerpt       需要构建的SQL枚举
+     * @param joinMasterAlias  指定关联主表的别名
      */
-    private <F> void buildJoinSql(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField, SqlExcerpt sqlExcerpt) {
+    private <F> void buildJoinSql(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField, SqlExcerpt sqlExcerpt, String joinMasterAlias) {
         // 解析方法
         LambdaMeta joinTableResolve = LambdaUtils.extract(joinTableField);
         LambdaMeta masterTableResolve = LambdaUtils.extract(masterTableField);
 
         Class<?> joinTableClass = joinTableResolve.getInstantiatedClass();
         Class<?> masterTableClass = masterTableResolve.getInstantiatedClass();
+        if (Objects.equals(joinTableClass, masterTableClass) && StringUtils.isBlank(joinMasterAlias)) {
+            throw Exceptions.mpje("自连接必须指定关联的主表");
+        }
         TableInfo joinTableInfo = TableInfoHelper.getTableInfo(joinTableClass);
 
         Assert.notNull(joinTableInfo, "can not find tableInfo cache for this entity [%s]", joinTableClass.getName());
@@ -521,12 +542,19 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         String joinTableAlias = getAlias(joinTableClass);
 
         // 获取主表别名
-        String masterTableAlias = null;
-        // 如果字表和主表一样，那么别名就需要从主表构造器中拿
-        if (joinTableClass.equals(wrapper.getEntityClass())) {
-            masterTableAlias = wrapper.getMasterTableAlias();
-        } else {
-            masterTableAlias = getAlias(masterTableClass);
+        String masterTableAlias = getAlias(masterTableClass);
+
+        // 如果主、从表相同，则说明自连结。
+        if (StringUtils.equals(joinTableAlias, masterTableAlias)) {
+            log.warn("此sql存在自连接");
+            // 需要获取连结的表的别名。其实这个时候无法通过简单判断要连哪张表作为主表。此时从conflictJoinMap获取。
+            if (!conflictJoinMap.containsKey(masterTableClass)) {
+                // 如果冲突表不存在，则报错。就说明程序入口未完全拦截，这个问题被使用者跳过了。
+                throw Exceptions.mpje("此sql存在自连接,必须指定关联的主表.关联表:", joinTableClass.getName());
+            }
+            // 此时直接使用传入的主表别名。
+            masterTableAlias = joinMasterAlias;
+            joinTableAlias = this.getSelfAlias();
         }
 
         // 获取字段名字

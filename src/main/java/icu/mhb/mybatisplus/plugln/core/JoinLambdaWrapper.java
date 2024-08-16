@@ -422,7 +422,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
 
 
     @Override
-    public <J> JoinWrapper<J, T> join(Class<J> clz, String alias, boolean logicDelete) {
+    public <J> JoinWrapper<J, T> join(Class<J> clz, String alias, String joinMasterAlias, boolean logicDelete) {
         return new JoinWrapper<>(clz, this, alias, logicDelete);
     }
 

@@ -146,10 +146,28 @@ public interface JoinMethodFunc<T> {
     }
 
     default <J, F> JoinWrapper<J, T> leftJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias) {
-        return join(clz, alias).leftJoin(joinTableField, masterTableField);
+        return leftJoin(clz, joinTableField, masterTableField, alias, (String) null);
+    }
+
+    /**
+     * 实用化leftJoin
+     * @param clz
+     * @param joinTableField
+     * @param masterTableField
+     * @param alias
+     * @param joinMasterAlias 指定关联的主表的别名
+     * @return
+     * @param <J>
+     * @param <F>
+     */
+    default <J, F> JoinWrapper<J, T> leftJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, String joinMasterAlias) {
+        return join(clz, alias).leftJoin(joinTableField, masterTableField, joinMasterAlias);
     }
 
     default <J, F> JoinLambdaWrapper<T> leftJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, Consumer<JoinWrapper<J, T>> consumer) {
+        return leftJoin(clz, joinTableField, masterTableField, alias, (String) null, consumer);
+    }
+    default <J, F> JoinLambdaWrapper<T> leftJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, String joinMasterAlias, Consumer<JoinWrapper<J, T>> consumer) {
         JoinWrapper<J, T> joinWrapper = join(clz, alias).leftJoin(joinTableField, masterTableField);
         consumer.accept(joinWrapper);
         return joinWrapper.end();
@@ -160,6 +178,9 @@ public interface JoinMethodFunc<T> {
     }
 
     default <J, F> JoinWrapper<J, T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, boolean logicDelete) {
+        return rightJoin(clz, joinTableField, masterTableField, alias, (String) null, logicDelete);
+    }
+    default <J, F> JoinWrapper<J, T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, String joinMasterAlias, boolean logicDelete) {
         return join(clz, alias, logicDelete).rightJoin(joinTableField, masterTableField);
     }
 
@@ -172,11 +193,17 @@ public interface JoinMethodFunc<T> {
     }
 
     default <J, F> JoinWrapper<J, T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias) {
+        return rightJoin(clz, joinTableField, masterTableField, alias, (String) null);
+    }
+    default <J, F> JoinWrapper<J, T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, String joinMasterAlias) {
         return join(clz, alias).rightJoin(joinTableField, masterTableField);
     }
 
     default <J, F> JoinLambdaWrapper<T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, Consumer<JoinWrapper<J, T>> consumer) {
-        JoinWrapper<J, T> joinWrapper = join(clz, alias).rightJoin(joinTableField, masterTableField);
+        return rightJoin(clz, joinTableField, masterTableField, alias, (String) null, consumer);
+    }
+    default <J, F> JoinLambdaWrapper<T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, String joinMasterAlias, Consumer<JoinWrapper<J, T>> consumer) {
+        JoinWrapper<J, T> joinWrapper = join(clz, alias).rightJoin(joinTableField, masterTableField, joinMasterAlias);
         consumer.accept(joinWrapper);
         return joinWrapper.end();
     }
@@ -186,6 +213,9 @@ public interface JoinMethodFunc<T> {
     }
 
     default <J, F> JoinWrapper<J, T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, boolean logicDelete) {
+        return innerJoin(clz, joinTableField, masterTableField, alias, (String) null, logicDelete);
+    }
+    default <J, F> JoinWrapper<J, T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, String joinMasterAlias, boolean logicDelete) {
         return join(clz, alias, logicDelete).innerJoin(joinTableField, masterTableField);
     }
 
@@ -194,7 +224,10 @@ public interface JoinMethodFunc<T> {
     }
 
     default <J, F> JoinWrapper<J, T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias) {
-        return join(clz, alias).innerJoin(joinTableField, masterTableField);
+        return innerJoin(clz, joinTableField, masterTableField, alias, (String) null);
+    }
+    default <J, F> JoinWrapper<J, T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, String joinMasterAlias) {
+        return join(clz, alias).innerJoin(joinTableField, masterTableField, joinMasterAlias);
     }
 
     default <J, F> JoinWrapper<J, T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField) {
@@ -202,7 +235,10 @@ public interface JoinMethodFunc<T> {
     }
 
     default <J, F> JoinLambdaWrapper<T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, Consumer<JoinWrapper<J, T>> consumer) {
-        JoinWrapper<J, T> joinWrapper = join(clz, alias).innerJoin(joinTableField, masterTableField);
+        return innerJoin(clz, joinTableField, masterTableField, alias, null, consumer);
+    }
+    default <J, F> JoinLambdaWrapper<T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, String joinMasterAlias, Consumer<JoinWrapper<J, T>> consumer) {
+        JoinWrapper<J, T> joinWrapper = join(clz, alias).innerJoin(joinTableField, masterTableField, joinMasterAlias);
         consumer.accept(joinWrapper);
         return joinWrapper.end();
     }
@@ -216,13 +252,19 @@ public interface JoinMethodFunc<T> {
     }
 
     default <J> JoinWrapper<J, T> join(Class<J> clz, String alias) {
-        return join(clz, alias, true);
+        return join(clz, alias, null, true);
+    }
+    default <J> JoinWrapper<J, T> join(Class<J> clz, String alias, String joinMasterAlias) {
+        return join(clz, alias, joinMasterAlias, true);
     }
 
     default <J> JoinWrapper<J, T> join(Class<J> clz, boolean logicDelete) {
         return join(clz, null, logicDelete);
     }
 
+    default <J> JoinWrapper<J, T> join(Class<J> clz, String alias, boolean logicDelete){
+        return join(clz, alias, null, logicDelete);
+    }
 
     /**
      * 进行join操作
@@ -233,6 +275,6 @@ public interface JoinMethodFunc<T> {
      * @param logicDelete 是否查询进行逻辑删除
      * @return JoinWrapper join条件
      */
-    <J> JoinWrapper<J, T> join(Class<J> clz, String alias, boolean logicDelete);
+    <J> JoinWrapper<J, T> join(Class<J> clz, String alias, String joinMasterAlias, boolean logicDelete);
 
 }

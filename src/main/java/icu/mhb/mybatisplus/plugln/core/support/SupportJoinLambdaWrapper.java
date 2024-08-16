@@ -5,14 +5,7 @@ import static com.baomidou.mybatisplus.core.enums.WrapperKeyword.APPLY;
 import static com.baomidou.mybatisplus.core.toolkit.StringPool.COMMA;
 import static java.util.stream.Collectors.joining;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -91,9 +84,18 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
     @Getter
     protected Map<Class<?>, String> aliasMap = new HashMap<>();
 
+    // 自连接的map。key: 表实体类，value: 子表字段列表
+    protected Map<Class<?>, Set<String>> conflictJoinMap = new HashMap(1<<3);
+
     private Map<Class<?>, Map<String, ColumnCache>> columnMap = new HashMap<>();
 
     private boolean initColumnMap = false;
+
+    /**
+     * 自己的别名。默认为空
+     */
+    @Getter
+    private String selfAlias;
 
 
     @SuppressWarnings("unchecked")
@@ -242,8 +244,38 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      * @return Children
      */
     protected Children setAlias(String alias) {
-        aliasMap.put(getEntityOrMasterClass(), alias);
+        this.selfAlias = alias;
+        Class<?> tableClass = getEntityOrMasterClass();
+        // 判断并处理连结的表冲突
+        if (!resolveConflictIfNeed(alias, tableClass)) { // 如果不冲突了就继续添加别名。
+            aliasMap.put(tableClass, alias);
+        }
         return typedThis;
+    }
+
+    /**
+     * 解决多次联合同一张表的别名产生冲突而覆盖问题。
+     * @param alias 别名
+     * @param tableClass 关联表的类
+     * @return 是否冲突。
+     */
+    private boolean resolveConflictIfNeed(String alias, Class<?> tableClass) {
+        if (aliasMap.containsKey(tableClass)) {
+            conflictJoinMap.compute(tableClass, (k, v) -> {
+                // 初次添加
+                if (Objects.isNull(v)) {
+                    return new HashSet<String>() {{
+                        add(aliasMap.get(tableClass));
+                        add(alias);
+                    }};
+                } else { // 非首次直接追加。
+                    v.add(alias);
+                    return v;
+                }
+            });
+            return true;
+        }
+        return false;
     }
 
 
@@ -261,6 +293,10 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
 
         if (null == clz) {
             throw Exceptions.mpje("Can't get the current parser class");
+        }
+        // 如果存在自连接则会表名冲突，使用selfAlias，而不是aliasMap。
+        if (conflictJoinMap.containsKey(clz)){
+            return selfAlias;
         }
 
         // 自定义别名
