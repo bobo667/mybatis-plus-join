@@ -129,4 +129,4 @@ WHERE
 ```
 
 ## 使用文档
-https://www.mhb.icu
+http://mpj.aicats.cc/
