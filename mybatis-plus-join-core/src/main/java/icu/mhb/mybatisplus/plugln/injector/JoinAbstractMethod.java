@@ -52,12 +52,12 @@ public abstract class JoinAbstractMethod extends AbstractMethod {
             String sqlScript = table.getAllSqlWhere(true, true, WRAPPER_ENTITY_DOT);
             sqlScript = SqlScriptUtils.convertIf(sqlScript, String.format("%s != null", WRAPPER_ENTITY),
                     true);
-            sqlScript += SqlScriptUtils.convertIf((NEWLINE + table.getLogicDeleteSql(true, true) + NEWLINE), "ew.masterLogicDelete",
+            sqlScript += SqlScriptUtils.convertIf((SPACE + table.getLogicDeleteSql(true, true) + NEWLINE), "ew.masterLogicDelete",
                     true);
             String normalSqlScript = SqlScriptUtils.convertIf(String.format("AND ${%s}", WRAPPER_SQLSEGMENT),
                     String.format("%s != null and %s != '' and %s", WRAPPER_SQLSEGMENT, WRAPPER_SQLSEGMENT,
                             WRAPPER_NONEMPTYOFNORMAL), true);
-            normalSqlScript += NEWLINE;
+            normalSqlScript += SPACE;
             normalSqlScript += SqlScriptUtils.convertIf(String.format(" ${%s}", WRAPPER_SQLSEGMENT),
                     String.format("%s != null and %s != '' and %s", WRAPPER_SQLSEGMENT, WRAPPER_SQLSEGMENT,
                             WRAPPER_EMPTYOFNORMAL), true);
@@ -65,20 +65,20 @@ public abstract class JoinAbstractMethod extends AbstractMethod {
             sqlScript = SqlScriptUtils.convertChoose(String.format("%s != null", WRAPPER), sqlScript,
                     table.getTableInfo().getLogicDeleteSql(false, true));
             sqlScript = SqlScriptUtils.convertWhere(sqlScript);
-            return newLine ? NEWLINE + sqlScript : sqlScript;
+            return newLine ? SPACE + sqlScript : sqlScript;
         } else {
             String sqlScript = table.getAllSqlWhere(false, true, WRAPPER_ENTITY_DOT);
             sqlScript = SqlScriptUtils.convertIf(sqlScript, String.format("%s != null", WRAPPER_ENTITY), true);
-            sqlScript += NEWLINE;
+            sqlScript += SPACE;
             sqlScript += SqlScriptUtils.convertIf(String.format(SqlScriptUtils.convertIf(" AND", String.format("%s and %s", WRAPPER_NONEMPTYOFENTITY, WRAPPER_NONEMPTYOFNORMAL), false) + " ${%s}", WRAPPER_SQLSEGMENT),
                     String.format("%s != null and %s != '' and %s", WRAPPER_SQLSEGMENT, WRAPPER_SQLSEGMENT,
                             WRAPPER_NONEMPTYOFWHERE), true);
-            sqlScript = SqlScriptUtils.convertWhere(sqlScript) + NEWLINE;
+            sqlScript = SqlScriptUtils.convertWhere(sqlScript) + SPACE;
             sqlScript += SqlScriptUtils.convertIf(String.format(" ${%s}", WRAPPER_SQLSEGMENT),
                     String.format("%s != null and %s != '' and %s", WRAPPER_SQLSEGMENT, WRAPPER_SQLSEGMENT,
                             WRAPPER_EMPTYOFWHERE), true);
             sqlScript = SqlScriptUtils.convertIf(sqlScript, String.format("%s != null", WRAPPER), true);
-            return newLine ? NEWLINE + sqlScript : sqlScript;
+            return newLine ? SPACE + sqlScript : sqlScript;
         }
     }
 

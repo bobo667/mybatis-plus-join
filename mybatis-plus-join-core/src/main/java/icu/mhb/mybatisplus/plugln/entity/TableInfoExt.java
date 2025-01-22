@@ -74,7 +74,7 @@ public class TableInfoExt {
                     return true;
                 })
                 .map(TableFieldInfoExt::new)
-                .map(i -> i.getSqlWhere(newPrefix)).filter(Objects::nonNull).collect(joining(NEWLINE));
+                .map(i -> i.getSqlWhere(newPrefix)).filter(Objects::nonNull).collect(joining(SPACE));
 
         if (!withId || StringUtils.isBlank(tableInfo.getKeyProperty())) {
             return filedSqlScript;

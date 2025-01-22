@@ -4,8 +4,7 @@ import static com.baomidou.mybatisplus.core.enums.SqlKeyword.ASC;
 import static com.baomidou.mybatisplus.core.enums.SqlKeyword.DESC;
 import static com.baomidou.mybatisplus.core.enums.SqlKeyword.GROUP_BY;
 import static com.baomidou.mybatisplus.core.enums.SqlKeyword.ORDER_BY;
-import static com.baomidou.mybatisplus.core.toolkit.StringPool.COMMA;
-import static com.baomidou.mybatisplus.core.toolkit.StringPool.NEWLINE;
+import static com.baomidou.mybatisplus.core.toolkit.StringPool.*;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -331,11 +330,11 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
 
         // 如果查询条件为空，并且 排序 、分组、 having 不为空就添加
         if (sqlIsBlank && (expression.getOrderBy().size() > 0 || expression.getGroupBy().size() > 0 || expression.getHaving().size() > 0)) {
-            sqlBuilder.append(NEWLINE)
+            sqlBuilder.append(SPACE)
                     .append(sql);
         }
 
-        sqlBuilder.append(NEWLINE).append(lastSql.getStringValue());
+        sqlBuilder.append(SPACE).append(lastSql.getStringValue());
 
         String sqlBuilderStr = sqlBuilder.toString();
         sqlCache.setStringValue(sqlBuilderStr);
@@ -351,34 +350,44 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
 
     /**
      * 存入外联表 join 查询条件
-     *
-     * @param sunQueryList            子查询列表
-     * @param joinSql                 join关联SQL
-     * @param sql                     条件SQL
-     * @param key                     此次外联表唯一标识码
-     * @param joinParamNameValuePairs 条件SQL对应的值
      */
     void setJoinConditionSql(List<SharedString> sunQueryList, List<SharedString> joinSql, String sql, String key, Map<String, Object> joinParamNameValuePairs) {
+        // 优化参数检查
+        if (StringUtils.isBlank(key)) {
+            throw new IllegalArgumentException("key cannot be blank");
+        }
+
+        // 优化参数映射处理
         if (CollectionUtils.isNotEmpty(joinParamNameValuePairs)) {
-            // 向当前参数map存入外联表的值
             paramNameValuePairs.put(key, joinParamNameValuePairs);
         }
+
+        // 优化SQL处理
         if (StringUtils.isNotBlank(sql)) {
-            // 外联表如果执行了条件会存在where标签，需要祛除
-            sql = sql.replace(Constants.WHERE, StringPool.SPACE);
-            // 替换外联表中的参数名字为唯一的
-            sql = sql.replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
-            joinConditionSql.add(sql);
+            String processedSql = sql.replace(Constants.WHERE, StringPool.SPACE)
+                                   .replaceAll(JoinConstant.MP_PARAMS_NAME, 
+                                             JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
+            joinConditionSql.add(processedSql);
         }
+
+        // 优化子查询处理
         if (CollectionUtils.isNotEmpty(sunQueryList)) {
-            sunQueryList.forEach(i -> {
-                i.setStringValue(i.getStringValue().replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key));
+            sunQueryList.forEach(item -> {
+                String processedValue = item.getStringValue()
+                                         .replaceAll(JoinConstant.MP_PARAMS_NAME, 
+                                                   JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
+                item.setStringValue(processedValue);
             });
             this.sunQueryList.addAll(sunQueryList);
         }
+
+        // 优化join SQL处理
         if (CollectionUtils.isNotEmpty(joinSql)) {
-            joinSql.forEach(i -> {
-                i.setStringValue(i.getStringValue().replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key));
+            joinSql.forEach(item -> {
+                String processedValue = item.getStringValue()
+                                         .replaceAll(JoinConstant.MP_PARAMS_NAME, 
+                                                   JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
+                item.setStringValue(processedValue);
             });
             this.joinSql.addAll(joinSql);
         }

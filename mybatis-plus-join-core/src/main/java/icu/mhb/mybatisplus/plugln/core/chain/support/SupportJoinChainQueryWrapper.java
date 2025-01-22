@@ -445,7 +445,7 @@ public abstract class SupportJoinChainQueryWrapper<T, Children extends SupportJo
         if (null != tableInfo && logicDeleteIsApplyJoin) {
             TableInfoExt infoExt = new TableInfoExt(tableInfo);
             String logicDeleteSql = infoExt.getLogicDeleteSql(true, true, leftField.getAlias());
-            sb.append(Constants.SPACE).append(Constants.NEWLINE).append(logicDeleteSql);
+            sb.append(Constants.SPACE).append(logicDeleteSql);
         }
         sharedString.setStringValue(sb.toString());
 

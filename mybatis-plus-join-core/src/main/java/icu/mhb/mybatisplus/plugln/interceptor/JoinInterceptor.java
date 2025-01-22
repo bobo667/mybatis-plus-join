@@ -11,6 +11,7 @@ import icu.mhb.mybatisplus.plugln.core.support.SupportJoinWrapper;
 import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
 import icu.mhb.mybatisplus.plugln.entity.ManyToManySelectBuild;
 import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
+import icu.mhb.mybatisplus.plugln.entity.TableFieldInfoExt;
 import icu.mhb.mybatisplus.plugln.enums.PropertyType;
 import icu.mhb.mybatisplus.plugln.injector.JoinDefaultResultType;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
@@ -33,6 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,46 +67,91 @@ public class JoinInterceptor implements Interceptor {
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
         Object[] args = invocation.getArgs();
-        if (args[0] instanceof MappedStatement) {
-            MappedStatement ms = (MappedStatement) args[0];
-            if (args[1] instanceof Map) {
-                Map<String, Object> map = (Map<String, Object>) args[1];
-                Object ew = map.containsKey(Constants.WRAPPER) ? map.get(Constants.WRAPPER) : null;
-                Object returnClass = map.containsKey(JoinConstant.CLASS_PARAMS_NAME) ? map.get(JoinConstant.CLASS_PARAMS_NAME) : null;
-                // 如果说 Wrapper 是JoinLambdaWrapper类型就代表可能需要解析多表映射
-                if ((ew instanceof SupportJoinWrapper) && returnClass != null) {
-                    SupportJoinWrapper joinWrapper = (SupportJoinWrapper) ew;
-                    Class<?> classType = (Class<?>) returnClass;
-                    List<ResultMap> list = ms.getResultMaps();
-                    if (CollectionUtils.isNotEmpty(list)) {
-                        ResultMap resultMap = list.get(0);
-                        if (resultMap.getType() == JoinDefaultResultType.class) {
-                            args[0] = newMappedStatement(ms, joinWrapper, classType);
-                        }
-                    }
-                }
-
-            }
+        if (!(args[0] instanceof MappedStatement)) {
+            return invocation.proceed();
         }
+
+        MappedStatement ms = (MappedStatement) args[0];
+        if (!(args[1] instanceof Map)) {
+            return invocation.proceed();
+        }
+
+        Map<String, Object> paramMap = (Map<String, Object>) args[1];
+        Object ew = paramMap.get(Constants.WRAPPER);
+        Object returnClass = paramMap.get(JoinConstant.CLASS_PARAMS_NAME);
+
+        if (!(ew instanceof SupportJoinWrapper) || returnClass == null) {
+            return invocation.proceed();
+        }
+
+        SupportJoinWrapper joinWrapper = (SupportJoinWrapper) ew;
+        Class<?> classType = (Class<?>) returnClass;
+
+        List<ResultMap> resultMaps = ms.getResultMaps();
+        if (CollectionUtils.isEmpty(resultMaps)) {
+            return invocation.proceed();
+        }
+
+        ResultMap resultMap = resultMaps.get(0);
+        if (resultMap.getType() != JoinDefaultResultType.class) {
+            return invocation.proceed();
+        }
+
+        args[0] = createMappedStatement(ms, joinWrapper, classType);
         return invocation.proceed();
     }
 
+    /**
+     * 创建新的MappedStatement
+     */
+    private MappedStatement createMappedStatement(MappedStatement ms,
+                                                SupportJoinWrapper joinWrapper,
+                                                Class<?> classType) {
+        String msId = buildMappedStatementId(ms, joinWrapper, classType);
+
+        // 从缓存获取MappedStatement
+        Map<Configuration, MappedStatement> statementMap = getMybatisPlusJoinConfig().isUseMsCache()
+                ? MS_CACHE.get(msId)
+                : null;
+
+        if (statementMap != null && statementMap.containsKey(ms.getConfiguration())) {
+            return statementMap.get(ms.getConfiguration());
+        }
+
+        // 创建新的MappedStatement
+        MappedStatement newMs = buildNewMappedStatement(ms, msId, joinWrapper, classType);
+
+        // 缓存MappedStatement
+        if (getMybatisPlusJoinConfig().isUseMsCache()) {
+            MS_CACHE.computeIfAbsent(msId, k -> new ConcurrentHashMap<>())
+                    .put(ms.getConfiguration(), newMs);
+        }
+
+        return newMs;
+    }
+
+    /**
+     * 构建MappedStatement ID
+     */
+    private String buildMappedStatementId(MappedStatement ms,
+                                        SupportJoinWrapper joinWrapper,
+                                        Class<?> classType) {
+        if (!getMybatisPlusJoinConfig().isUseMsCache()) {
+            return ms.getId();
+        }
+        return (ms.getId() + StringPool.COLON + classType.getName() +
+                StringPool.UNDERSCORE + joinWrapper.getSqlSelect())
+                .replaceAll("\\s+", "");
+    }
 
     /**
      * 构建新的MappedStatement
      */
-    private MappedStatement newMappedStatement(MappedStatement ms, SupportJoinWrapper joinLambdaWrapper, Class<?> classType) {
-        String id = ms.getId();
-        if (getMybatisPlusJoinConfig().isUseMsCache()) {
-            id = ms.getId() + StringPool.COLON + classType.getName() + StringPool.UNDERSCORE + joinLambdaWrapper.getSqlSelect();
-        }
-        id.replaceAll(" ", "");
-        Map<Configuration, MappedStatement> statementMap = !getMybatisPlusJoinConfig().isUseMsCache() ? null : MS_CACHE.get(id);
-
-        if (CollectionUtils.isNotEmpty(statementMap) && Objects.nonNull(statementMap.get(ms.getConfiguration()))) {
-            return statementMap.get(ms.getConfiguration());
-        }
-        MappedStatement.Builder builder = new MappedStatement.Builder(ms.getConfiguration(), id, ms.getSqlSource(), ms.getSqlCommandType())
+    private MappedStatement buildNewMappedStatement(MappedStatement ms, String id,
+                                                  SupportJoinWrapper joinWrapper,
+                                                  Class<?> classType) {
+        MappedStatement.Builder builder = new MappedStatement.Builder(ms.getConfiguration(), id,
+                ms.getSqlSource(), ms.getSqlCommandType())
                 .resource(ms.getResource())
                 .fetchSize(ms.getFetchSize())
                 .statementType(ms.getStatementType())
@@ -116,123 +163,183 @@ public class JoinInterceptor implements Interceptor {
                 .flushCacheRequired(ms.isFlushCacheRequired())
                 .useCache(ms.isUseCache());
 
-        if (ms.getKeyProperties() != null && ms.getKeyProperties().length != 0) {
+        if (ms.getKeyProperties() != null && ms.getKeyProperties().length > 0) {
             builder.keyProperty(String.join(StringPool.COMMA, ms.getKeyProperties()));
         }
 
-        builder.resultMaps(Lists.newArrayList(newResultMap(ms, joinLambdaWrapper, classType)));
-        MappedStatement mappedStatement = builder.build();
+        ResultMap resultMap = createResultMap(ms, joinWrapper, classType);
+        builder.resultMaps(Lists.newArrayList(resultMap));
 
-        if (statementMap == null) {
-            statementMap = new ConcurrentHashMap<>();
-            if (getMybatisPlusJoinConfig().isUseMsCache()) {
-                MS_CACHE.put(id, statementMap);
-            }
-        }
-        statementMap.put(ms.getConfiguration(), mappedStatement);
-        return mappedStatement;
+        return builder.build();
     }
 
     /**
-     * 构建resultMap
+     * 创建ResultMap，处理并发情况
      */
-    private ResultMap newResultMap(MappedStatement ms, SupportJoinWrapper joinLambdaWrapper, Class<?> classType) {
+    private ResultMap createResultMap(MappedStatement ms,
+                                    SupportJoinWrapper joinWrapper,
+                                    Class<?> classType) {
+        String resultMapId = buildResultMapId(ms, joinWrapper, classType);
         Configuration configuration = ms.getConfiguration();
-        String id = ms.getId() + StringPool.COLON + classType.getName() + StringPool.UNDERSCORE + joinLambdaWrapper.getSqlSelect();
-        id = id.replaceAll(" ", "");
-        // 如果返回类型是基础类型或者包装类型，就直接返回基础映射，或者是map类型
+
+        // 基础类型或Map类型的处理
         if (PropertyType.hasBaseType(classType) || ClassUtils.hasIncludeClass(classType, Map.class)) {
-            return new ResultMap.Builder(configuration, id, classType, Lists.newArrayList(0)).build();
+            return new ResultMap.Builder(configuration, resultMapId, classType,
+                                       Collections.emptyList()).build();
         }
 
-        if (configuration.hasResultMap(id)) {
-            return configuration.getResultMap(id);
+        // 检查已存在的ResultMap
+        if (configuration.hasResultMap(resultMapId)) {
+            return configuration.getResultMap(resultMapId);
         }
 
-        List<ResultMapping> resultMappings = buildResultMapping(configuration, joinLambdaWrapper.getFieldMappingList(), classType);
-
-        List<OneToOneSelectBuild> oneToOneSelectBuildList = joinLambdaWrapper.getOneToOneSelectBuildList();
-        // 不为空就代表有一对一映射
-        if (CollectionUtils.isNotEmpty(oneToOneSelectBuildList)) {
-            for (OneToOneSelectBuild oneToOneSelectBuild : oneToOneSelectBuildList) {
-                // 构建ResultMap
-                String oneToOneId = id + StringPool.UNDERSCORE + oneToOneSelectBuild.getOneToOneField();
-                oneToOneId = oneToOneId.replaceAll(" ", "");
-                if (!configuration.hasResultMap(oneToOneId)) {
-                    ResultMap oneToOneResultMap = new ResultMap.Builder(configuration, oneToOneId,
-                            oneToOneSelectBuild.getOneToOneClass(),
-                            buildResultMapping(configuration, oneToOneSelectBuild.getBelongsColumns(), oneToOneSelectBuild.getOneToOneClass())).build();
-                    addResultMap(configuration, oneToOneResultMap, oneToOneId);
-                }
-                resultMappings.add(new ResultMapping.Builder(configuration, oneToOneSelectBuild.getOneToOneField())
-                        .javaType(oneToOneSelectBuild.getOneToOneClass()).nestedResultMapId(oneToOneId).build());
+        // 创建新的ResultMap
+        synchronized (configuration) {
+            // 双重检查
+            if (configuration.hasResultMap(resultMapId)) {
+                return configuration.getResultMap(resultMapId);
             }
-        }
 
-        List<ManyToManySelectBuild> manyToManySelectBuildList = joinLambdaWrapper.getManyToManySelectBuildList();
-        // 不为空就代表有多对多映射
-        if (CollectionUtils.isNotEmpty(manyToManySelectBuildList)) {
-            for (ManyToManySelectBuild manyToManySelectBuild : manyToManySelectBuildList) {
-                // 构建ResultMap
-                String manyToManyId = id + StringPool.UNDERSCORE + manyToManySelectBuild.getManyToManyField();
-                manyToManyId = manyToManyId.replaceAll(" ", "");
-                if (!configuration.hasResultMap(manyToManyId)) {
-                    ResultMap manyToManyResultMap = new ResultMap.Builder(configuration, manyToManyId, manyToManySelectBuild.getManyToManyClass(),
-                            buildResultMapping(configuration, manyToManySelectBuild.getBelongsColumns(),
-                                    manyToManySelectBuild.getManyToManyClass())).build();
-                    addResultMap(configuration, manyToManyResultMap, manyToManyId);
-                }
-                resultMappings.add(new ResultMapping.Builder(configuration, manyToManySelectBuild.getManyToManyField())
-                        .javaType(manyToManySelectBuild.getManyToManyPropertyType()).nestedResultMapId(manyToManyId).build());
+            List<ResultMapping> resultMappings = buildResultMappings(configuration,
+                                                                   joinWrapper.getFieldMappingList(),
+                                                                   classType);
+
+            // 处理一对一映射
+            processOneToOneMapping(configuration, resultMapId, joinWrapper, resultMappings);
+
+            // 处理多对多映射
+            processManyToManyMapping(configuration, resultMapId, joinWrapper, resultMappings);
+
+            ResultMap resultMap = new ResultMap.Builder(configuration, resultMapId,
+                                                      classType, resultMappings).build();
+
+            try {
+                configuration.addResultMap(resultMap);
+            } catch (IllegalArgumentException e) {
+                log.warn("ResultMap [{}] already exists, using existing one", resultMapId);
+                return configuration.getResultMap(resultMapId);
             }
-        }
-        ResultMap resultMap = new ResultMap.Builder(configuration, id, classType, resultMappings).build();
-        if (!configuration.hasResultMap(id)) {
-            addResultMap(configuration, resultMap, id);
-        }
 
-        return resultMap;
+            return resultMap;
+        }
     }
 
-    private synchronized void addResultMap(Configuration configuration, ResultMap resultMap, String id) {
+    /**
+     * 处理一对一映射
+     */
+    private void processOneToOneMapping(Configuration configuration, String baseId,
+                                      SupportJoinWrapper joinWrapper,
+                                      List<ResultMapping> resultMappings) {
+        List<OneToOneSelectBuild> oneToOneBuilds = joinWrapper.getOneToOneSelectBuildList();
+        if (CollectionUtils.isEmpty(oneToOneBuilds)) {
+            return;
+        }
+
+        for (OneToOneSelectBuild build : oneToOneBuilds) {
+            String oneToOneId = baseId + StringPool.UNDERSCORE + build.getOneToOneField();
+            oneToOneId = oneToOneId.replaceAll("\\s+", "");
+
+            if (!configuration.hasResultMap(oneToOneId)) {
+                ResultMap oneToOneResultMap = new ResultMap.Builder(configuration, oneToOneId,
+                        build.getOneToOneClass(),
+                        buildResultMappings(configuration, build.getBelongsColumns(),
+                                          build.getOneToOneClass())).build();
+                addResultMapSafely(configuration, oneToOneResultMap, oneToOneId);
+            }
+
+            resultMappings.add(new ResultMapping.Builder(configuration, build.getOneToOneField())
+                    .javaType(build.getOneToOneClass())
+                    .nestedResultMapId(oneToOneId)
+                    .build());
+        }
+    }
+
+    /**
+     * 处理多对多映射
+     */
+    private void processManyToManyMapping(Configuration configuration, String baseId,
+                                        SupportJoinWrapper joinWrapper,
+                                        List<ResultMapping> resultMappings) {
+        List<ManyToManySelectBuild> manyToManyBuilds = joinWrapper.getManyToManySelectBuildList();
+        if (CollectionUtils.isEmpty(manyToManyBuilds)) {
+            return;
+        }
+
+        for (ManyToManySelectBuild build : manyToManyBuilds) {
+            String manyToManyId = baseId + StringPool.UNDERSCORE + build.getManyToManyField();
+            manyToManyId = manyToManyId.replaceAll("\\s+", "");
+
+            if (!configuration.hasResultMap(manyToManyId)) {
+                ResultMap manyToManyResultMap = new ResultMap.Builder(configuration, manyToManyId,
+                        build.getManyToManyClass(),
+                        buildResultMappings(configuration, build.getBelongsColumns(),
+                                          build.getManyToManyClass())).build();
+                addResultMapSafely(configuration, manyToManyResultMap, manyToManyId);
+            }
+
+            resultMappings.add(new ResultMapping.Builder(configuration, build.getManyToManyField())
+                    .javaType(build.getManyToManyPropertyType())
+                    .nestedResultMapId(manyToManyId)
+                    .build());
+        }
+    }
+
+    /**
+     * 安全地添加ResultMap
+     */
+    private synchronized void addResultMapSafely(Configuration configuration,
+                                               ResultMap resultMap,
+                                               String id) {
         try {
             if (!configuration.hasResultMap(id)) {
                 configuration.addResultMap(resultMap);
             }
         } catch (IllegalArgumentException e) {
-            log.warn("resultMap[{}] already exists, ignore", id);
+            log.warn("ResultMap [{}] already exists, ignore", id);
         }
     }
 
     /**
-     * 构建结果集映射
-     *
-     * @param clz           mapper方法返回的类型
-     * @param fieldMappings 字段映射列表
-     * @param configuration mybatis 配置类
+     * 构建ResultMap ID
      */
-    private List<ResultMapping> buildResultMapping(Configuration configuration, List<FieldMapping> fieldMappings, Class<?> clz) {
+    private String buildResultMapId(MappedStatement ms,
+                                  SupportJoinWrapper joinWrapper,
+                                  Class<?> classType) {
+        return (ms.getId() + StringPool.COLON + classType.getName() +
+                StringPool.UNDERSCORE + joinWrapper.getSqlSelect())
+                .replaceAll("\\s+", "");
+    }
+
+    /**
+     * 构建结果映射
+     */
+    private List<ResultMapping> buildResultMappings(Configuration configuration,
+                                                  List<FieldMapping> fieldMappings,
+                                                  Class<?> clz) {
         return fieldMappings.stream()
-                .map(fieldMapping -> {
-
-                    Field field = ClassUtils.getDeclaredField(clz, fieldMapping.getFieldName());
-                    if (null == field) {
-                        return null;
-                    }
-
-                    if (null != fieldMapping.getTableFieldInfoExt()) {
-                        return fieldMapping.getTableFieldInfoExt().getResultMapping(configuration);
-                    }
-
-                    Class<?> propertyType = field.getType();
-                    ResultMapping.Builder builder = new ResultMapping.Builder(configuration, field.getName(),
-                            fieldMapping.getColumn(), propertyType
-                    );
-                    return builder.build();
-                }).filter(i -> null != i)
+                .map(fieldMapping -> buildResultMapping(configuration, fieldMapping, clz))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 构建单个结果映射
+     */
+    private ResultMapping buildResultMapping(Configuration configuration,
+                                          FieldMapping fieldMapping,
+                                          Class<?> clz) {
+        Field field = ClassUtils.getDeclaredField(clz, fieldMapping.getFieldName());
+        if (field == null) {
+            return null;
+        }
+
+        if (fieldMapping.getTableFieldInfoExt() != null) {
+            return fieldMapping.getTableFieldInfoExt().getResultMapping(configuration);
+        }
+
+        return new ResultMapping.Builder(configuration, field.getName(),
+                fieldMapping.getColumn(), field.getType()).build();
+    }
 
     public MybatisPlusJoinConfig getMybatisPlusJoinConfig() {
         if (this.mybatisPlusJoinConfig == null) {
@@ -242,3 +349,4 @@ public class JoinInterceptor implements Interceptor {
     }
 
 }
+

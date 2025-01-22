@@ -498,50 +498,79 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     }
 
     /**
-     * 构建join SQL
-     *
-     * @param joinTableField   需要关联的表字段
-     * @param masterTableField 主表关联表字段
-     * @param sqlExcerpt       需要构建的SQL枚举
+     * 构建join SQL - 优化后的方法
      */
-    private <F> void buildJoinSql(SFunction<T, Object> joinTableField, SFunction<F, Object> masterTableField, SqlExcerpt sqlExcerpt) {
-        // 解析方法
-        LambdaMeta joinTableResolve = LambdaUtils.extract(joinTableField);
-        LambdaMeta masterTableResolve = LambdaUtils.extract(masterTableField);
+    private <F> void buildJoinSql(SFunction<T, Object> joinTableField,
+                                 SFunction<F, Object> masterTableField,
+                                 SqlExcerpt sqlExcerpt) {
+        // 参数校验
+        Assert.notNull(joinTableField, "joinTableField cannot be null");
+        Assert.notNull(masterTableField, "masterTableField cannot be null");
+        Assert.notNull(sqlExcerpt, "sqlExcerpt cannot be null");
 
-        Class<?> joinTableClass = joinTableResolve.getInstantiatedClass();
-        Class<?> masterTableClass = masterTableResolve.getInstantiatedClass();
+        // 解析Lambda元数据
+        LambdaMeta joinTableMeta = LambdaUtils.extract(joinTableField);
+        LambdaMeta masterTableMeta = LambdaUtils.extract(masterTableField);
+
+        // 获取类信息
+        Class<?> joinTableClass = joinTableMeta.getInstantiatedClass();
+        Class<?> masterTableClass = masterTableMeta.getInstantiatedClass();
+
+        // 获取表信息并校验
         TableInfo joinTableInfo = TableInfoHelper.getTableInfo(joinTableClass);
+        Assert.notNull(joinTableInfo, "can not find tableInfo cache for this entity [%s]",
+                      joinTableClass.getName());
 
-        Assert.notNull(joinTableInfo, "can not find tableInfo cache for this entity [%s]", joinTableClass.getName());
-
-        // 获取需要join表别名
+        // 获取表别名
         String joinTableAlias = getAlias(joinTableClass);
+        String masterTableAlias = getMasterTableAlias(joinTableClass, masterTableClass);
 
-        // 获取主表别名
-        String masterTableAlias = null;
-        // 如果字表和主表一样，那么别名就需要从主表构造器中拿
-        if (joinTableClass.equals(wrapper.getEntityClass())) {
-            masterTableAlias = wrapper.getMasterTableAlias();
-        } else {
-            masterTableAlias = getAlias(masterTableClass);
+        // 获取列名
+        String joinColumn = getColumn(joinTableMeta, true, false);
+        String masterColumn = getColumn(masterTableMeta, true, false);
+
+        // 构建JOIN SQL
+        String joinSql = String.format(sqlExcerpt.getSql(),
+                                     joinTableInfo.getTableName(),
+                                     joinTableAlias,
+                                     joinTableAlias,
+                                     joinColumn,
+                                     masterTableAlias,
+                                     masterColumn);
+
+        // 处理逻辑删除
+        if (shouldApplyLogicDelete(joinTableClass)) {
+            joinSql = appendLogicDeleteCondition(joinSql, joinTableInfo, joinTableAlias);
         }
 
-        // 获取字段名字
-        String joinColumn = getColumn(joinTableResolve, true, false);
-        String masterColumn = getColumn(masterTableResolve, true, false);
+        // 添加到SQL列表
+        sqlJoin.add(SharedString.emptyString().setStringValue(joinSql));
+    }
 
-        SharedString sharedString = SharedString.emptyString();
-        sharedString.setStringValue(String.format(sqlExcerpt.getSql(), joinTableInfo.getTableName(), joinTableAlias, joinTableAlias, joinColumn, masterTableAlias, masterColumn));
+    /**
+     * 获取主表别名
+     */
+    private String getMasterTableAlias(Class<?> joinTableClass, Class<?> masterTableClass) {
+        return joinTableClass.equals(wrapper.getEntityClass())
+               ? wrapper.getMasterTableAlias()
+               : getAlias(masterTableClass);
+    }
 
-        TableInfo tableInfo = TableInfoHelper.getTableInfo(joinTableClass);
-        if (null != tableInfo && logicDeleteIsApplyJoin) {
-            TableInfoExt infoExt = new TableInfoExt(tableInfo);
-            String logicDeleteSql = infoExt.getLogicDeleteSql(true, true, joinTableAlias);
-            sharedString.setStringValue(sharedString.getStringValue() + Constants.SPACE + Constants.NEWLINE + logicDeleteSql);
-        }
+    /**
+     * 判断是否应用逻辑删除
+     */
+    private boolean shouldApplyLogicDelete(Class<?> tableClass) {
+        TableInfo tableInfo = TableInfoHelper.getTableInfo(tableClass);
+        return tableInfo != null && logicDeleteIsApplyJoin;
+    }
 
-        sqlJoin.add(sharedString);
+    /**
+     * 添加逻辑删除条件
+     */
+    private String appendLogicDeleteCondition(String joinSql, TableInfo tableInfo, String tableAlias) {
+        TableInfoExt infoExt = new TableInfoExt(tableInfo);
+        String logicDeleteSql = infoExt.getLogicDeleteSql(true, true, tableAlias);
+        return joinSql + Constants.SPACE + Constants.NEWLINE + logicDeleteSql;
     }
 
     /**

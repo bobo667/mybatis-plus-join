@@ -48,6 +48,7 @@ import java.util.stream.Collectors;
 import static com.baomidou.mybatisplus.core.enums.SqlKeyword.*;
 import static com.baomidou.mybatisplus.core.enums.WrapperKeyword.APPLY;
 import static com.baomidou.mybatisplus.core.toolkit.StringPool.NEWLINE;
+import static com.baomidou.mybatisplus.core.toolkit.StringPool.SPACE;
 import static java.util.stream.Collectors.joining;
 
 /**
@@ -159,100 +160,141 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
         StringBuilder sql = new StringBuilder();
         if (CollectionUtils.isNotEmpty(joinSql)) {
             for (SharedString sharedString : joinSql) {
-                sql.append(sharedString.getStringValue()).append(NEWLINE);
+                sql.append(sharedString.getStringValue()).append(SPACE);
             }
         }
         return sql.toString();
     }
 
 
+    /**
+     * 读取和处理Wrapper信息
+     */
     protected int readWrapperInfo(String alias, MergeSegments mergeSegments, String id, boolean isAdd) {
         int conditionCount = 0;
-        for (int i = 0; i < mergeSegments.getNormal().size(); i++) {
-            ISqlSegment iSqlSegment = mergeSegments.getNormal().get(i);
-            if (iSqlSegment instanceof SqlKeyword) {
-                continue;
-            }
 
-//            新版本中 and 就会是 QueryWrapper 这种类型
-            if (iSqlSegment instanceof AbstractWrapper) {
-                AbstractWrapper wrapper = (AbstractWrapper) iSqlSegment;
-                int newCount = readWrapperInfo(alias, wrapper.getExpression(), id, false);
-                conditionCount += newCount;
-                continue;
-            }
+        // 处理普通SQL片段
+        conditionCount += processNormalSegments(alias, mergeSegments, id);
 
-            String sqlSegment = iSqlSegment.getSqlSegment();
-            if (!sqlSegment.contains("#{")) {
-                conditionCount = conditionCount + 1;
-                mergeSegments.getNormal().remove(iSqlSegment);
-                String sql = getAliasAndField(alias, sqlSegment);
-                mergeSegments.getNormal().add(i, () -> sql);
-            } else {
-                // 替换外联表中的参数名字为唯一的
-                mergeSegments.getNormal().remove(iSqlSegment);
-                String sql = sqlSegment.replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + id);
-                mergeSegments.getNormal().add(i, () -> sql);
-            }
-        }
-
-
-        GroupBySegmentList groupBy = mergeSegments.getGroupBy();
-        for (int i = 0; i < groupBy.size(); i++) {
-            ISqlSegment iSqlSegment = groupBy.get(i);
-            if (iSqlSegment instanceof SqlKeyword) {
-                continue;
-            }
-            String sqlSegment = iSqlSegment.getSqlSegment();
-            if (!sqlSegment.contains("#{")) {
-                mergeSegments.getGroupBy().remove(iSqlSegment);
-                mergeSegments.getGroupBy().add(i, () -> getAliasAndField(alias, sqlSegment));
-            }
-        }
-
+        // 处理分组SQL
+        processGroupBySegments(alias, mergeSegments);
         if (isAdd) {
             expressionAdd(mergeSegments.getGroupBy(), GROUP_BY);
             mergeSegments.getGroupBy().clear();
         }
 
-        HavingSegmentList having = mergeSegments.getHaving();
-        for (int i = 0; i < having.size(); i++) {
-            ISqlSegment iSqlSegment = having.get(i);
-            if (iSqlSegment instanceof SqlKeyword) {
-                continue;
-            }
-            String sqlSegment = iSqlSegment.getSqlSegment();
-            if (sqlSegment.contains("#{")) {
-                // 替换外联表中的参数名字为唯一的
-                mergeSegments.getHaving().remove(iSqlSegment);
-                mergeSegments.getHaving().add(i, () -> sqlSegment.replaceAll(JoinConstant.MP_PARAMS_NAME, JoinConstant.MP_PARAMS_NAME + StringPool.DOT + id));
-            }
-        }
-
+        // 处理Having条件
+        processHavingSegments(mergeSegments, id);
         if (isAdd) {
             expressionAdd(mergeSegments.getHaving(), HAVING);
             mergeSegments.getHaving().clear();
         }
 
-
-        OrderBySegmentList orderBy = mergeSegments.getOrderBy();
-        for (int i = 0; i < orderBy.size(); i++) {
-            ISqlSegment iSqlSegment = orderBy.get(i);
-            if (iSqlSegment instanceof SqlKeyword) {
-                continue;
-            }
-            String sqlSegment = iSqlSegment.getSqlSegment();
-            if (!sqlSegment.contains("#{")) {
-                mergeSegments.getOrderBy().remove(iSqlSegment);
-                mergeSegments.getOrderBy().add(i, () -> getAliasAndField(alias, sqlSegment));
-            }
-        }
-
+        // 处理排序SQL
+        processOrderBySegments(alias, mergeSegments);
         if (isAdd) {
             expressionAdd(mergeSegments.getOrderBy(), ORDER_BY);
             mergeSegments.getOrderBy().clear();
         }
+
         return conditionCount;
+    }
+
+    /**
+     * 处理普通SQL片段
+     */
+    private int processNormalSegments(String alias, MergeSegments mergeSegments, String id) {
+        int conditionCount = 0;
+        List<ISqlSegment> normalSegments = mergeSegments.getNormal();
+
+        for (int i = 0; i < normalSegments.size(); i++) {
+            ISqlSegment segment = normalSegments.get(i);
+
+            if (segment instanceof SqlKeyword) {
+                continue;
+            }
+
+            if (segment instanceof AbstractWrapper) {
+                conditionCount += processAbstractWrapper(alias, (AbstractWrapper)segment, id);
+                continue;
+            }
+
+            String sqlSegment = segment.getSqlSegment();
+            normalSegments.remove(segment);
+
+            if (!sqlSegment.contains("#{")) {
+                conditionCount++;
+                String sql = getAliasAndField(alias, sqlSegment);
+                normalSegments.add(i, () -> sql);
+            } else {
+                String sql = sqlSegment.replaceAll(JoinConstant.MP_PARAMS_NAME,
+                                                 JoinConstant.MP_PARAMS_NAME + StringPool.DOT + id);
+                normalSegments.add(i, () -> sql);
+            }
+        }
+        return conditionCount;
+    }
+
+    /**
+     * 处理AbstractWrapper类型的片段
+     */
+    private int processAbstractWrapper(String alias, AbstractWrapper wrapper, String id) {
+        return readWrapperInfo(alias, wrapper.getExpression(), id, false);
+    }
+
+    /**
+     * 处理分组SQL片段
+     */
+    private void processGroupBySegments(String alias, MergeSegments mergeSegments) {
+        GroupBySegmentList groupBy = mergeSegments.getGroupBy();
+        for (int i = 0; i < groupBy.size(); i++) {
+            ISqlSegment segment = groupBy.get(i);
+            if (segment instanceof SqlKeyword) {
+                continue;
+            }
+            String sqlSegment = segment.getSqlSegment();
+            if (!sqlSegment.contains("#{")) {
+                groupBy.remove(segment);
+                groupBy.add(i, () -> getAliasAndField(alias, sqlSegment));
+            }
+        }
+    }
+
+    /**
+     * 处理Having条件片段
+     */
+    private void processHavingSegments(MergeSegments mergeSegments, String id) {
+        HavingSegmentList having = mergeSegments.getHaving();
+        for (int i = 0; i < having.size(); i++) {
+            ISqlSegment segment = having.get(i);
+            if (segment instanceof SqlKeyword) {
+                continue;
+            }
+            String sqlSegment = segment.getSqlSegment();
+            if (sqlSegment.contains("#{")) {
+                having.remove(segment);
+                having.add(i, () -> sqlSegment.replaceAll(JoinConstant.MP_PARAMS_NAME,
+                                                         JoinConstant.MP_PARAMS_NAME + StringPool.DOT + id));
+            }
+        }
+    }
+
+    /**
+     * 处理排序SQL片段
+     */
+    private void processOrderBySegments(String alias, MergeSegments mergeSegments) {
+        OrderBySegmentList orderBy = mergeSegments.getOrderBy();
+        for (int i = 0; i < orderBy.size(); i++) {
+            ISqlSegment segment = orderBy.get(i);
+            if (segment instanceof SqlKeyword) {
+                continue;
+            }
+            String sqlSegment = segment.getSqlSegment();
+            if (!sqlSegment.contains("#{")) {
+                orderBy.remove(segment);
+                orderBy.add(i, () -> getAliasAndField(alias, sqlSegment));
+            }
+        }
     }
 
     private void expressionAdd(AbstractISegmentList list, SqlKeyword sqlKeyword) {

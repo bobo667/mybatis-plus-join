@@ -16,7 +16,7 @@
     </modules>
 
     <properties>
-        <revision>2.0.4</revision>
+        <revision>2.0.6</revision>
         <mp.version>3.5.3.1</mp.version>
         <lombok.version>1.18.10</lombok.version>
         <autoService.version>1.0.1</autoService.version>
