@@ -1,5 +1,6 @@
 package icu.mhb.mybatisplus.plugln.interceptor;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.core.toolkit.StringPool;
@@ -12,11 +13,15 @@ import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
 import icu.mhb.mybatisplus.plugln.entity.ManyToManySelectBuild;
 import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
 import icu.mhb.mybatisplus.plugln.entity.TableFieldInfoExt;
+import icu.mhb.mybatisplus.plugln.enums.JoinSqlMethod;
 import icu.mhb.mybatisplus.plugln.enums.PropertyType;
+import icu.mhb.mybatisplus.plugln.exception.Exceptions;
 import icu.mhb.mybatisplus.plugln.injector.JoinDefaultResultType;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 import icu.mhb.mybatisplus.plugln.tookit.Lists;
 
+import icu.mhb.mybatisplus.plugln.tookit.StringUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.ResultMap;
@@ -50,12 +55,15 @@ import java.util.stream.Collectors;
  * @email mhb0409@qq.com
  * @date 2022-02-15
  */
+@Slf4j
 @SuppressWarnings("all")
 @Order(Integer.MIN_VALUE)
-@Intercepts(@Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}))
+@Intercepts(@Signature(type = Executor.class, method = "query",
+        args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}))
 public class JoinInterceptor implements Interceptor {
 
     private static final Logger log = LoggerFactory.getLogger(JoinInterceptor.class);
+
     @Autowired(required = false)
     private MybatisPlusJoinConfig mybatisPlusJoinConfig;
 
@@ -67,21 +75,37 @@ public class JoinInterceptor implements Interceptor {
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
         Object[] args = invocation.getArgs();
-        if (!(args[0] instanceof MappedStatement)) {
-            return invocation.proceed();
-        }
-
         MappedStatement ms = (MappedStatement) args[0];
+
         if (!(args[1] instanceof Map)) {
             return invocation.proceed();
         }
 
         Map<String, Object> paramMap = (Map<String, Object>) args[1];
         Object ew = paramMap.get(Constants.WRAPPER);
-        Object returnClass = paramMap.get(JoinConstant.CLASS_PARAMS_NAME);
+        Object returnClass = paramMap.getOrDefault(JoinConstant.CLASS_PARAMS_NAME, null);
 
-        if (!(ew instanceof SupportJoinWrapper) || returnClass == null) {
-            return invocation.proceed();
+        // 分页查询特殊处理
+        if (ms.getId().endsWith("joinSelectPage")) {
+            if (!paramMap.containsKey("page")) {
+                throw Exceptions.mpje("Page parameter is missing for method: %s", ms.getId());
+            }
+            Object page = paramMap.get("page");
+            if (!(page instanceof IPage)) {
+                throw Exceptions.mpje("Invalid page parameter type for method: %s", ms.getId());
+            }
+        }
+
+        // count查询不需要返回类型
+        if (ms.getId().endsWith("joinSelectCount")) {
+            if (!(ew instanceof SupportJoinWrapper)) {
+                return invocation.proceed();
+            }
+        } else {
+            // 其他查询需要校验返回类型
+            if (!(ew instanceof SupportJoinWrapper) || returnClass == null) {
+                return invocation.proceed();
+            }
         }
 
         SupportJoinWrapper joinWrapper = (SupportJoinWrapper) ew;
@@ -97,16 +121,24 @@ public class JoinInterceptor implements Interceptor {
             return invocation.proceed();
         }
 
-        args[0] = createMappedStatement(ms, joinWrapper, classType);
-        return invocation.proceed();
+        try {
+            args[0] = createMappedStatement(ms, joinWrapper, classType);
+            return invocation.proceed();
+        } catch (Exception e) {
+            throw Exceptions.mpje("Failed to process join query for method: %s", e, ms.getId());
+        }
     }
 
     /**
      * 创建新的MappedStatement
      */
     private MappedStatement createMappedStatement(MappedStatement ms,
-                                                SupportJoinWrapper joinWrapper,
-                                                Class<?> classType) {
+                                                  SupportJoinWrapper joinWrapper,
+                                                  Class<?> classType) {
+        if (ms == null || joinWrapper == null || classType == null) {
+            throw Exceptions.mpje("Invalid parameters for creating MappedStatement");
+        }
+
         String msId = buildMappedStatementId(ms, joinWrapper, classType);
 
         // 从缓存获取MappedStatement
@@ -123,8 +155,10 @@ public class JoinInterceptor implements Interceptor {
 
         // 缓存MappedStatement
         if (getMybatisPlusJoinConfig().isUseMsCache()) {
-            MS_CACHE.computeIfAbsent(msId, k -> new ConcurrentHashMap<>())
-                    .put(ms.getConfiguration(), newMs);
+            synchronized (MS_CACHE) {
+                MS_CACHE.computeIfAbsent(msId, k -> new ConcurrentHashMap<>())
+                        .put(ms.getConfiguration(), newMs);
+            }
         }
 
         return newMs;
@@ -134,8 +168,8 @@ public class JoinInterceptor implements Interceptor {
      * 构建MappedStatement ID
      */
     private String buildMappedStatementId(MappedStatement ms,
-                                        SupportJoinWrapper joinWrapper,
-                                        Class<?> classType) {
+                                          SupportJoinWrapper joinWrapper,
+                                          Class<?> classType) {
         if (!getMybatisPlusJoinConfig().isUseMsCache()) {
             return ms.getId();
         }
@@ -148,8 +182,8 @@ public class JoinInterceptor implements Interceptor {
      * 构建新的MappedStatement
      */
     private MappedStatement buildNewMappedStatement(MappedStatement ms, String id,
-                                                  SupportJoinWrapper joinWrapper,
-                                                  Class<?> classType) {
+                                                    SupportJoinWrapper joinWrapper,
+                                                    Class<?> classType) {
         MappedStatement.Builder builder = new MappedStatement.Builder(ms.getConfiguration(), id,
                 ms.getSqlSource(), ms.getSqlCommandType())
                 .resource(ms.getResource())
@@ -177,50 +211,57 @@ public class JoinInterceptor implements Interceptor {
      * 创建ResultMap，处理并发情况
      */
     private ResultMap createResultMap(MappedStatement ms,
-                                    SupportJoinWrapper joinWrapper,
-                                    Class<?> classType) {
+                                      SupportJoinWrapper joinWrapper,
+                                      Class<?> classType) {
+        if (ms == null || joinWrapper == null || classType == null) {
+            throw Exceptions.mpje("Invalid parameters for creating ResultMap");
+        }
+
         String resultMapId = buildResultMapId(ms, joinWrapper, classType);
         Configuration configuration = ms.getConfiguration();
 
-        // 基础类型或Map类型的处理
-        if (PropertyType.hasBaseType(classType) || ClassUtils.hasIncludeClass(classType, Map.class)) {
-            return new ResultMap.Builder(configuration, resultMapId, classType,
-                                       Collections.emptyList()).build();
-        }
+        try {
+            // 基础类型或Map类型的处理
+            if (PropertyType.hasBaseType(classType) || ClassUtils.hasIncludeClass(classType, Map.class)) {
+                return new ResultMap.Builder(configuration, resultMapId, classType,
+                        Collections.emptyList()).build();
+            }
 
-        // 检查已存在的ResultMap
-        if (configuration.hasResultMap(resultMapId)) {
-            return configuration.getResultMap(resultMapId);
-        }
-
-        // 创建新的ResultMap
-        synchronized (configuration) {
-            // 双重检查
+            // 检查已存在的ResultMap
             if (configuration.hasResultMap(resultMapId)) {
                 return configuration.getResultMap(resultMapId);
             }
 
-            List<ResultMapping> resultMappings = buildResultMappings(configuration,
-                                                                   joinWrapper.getFieldMappingList(),
-                                                                   classType);
+            // 创建新的ResultMap
+            synchronized (configuration) {
+                if (configuration.hasResultMap(resultMapId)) {
+                    return configuration.getResultMap(resultMapId);
+                }
 
-            // 处理一对一映射
-            processOneToOneMapping(configuration, resultMapId, joinWrapper, resultMappings);
+                List<ResultMapping> resultMappings = buildResultMappings(configuration,
+                        joinWrapper.getFieldMappingList(),
+                        classType);
 
-            // 处理多对多映射
-            processManyToManyMapping(configuration, resultMapId, joinWrapper, resultMappings);
+                // 处理一对一映射
+                processOneToOneMapping(configuration, resultMapId, joinWrapper, resultMappings);
 
-            ResultMap resultMap = new ResultMap.Builder(configuration, resultMapId,
-                                                      classType, resultMappings).build();
+                // 处理多对多映射
+                processManyToManyMapping(configuration, resultMapId, joinWrapper, resultMappings);
 
-            try {
-                configuration.addResultMap(resultMap);
-            } catch (IllegalArgumentException e) {
-                log.warn("ResultMap [{}] already exists, using existing one", resultMapId);
-                return configuration.getResultMap(resultMapId);
+                ResultMap resultMap = new ResultMap.Builder(configuration, resultMapId,
+                        classType, resultMappings).build();
+
+                try {
+                    configuration.addResultMap(resultMap);
+                } catch (IllegalArgumentException e) {
+                    log.debug("ResultMap [{}] already exists, using existing one", resultMapId);
+                    return configuration.getResultMap(resultMapId);
+                }
+
+                return resultMap;
             }
-
-            return resultMap;
+        } catch (Exception e) {
+            throw Exceptions.mpje("Failed to create ResultMap for id: %s", e, resultMapId);
         }
     }
 
@@ -228,8 +269,8 @@ public class JoinInterceptor implements Interceptor {
      * 处理一对一映射
      */
     private void processOneToOneMapping(Configuration configuration, String baseId,
-                                      SupportJoinWrapper joinWrapper,
-                                      List<ResultMapping> resultMappings) {
+                                        SupportJoinWrapper joinWrapper,
+                                        List<ResultMapping> resultMappings) {
         List<OneToOneSelectBuild> oneToOneBuilds = joinWrapper.getOneToOneSelectBuildList();
         if (CollectionUtils.isEmpty(oneToOneBuilds)) {
             return;
@@ -243,7 +284,7 @@ public class JoinInterceptor implements Interceptor {
                 ResultMap oneToOneResultMap = new ResultMap.Builder(configuration, oneToOneId,
                         build.getOneToOneClass(),
                         buildResultMappings(configuration, build.getBelongsColumns(),
-                                          build.getOneToOneClass())).build();
+                                build.getOneToOneClass())).build();
                 addResultMapSafely(configuration, oneToOneResultMap, oneToOneId);
             }
 
@@ -258,8 +299,8 @@ public class JoinInterceptor implements Interceptor {
      * 处理多对多映射
      */
     private void processManyToManyMapping(Configuration configuration, String baseId,
-                                        SupportJoinWrapper joinWrapper,
-                                        List<ResultMapping> resultMappings) {
+                                          SupportJoinWrapper joinWrapper,
+                                          List<ResultMapping> resultMappings) {
         List<ManyToManySelectBuild> manyToManyBuilds = joinWrapper.getManyToManySelectBuildList();
         if (CollectionUtils.isEmpty(manyToManyBuilds)) {
             return;
@@ -273,7 +314,7 @@ public class JoinInterceptor implements Interceptor {
                 ResultMap manyToManyResultMap = new ResultMap.Builder(configuration, manyToManyId,
                         build.getManyToManyClass(),
                         buildResultMappings(configuration, build.getBelongsColumns(),
-                                          build.getManyToManyClass())).build();
+                                build.getManyToManyClass())).build();
                 addResultMapSafely(configuration, manyToManyResultMap, manyToManyId);
             }
 
@@ -288,14 +329,20 @@ public class JoinInterceptor implements Interceptor {
      * 安全地添加ResultMap
      */
     private synchronized void addResultMapSafely(Configuration configuration,
-                                               ResultMap resultMap,
-                                               String id) {
+                                                 ResultMap resultMap,
+                                                 String id) {
+        if (configuration == null || resultMap == null || StringUtils.isBlank(id)) {
+            throw Exceptions.mpje("Invalid parameters for adding ResultMap");
+        }
+
         try {
             if (!configuration.hasResultMap(id)) {
                 configuration.addResultMap(resultMap);
             }
         } catch (IllegalArgumentException e) {
-            log.warn("ResultMap [{}] already exists, ignore", id);
+            log.debug("ResultMap [{}] already exists, ignore", id);
+        } catch (Exception e) {
+            throw Exceptions.mpje("Failed to add ResultMap: %s", e, id);
         }
     }
 
@@ -303,8 +350,8 @@ public class JoinInterceptor implements Interceptor {
      * 构建ResultMap ID
      */
     private String buildResultMapId(MappedStatement ms,
-                                  SupportJoinWrapper joinWrapper,
-                                  Class<?> classType) {
+                                    SupportJoinWrapper joinWrapper,
+                                    Class<?> classType) {
         return (ms.getId() + StringPool.COLON + classType.getName() +
                 StringPool.UNDERSCORE + joinWrapper.getSqlSelect())
                 .replaceAll("\\s+", "");
@@ -314,10 +361,20 @@ public class JoinInterceptor implements Interceptor {
      * 构建结果映射
      */
     private List<ResultMapping> buildResultMappings(Configuration configuration,
-                                                  List<FieldMapping> fieldMappings,
-                                                  Class<?> clz) {
+                                                    List<FieldMapping> fieldMappings,
+                                                    Class<?> clz) {
+        if (CollectionUtils.isEmpty(fieldMappings)) {
+            throw Exceptions.mpje("No field mappings found for class: %s", clz.getName());
+        }
+
         return fieldMappings.stream()
-                .map(fieldMapping -> buildResultMapping(configuration, fieldMapping, clz))
+                .map(fieldMapping -> {
+                    try {
+                        return buildResultMapping(configuration, fieldMapping, clz);
+                    } catch (Exception e) {
+                        throw Exceptions.mpje("Failed to build ResultMapping", e);
+                    }
+                })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
@@ -326,19 +383,25 @@ public class JoinInterceptor implements Interceptor {
      * 构建单个结果映射
      */
     private ResultMapping buildResultMapping(Configuration configuration,
-                                          FieldMapping fieldMapping,
-                                          Class<?> clz) {
-        Field field = ClassUtils.getDeclaredField(clz, fieldMapping.getFieldName());
-        if (field == null) {
-            return null;
-        }
+                                             FieldMapping fieldMapping,
+                                             Class<?> clz) {
+        try {
+            Field field = ClassUtils.getDeclaredField(clz, fieldMapping.getFieldName());
+            if (field == null) {
+                throw Exceptions.mpje("Field not found: %s in class: %s",
+                        fieldMapping.getFieldName(), clz.getName());
+            }
 
-        if (fieldMapping.getTableFieldInfoExt() != null) {
-            return fieldMapping.getTableFieldInfoExt().getResultMapping(configuration);
-        }
+            if (fieldMapping.getTableFieldInfoExt() != null) {
+                return fieldMapping.getTableFieldInfoExt().getResultMapping(configuration);
+            }
 
-        return new ResultMapping.Builder(configuration, field.getName(),
-                fieldMapping.getColumn(), field.getType()).build();
+            return new ResultMapping.Builder(configuration, field.getName(),
+                    fieldMapping.getColumn(), field.getType()).build();
+        } catch (Exception e) {
+            throw Exceptions.mpje("Failed to build ResultMapping for field: %s", e,
+                    fieldMapping.getFieldName());
+        }
     }
 
     public MybatisPlusJoinConfig getMybatisPlusJoinConfig() {

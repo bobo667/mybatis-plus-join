@@ -1,9 +1,13 @@
 package icu.mhb.mybatisplus.plugln.enums;
+
+import lombok.Getter;
+
 /**
  * @author mahuibo
  * @Title: JoinSqlMethod
  * @time 8/25/21 10:49 AM
  */
+@Getter
 public enum JoinSqlMethod {
 
 
@@ -27,16 +31,5 @@ public enum JoinSqlMethod {
         this.sql = sql;
     }
 
-    public String getMethod() {
-        return method;
-    }
-
-    public String getDesc() {
-        return desc;
-    }
-
-    public String getSql() {
-        return sql;
-    }
 
 }
