@@ -103,7 +103,6 @@ public class JoinChainModelProcessor extends AbstractProcessor {
                 .filter(e -> !e.getModifiers().contains(Modifier.STATIC))
                 .filter(e -> !e.getModifiers().contains(Modifier.TRANSIENT))
                 .collect(Collectors.toList());
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, fields.toString());
 
         TypeMirror superClass = element.getSuperclass();
         if (superClass instanceof DeclaredType) {

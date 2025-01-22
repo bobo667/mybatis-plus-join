@@ -111,12 +111,8 @@ public class JoinInterceptor implements Interceptor {
             return invocation.proceed();
         }
 
-        try {
-            args[0] = createMappedStatement(ms, joinWrapper, classType);
-            return invocation.proceed();
-        } catch (Exception e) {
-            throw Exceptions.mpje("Failed to process join query for method: %s", e, ms.getId());
-        }
+        args[0] = createMappedStatement(ms, joinWrapper, classType);
+        return invocation.proceed();
     }
 
     /**

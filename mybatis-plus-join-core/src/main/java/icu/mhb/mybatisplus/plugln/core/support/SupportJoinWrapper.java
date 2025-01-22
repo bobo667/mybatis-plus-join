@@ -389,10 +389,32 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
                     neIfNull(r, fieldValue);
                     break;
                 case IN:
-                    in(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    if (ObjectUtils.isNotEmpty(fieldValue)) {
+                        if (fieldValue instanceof Collection) {
+                            // 如果是集合类型，直接传递
+                            in(r, (Collection<?>) fieldValue);
+                        } else if (fieldValue.getClass().isArray()) {
+                            // 如果是数组类型，转换为集合
+                            in(r, Arrays.asList((Object[]) fieldValue));
+                        } else {
+                            // 如果是单个值，包装为集合
+                            in(r, Collections.singletonList(fieldValue));
+                        }
+                    }
                     break;
                 case NOT_IN:
-                    notIn(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    if (ObjectUtils.isNotEmpty(fieldValue)) {
+                        if (fieldValue instanceof Collection) {
+                            // 如果是集合类型，直接传递
+                            notIn(r, (Collection<?>) fieldValue);
+                        } else if (fieldValue.getClass().isArray()) {
+                            // 如果是数组类型，转换为集合
+                            notIn(r, Arrays.asList((Object[]) fieldValue));
+                        } else {
+                            // 如果是单个值，包装为集合
+                            notIn(r, Collections.singletonList(fieldValue));
+                        }
+                    }
                     break;
                 case LIKE:
                     likeIfNull(r, fieldValue);
