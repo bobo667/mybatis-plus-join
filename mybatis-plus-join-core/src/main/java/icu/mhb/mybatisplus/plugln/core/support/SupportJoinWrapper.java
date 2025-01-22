@@ -17,21 +17,22 @@ import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
 import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
 import icu.mhb.mybatisplus.plugln.annotations.TableAlias;
 import icu.mhb.mybatisplus.plugln.base.mapper.JoinBaseMapper;
+import icu.mhb.mybatisplus.plugln.conditions.*;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
 import icu.mhb.mybatisplus.plugln.core.func.JoinCompareFun;
 import icu.mhb.mybatisplus.plugln.core.func.JoinOrderFunc;
 import icu.mhb.mybatisplus.plugln.entity.*;
+import icu.mhb.mybatisplus.plugln.enums.ConditionType;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
 import icu.mhb.mybatisplus.plugln.extend.Joins;
 import icu.mhb.mybatisplus.plugln.keyword.DefaultFuncKeyWord;
 import icu.mhb.mybatisplus.plugln.keyword.IFuncKeyWord;
+import icu.mhb.mybatisplus.plugln.tookit.*;
+import icu.mhb.mybatisplus.plugln.tookit.ArrayUtils;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
-import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
-import icu.mhb.mybatisplus.plugln.tookit.Lists;
 import icu.mhb.mybatisplus.plugln.tookit.StringUtils;
-import icu.mhb.mybatisplus.plugln.tookit.TableAliasCache;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.ibatis.reflection.property.PropertyNamer;
@@ -40,6 +41,8 @@ import org.mybatis.spring.SqlSessionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.Resource;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -111,6 +114,10 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
      */
     protected boolean hasDistinct;
 
+    /**
+     * 自定义别名map
+     */
+    protected Map<R, String> customAliasMap = Maps.newHasMap();
 
     /**
      * 关键字获取
@@ -215,7 +222,7 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
             }
 
             if (segment instanceof AbstractWrapper) {
-                conditionCount += processAbstractWrapper(alias, (AbstractWrapper)segment, id);
+                conditionCount += processAbstractWrapper(alias, (AbstractWrapper) segment, id);
                 continue;
             }
 
@@ -228,7 +235,7 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
                 normalSegments.add(i, () -> sql);
             } else {
                 String sql = sqlSegment.replaceAll(JoinConstant.MP_PARAMS_NAME,
-                                                 JoinConstant.MP_PARAMS_NAME + StringPool.DOT + id);
+                        JoinConstant.MP_PARAMS_NAME + StringPool.DOT + id);
                 normalSegments.add(i, () -> sql);
             }
         }
@@ -274,7 +281,7 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
             if (sqlSegment.contains("#{")) {
                 having.remove(segment);
                 having.add(i, () -> sqlSegment.replaceAll(JoinConstant.MP_PARAMS_NAME,
-                                                         JoinConstant.MP_PARAMS_NAME + StringPool.DOT + id));
+                        JoinConstant.MP_PARAMS_NAME + StringPool.DOT + id));
             }
         }
     }
@@ -350,6 +357,165 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
 
         return null;
     }
+
+    /**
+     * 添加实体构建基础条件
+     *
+     * @param entity 实体对象
+     * @return Children
+     */
+    public Children addObjConditions(Object obj, Class<?> groupClass) {
+        Class<?> objClass = obj.getClass();
+        List<Field> fieldList = ReflectionKit.getFieldList(obj.getClass());
+        for (Field field : fieldList) {
+            ConditionAnnoVal conditionAnnoVal = getConditionAnnoVal(field);
+            if (conditionAnnoVal == null) {
+                continue;
+            }
+            if (ArrayUtils.isNotEmpty(conditionAnnoVal.getGroup())) {
+                if (groupClass != null && !ArrayUtils.contains(conditionAnnoVal.getGroup(), groupClass)) {
+                    continue;
+                }
+            }
+
+            R r = getConditionR(obj.getClass(), field);
+            String tableAlias = StringUtils.isNotBlank(conditionAnnoVal.getTableAlias()) ? conditionAnnoVal.getTableAlias() : getMasterTableAlias();
+            String columnAlias = StringUtils.isNotBlank(conditionAnnoVal.getMappingColum()) ? conditionAnnoVal.getMappingColum() : StringUtils.camelToUnderline(conditionAnnoVal.getMappingColum());
+            customAliasMap.put(r, tableAlias + StringPool.DOT + columnAlias);
+            Object fieldValue = ReflectionKit.getFieldValue(obj, field.getName());
+
+            switch (conditionAnnoVal.getType()) {
+                case EQ:
+                    eq(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
+                case GT:
+                    gt(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
+                case GE:
+                    ge(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
+                case LT:
+                    lt(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
+                case LE:
+                    le(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
+                case NE:
+                    ne(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
+                case IN:
+                    in(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
+                case LIKE:
+                    like(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
+                case LIKE_LEFT:
+                    likeLeft(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
+                case LIKE_RIGHT:
+                    likeRight(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
+                case NOT_LIKE:
+                    notLike(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
+                case NOT_LIKE_LEFT:
+                    notLikeLeft(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
+                case NOT_LIKE_RIGHT:
+                    notLikeRight(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
+            }
+        }
+
+        return typedThis;
+    }
+
+    private ConditionAnnoVal getConditionAnnoVal(Field field) {
+        // 等于条件
+        if (field.isAnnotationPresent(Eq.class)) {
+            Eq annotation = field.getAnnotation(Eq.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.EQ);
+        }
+
+        // 大于条件
+        if (field.isAnnotationPresent(Gt.class)) {
+            Gt annotation = field.getAnnotation(Gt.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.GT);
+        }
+
+        // 大于等于条件
+        if (field.isAnnotationPresent(Ge.class)) {
+            Ge annotation = field.getAnnotation(Ge.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.GE);
+        }
+
+        // 小于条件
+        if (field.isAnnotationPresent(Lt.class)) {
+            Lt annotation = field.getAnnotation(Lt.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.LT);
+        }
+
+        // 小于等于条件
+        if (field.isAnnotationPresent(Le.class)) {
+            Le annotation = field.getAnnotation(Le.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.LE);
+        }
+
+        // 不等于条件
+        if (field.isAnnotationPresent(Ne.class)) {
+            Ne annotation = field.getAnnotation(Ne.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.NE);
+        }
+
+        // IN条件
+        if (field.isAnnotationPresent(In.class)) {
+            In annotation = field.getAnnotation(In.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.IN);
+        }
+
+        // LIKE条件
+        if (field.isAnnotationPresent(Like.class)) {
+            Like annotation = field.getAnnotation(Like.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.LIKE);
+        }
+
+        // 左LIKE条件
+        if (field.isAnnotationPresent(LikeLeft.class)) {
+            LikeLeft annotation = field.getAnnotation(LikeLeft.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.LIKE_LEFT);
+        }
+
+        // 右LIKE条件
+        if (field.isAnnotationPresent(LikeRight.class)) {
+            LikeRight annotation = field.getAnnotation(LikeRight.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.LIKE_RIGHT);
+        }
+
+        // NOT LIKE条件
+        if (field.isAnnotationPresent(NotLike.class)) {
+            NotLike annotation = field.getAnnotation(NotLike.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.NOT_LIKE);
+        }
+
+        // NOT LIKE LEFT条件
+        if (field.isAnnotationPresent(NotLikeLeft.class)) {
+            NotLikeLeft annotation = field.getAnnotation(NotLikeLeft.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.NOT_LIKE_LEFT);
+        }
+
+        // NOT LIKE RIGHT条件
+        if (field.isAnnotationPresent(NotLikeRight.class)) {
+            NotLikeRight annotation = field.getAnnotation(NotLikeRight.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.NOT_LIKE_RIGHT);
+        }
+
+        return null;
+    }
+
+    /**
+     * 只为避开类型检查
+     */
+    public abstract R getConditionR(Class<?> entityClass, Field field);
 
     public <R> R executeQuery(SFunction<JoinBaseMapper<T>, R> function) {
         SqlSession sqlSession = SqlHelper.sqlSession(getEntityOrMasterClass());

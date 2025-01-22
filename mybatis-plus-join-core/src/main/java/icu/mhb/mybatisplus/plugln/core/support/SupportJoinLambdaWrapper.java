@@ -4,6 +4,7 @@ import static com.baomidou.mybatisplus.core.enums.SqlKeyword.*;
 import static com.baomidou.mybatisplus.core.enums.WrapperKeyword.APPLY;
 import static java.util.stream.Collectors.joining;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -107,12 +108,21 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
     }
 
     protected String columnToString(SFunction<?, ?> column, boolean onlyColumn, boolean saveType) {
+        if (customAliasMap.containsKey(column)) {
+            return customAliasMap.get(column);
+        }
+        
         LambdaMeta lambdaMeta = LambdaUtils.extract(column);
         String columnToString = getColumn(lambdaMeta, true, saveType);
         if (StringUtils.isNotBlank(columnToString)) {
             return getAliasAndField(lambdaMeta.getInstantiatedClass(), columnToString);
         }
         return columnToString;
+    }
+
+    @Override
+    public SFunction<T, ?> getConditionR(Class<?> entityClass, Field field) {
+        return (t -> IdUtil.getSimpleUUID());
     }
 
     /**
@@ -231,7 +241,6 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         aliasMap.put(getEntityOrMasterClass(), alias);
         return typedThis;
     }
-
 
     /**
      * 获取类别名
@@ -416,8 +425,8 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      */
     protected List<String> getSelectColumn(List<As<T>> columns) {
         return columns.stream()
-                     .map(this::processColumnAs)
-                     .collect(Collectors.toList());
+                .map(this::processColumnAs)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -425,13 +434,13 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      */
     private String processColumnAs(As<T> as) {
         String column = as.getColumnStr().toString();
-        
+
         if (as.getColumn() != null) {
             column = processColumnWithLambda(as);
         } else {
             column = processColumnWithoutLambda(as);
         }
-        
+
         return appendAliasIfNeeded(column, as.getAlias());
     }
 
@@ -444,8 +453,8 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
             String column = getAliasAndField(columnNotAlias);
             // 设置字段映射
             setFieldMappingList(
-                StringUtils.isNotBlank(as.getFieldName()) ? as.getFieldName() : as.getAlias(), 
-                as.getAlias()
+                    StringUtils.isNotBlank(as.getFieldName()) ? as.getFieldName() : as.getAlias(),
+                    as.getAlias()
             );
             return column;
         }
@@ -456,11 +465,11 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
      * 处理不带Lambda表达式的列
      */
     private String processColumnWithoutLambda(As<T> as) {
-        String column = as.isIfQuotes() ? StringUtils.quotaMark(as.getColumnStr().toString()) 
-                                       : as.getColumnStr().toString();
+        String column = as.isIfQuotes() ? StringUtils.quotaMark(as.getColumnStr().toString())
+                : as.getColumnStr().toString();
         setFieldMappingList(
-            StringUtils.isNotBlank(as.getFieldName()) ? as.getFieldName() : as.getAlias(), 
-            as.getAlias()
+                StringUtils.isNotBlank(as.getFieldName()) ? as.getFieldName() : as.getAlias(),
+                as.getAlias()
         );
         return column;
     }
@@ -490,29 +499,29 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
     protected String getColumn(LambdaMeta lambda, boolean onlyColumn, boolean saveField) {
         // 参数校验
         Assert.notNull(lambda, "lambda cannot be null");
-        
+
         // 获取字段名和类
         String fieldName = PropertyNamer.methodToProperty(lambda.getImplMethodName());
         Class<?> entityClass = getTableClass(lambda.getInstantiatedClass());
-        
+
         // 初始化或获取列缓存
         initColumnMapIfNeeded(entityClass);
         Map<String, ColumnCache> classColumnMap = getColumnMap(entityClass);
-        
+
         // 获取列缓存
         String cacheKey = LambdaUtils.formatKey(fieldName);
         ColumnCache columnCache = classColumnMap.get(cacheKey);
-        Assert.notNull(columnCache, "can not find lambda cache for property [%s] of entity [%s]", 
-                      fieldName, entityClass.getName());
-        
+        Assert.notNull(columnCache, "can not find lambda cache for property [%s] of entity [%s]",
+                fieldName, entityClass.getName());
+
         // 获取列信息
         String column = onlyColumn ? columnCache.getColumn() : columnCache.getColumnSelect();
-        
+
         // 保存字段映射
         if (saveField) {
             setFieldMappingList(fieldName, column);
         }
-        
+
         return column;
     }
 

@@ -29,7 +29,6 @@ import static icu.mhb.mybatisplus.plugln.constant.StringPool.*;
  * @email mhb0409@qq.com
  * @time 2024/6/21
  */
-@SupportedSourceVersion(SourceVersion.RELEASE_8)
 @SupportedAnnotationTypes("icu.mhb.mybatisplus.plugln.annotations.JoinChainModel")
 public class JoinChainModelProcessor extends AbstractProcessor {
 
@@ -40,7 +39,7 @@ public class JoinChainModelProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "cssc");
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "开始Chain生成");
         for (TypeElement annotation : annotations) {
             Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
             for (Element element : annotatedElements) {
@@ -64,7 +63,6 @@ public class JoinChainModelProcessor extends AbstractProcessor {
                 StringBuilder sb = new StringBuilder();
 
                 List<Element> elementList = getAllFields(element);
-                processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "所有的字段：：" + elementList.toString());
                 // 生成基础信息
                 buildClassBaseInfo(sb, packageName, rawPackageName, rawClassName, className);
                 sb.append(NEWLINE);
@@ -99,7 +97,6 @@ public class JoinChainModelProcessor extends AbstractProcessor {
     }
 
     private List<Element> getAllFields(TypeElement element) {
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "进入了getAllFields");
         List<Element> fields = element.getEnclosedElements()
                 .stream()
                 .filter(e -> e.getKind().isField())
@@ -109,9 +106,7 @@ public class JoinChainModelProcessor extends AbstractProcessor {
         processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, fields.toString());
 
         TypeMirror superClass = element.getSuperclass();
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "superClass的類型是:" + superClass.toString());
         if (superClass instanceof DeclaredType) {
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "進去了，superClass的類型是:" + superClass.toString());
             TypeElement superTypeElement = (TypeElement) ((DeclaredType) superClass).asElement();
             fields.addAll(getAllFields(superTypeElement));
         }
@@ -266,5 +261,11 @@ public class JoinChainModelProcessor extends AbstractProcessor {
 
     private String capitalize(String str) {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+
+    @Override
+    public SourceVersion getSupportedSourceVersion() {
+        // 返回当前JDK支持的最新版本
+        return SourceVersion.latest();
     }
 }

@@ -24,6 +24,7 @@ import icu.mhb.mybatisplus.plugln.core.support.SupportJoinWrapper;
 import icu.mhb.mybatisplus.plugln.entity.*;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
+import icu.mhb.mybatisplus.plugln.tookit.ArrayUtils;
 import icu.mhb.mybatisplus.plugln.tookit.StringUtils;
 import icu.mhb.mybatisplus.plugln.tookit.*;
 import icu.mhb.mybatisplus.plugln.tookit.fun.FunComm;
@@ -614,9 +615,16 @@ public abstract class SupportJoinChainQueryWrapper<T, Children extends SupportJo
         return super.getJoinSql();
     }
 
+    @Override
+    public String getConditionR(Class<?> entityClass, Field field) {
+        return IdUtil.getSimpleUUID();
+    }
 
     @Override
     protected String columnToString(String column) {
+        if (customAliasMap.containsKey(column)) {
+            return customAliasMap.get(column);
+        }
         return column;
     }
 

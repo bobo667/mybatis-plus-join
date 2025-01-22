@@ -15,6 +15,7 @@ import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
 import icu.mhb.mybatisplus.plugln.entity.TableFieldInfoExt;
 import icu.mhb.mybatisplus.plugln.enums.JoinSqlMethod;
 import icu.mhb.mybatisplus.plugln.enums.PropertyType;
+import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
 import icu.mhb.mybatisplus.plugln.injector.JoinDefaultResultType;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
@@ -86,7 +87,7 @@ public class JoinInterceptor implements Interceptor {
         Object returnClass = paramMap.getOrDefault(JoinConstant.CLASS_PARAMS_NAME, null);
 
         // count查询不需要返回类型
-        if (ms.getId().endsWith("joinSelectCount")) {
+        if (ms.getId().endsWith(JoinSqlMethod.JOIN_SELECT_COUNT.getMethod())) {
             if (!(ew instanceof SupportJoinWrapper)) {
                 return invocation.proceed();
             }
