@@ -1,4 +1,6 @@
 package icu.mhb.mybatisplus.plugln.core.func;
+
+import com.baomidou.mybatisplus.core.conditions.interfaces.Compare;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 
 /**
@@ -10,7 +12,9 @@ import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
  * @email mhb0409@qq.com
  * @time 2022/12/30
  */
-public interface JoinCompareFun<Children, T> {
+public interface JoinCompareFun<Children, T> extends Compare<Children, SFunction<T, ?>> {
+
+
 
     /**
      * ignore

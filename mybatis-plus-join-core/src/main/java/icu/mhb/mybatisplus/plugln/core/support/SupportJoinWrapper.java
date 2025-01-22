@@ -358,6 +358,10 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
         return null;
     }
 
+    public Children addObjConditions(Object obj) {
+        return addObjConditions(obj, null);
+    }
+
     /**
      * 添加实体构建基础条件
      *
@@ -380,7 +384,7 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
 
             R r = getConditionR(obj.getClass(), field);
             String tableAlias = StringUtils.isNotBlank(conditionAnnoVal.getTableAlias()) ? conditionAnnoVal.getTableAlias() : getMasterTableAlias();
-            String columnAlias = StringUtils.isNotBlank(conditionAnnoVal.getMappingColum()) ? conditionAnnoVal.getMappingColum() : StringUtils.camelToUnderline(conditionAnnoVal.getMappingColum());
+            String columnAlias = StringUtils.isNotBlank(conditionAnnoVal.getMappingColum()) ? conditionAnnoVal.getMappingColum() : StringUtils.camelToUnderline(field.getName());
             customAliasMap.put(r, tableAlias + StringPool.DOT + columnAlias);
             Object fieldValue = ReflectionKit.getFieldValue(obj, field.getName());
 

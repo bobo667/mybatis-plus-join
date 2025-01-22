@@ -111,7 +111,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         if (customAliasMap.containsKey(column)) {
             return customAliasMap.get(column);
         }
-        
+
         LambdaMeta lambdaMeta = LambdaUtils.extract(column);
         String columnToString = getColumn(lambdaMeta, true, saveType);
         if (StringUtils.isNotBlank(columnToString)) {
@@ -122,7 +122,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
 
     @Override
     public SFunction<T, ?> getConditionR(Class<?> entityClass, Field field) {
-        return (t -> IdUtil.getSimpleUUID());
+        return (t -> entityClass.getName() + field.getName() + StringPool.AMPERSAND + IdUtil.getSimpleUUID());
     }
 
     /**
