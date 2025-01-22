@@ -34,11 +34,11 @@
     <url>https://github.com/bobo667/mybatis-plus-join</url>
   </scm>
   <properties>
-    <lombok.version>1.18.10</lombok.version>
-    <autoService.version>1.0.1</autoService.version>
     <java.version>1.8</java.version>
-    <mp.version>3.5.3.1</mp.version>
     <revision>2.0.6</revision>
+    <mp.version>3.5.3.1</mp.version>
+    <autoService.version>1.0.1</autoService.version>
+    <lombok.version>1.18.10</lombok.version>
   </properties>
   <build>
     <plugins>

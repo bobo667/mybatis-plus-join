@@ -85,17 +85,6 @@ public class JoinInterceptor implements Interceptor {
         Object ew = paramMap.get(Constants.WRAPPER);
         Object returnClass = paramMap.getOrDefault(JoinConstant.CLASS_PARAMS_NAME, null);
 
-        // 分页查询特殊处理
-        if (ms.getId().endsWith("joinSelectPage")) {
-            if (!paramMap.containsKey("page")) {
-                throw Exceptions.mpje("Page parameter is missing for method: %s", ms.getId());
-            }
-            Object page = paramMap.get("page");
-            if (!(page instanceof IPage)) {
-                throw Exceptions.mpje("Invalid page parameter type for method: %s", ms.getId());
-            }
-        }
-
         // count查询不需要返回类型
         if (ms.getId().endsWith("joinSelectCount")) {
             if (!(ew instanceof SupportJoinWrapper)) {
@@ -387,9 +376,9 @@ public class JoinInterceptor implements Interceptor {
                                              Class<?> clz) {
         try {
             Field field = ClassUtils.getDeclaredField(clz, fieldMapping.getFieldName());
+
             if (field == null) {
-                throw Exceptions.mpje("Field not found: %s in class: %s",
-                        fieldMapping.getFieldName(), clz.getName());
+                return null;
             }
 
             if (fieldMapping.getTableFieldInfoExt() != null) {
