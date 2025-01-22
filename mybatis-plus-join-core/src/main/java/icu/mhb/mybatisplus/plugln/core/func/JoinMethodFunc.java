@@ -3,6 +3,8 @@ package icu.mhb.mybatisplus.plugln.core.func;
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
 
+import icu.mhb.mybatisplus.plugln.entity.JoinLambdaModel;
+import icu.mhb.mybatisplus.plugln.tookit.StringUtils;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 
 import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
@@ -141,6 +143,19 @@ public interface JoinMethodFunc<T> {
         return join(clz, logicDelete).leftJoin(joinTableField, masterTableField);
     }
 
+    default <J, F> JoinWrapper<J, T> leftJoin(JoinLambdaModel<J, F> joinLambdaModel) {
+        JoinWrapper<J, T> wrapper = null;
+        if (joinLambdaModel.getLogicDelete() != null) {
+            wrapper = join(joinLambdaModel.getClz(), joinLambdaModel.getAlias(), joinLambdaModel.getLogicDelete()).leftJoin(joinLambdaModel.getJoinTableField(), joinLambdaModel.getMasterTableField());
+        } else {
+            wrapper = join(joinLambdaModel.getClz(), joinLambdaModel.getAlias()).leftJoin(joinLambdaModel.getJoinTableField(), joinLambdaModel.getMasterTableField());
+        }
+        if (null != joinLambdaModel.getConsumer()) {
+            joinLambdaModel.getConsumer().accept((JoinWrapper<J, F>) wrapper);
+        }
+        return wrapper;
+    }
+
     default <J, F> JoinWrapper<J, T> leftJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField) {
         return join(clz).leftJoin(joinTableField, masterTableField);
     }
@@ -181,6 +196,20 @@ public interface JoinMethodFunc<T> {
         return joinWrapper.end();
     }
 
+    default <J, F> JoinWrapper<J, T> rightJoin(JoinLambdaModel<J, F> joinLambdaModel) {
+        JoinWrapper<J, T> wrapper = null;
+        if (joinLambdaModel.getLogicDelete() != null) {
+            wrapper = join(joinLambdaModel.getClz(), joinLambdaModel.getAlias(), joinLambdaModel.getLogicDelete()).rightJoin(joinLambdaModel.getJoinTableField(), joinLambdaModel.getMasterTableField());
+        } else {
+            wrapper = join(joinLambdaModel.getClz(), joinLambdaModel.getAlias()).rightJoin(joinLambdaModel.getJoinTableField(), joinLambdaModel.getMasterTableField());
+        }
+        if (null != joinLambdaModel.getConsumer()) {
+            joinLambdaModel.getConsumer().accept((JoinWrapper<J, F>) wrapper);
+        }
+        return wrapper;
+    }
+
+
     default <J, F> JoinLambdaWrapper<T> rightJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, Consumer<JoinWrapper<J, T>> consumer) {
         return rightJoin(clz, joinTableField, masterTableField, null, consumer);
     }
@@ -199,6 +228,20 @@ public interface JoinMethodFunc<T> {
 
     default <J, F> JoinWrapper<J, T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField) {
         return join(clz).innerJoin(joinTableField, masterTableField);
+    }
+
+
+    default <J, F> JoinWrapper<J, T> innerJoin(JoinLambdaModel<J, F> joinLambdaModel) {
+        JoinWrapper<J, T> wrapper = null;
+        if (joinLambdaModel.getLogicDelete() != null) {
+            wrapper = join(joinLambdaModel.getClz(), joinLambdaModel.getAlias(), joinLambdaModel.getLogicDelete()).innerJoin(joinLambdaModel.getJoinTableField(), joinLambdaModel.getMasterTableField());
+        } else {
+            wrapper = join(joinLambdaModel.getClz(), joinLambdaModel.getAlias()).innerJoin(joinLambdaModel.getJoinTableField(), joinLambdaModel.getMasterTableField());
+        }
+        if (null != joinLambdaModel.getConsumer()) {
+            joinLambdaModel.getConsumer().accept((JoinWrapper<J, F>) wrapper);
+        }
+        return wrapper;
     }
 
     default <J, F> JoinLambdaWrapper<T> innerJoin(Class<J> clz, SFunction<J, Object> joinTableField, SFunction<F, Object> masterTableField, String alias, Consumer<JoinWrapper<J, T>> consumer) {

@@ -13,9 +13,7 @@ import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
  * @email mhb0409@qq.com
  * @time 2022/12/30
  */
-public interface JoinCompareFun<Children, T> extends Compare<Children, SFunction<T, ?>> {
-
-
+public interface JoinCompareFun<Children, T> {
 
     /**
      * ignore
@@ -154,89 +152,5 @@ public interface JoinCompareFun<Children, T> extends Compare<Children, SFunction
      * @return children
      */
     <J, J2> Children notBetween(boolean condition, SFunction<T, Object> column, SFunction<J, Object> val1, SFunction<J2, Object> val2);
-
-    /**
-     * 当值不为空时才执行eq操作
-     */
-    default Children eqIfNull(SFunction<T, Object> column, Object val) {
-        return eq(ObjectUtils.isNotEmpty(val), column, val);
-    }
-
-    /**
-     * 当值不为空时才执行ne操作
-     */
-    default Children neIfNull(SFunction<T, Object> column, Object val) {
-        return ne(ObjectUtils.isNotEmpty(val), column, val);
-    }
-
-    /**
-     * 当值不为空时才执行gt操作
-     */
-    default Children gtIfNull(SFunction<T, Object> column, Object val) {
-        return gt(ObjectUtils.isNotEmpty(val), column, val);
-    }
-
-    /**
-     * 当值不为空时才执行ge操作
-     */
-    default Children geIfNull(SFunction<T, Object> column, Object val) {
-        return ge(ObjectUtils.isNotEmpty(val), column, val);
-    }
-
-    /**
-     * 当值不为空时才执行lt操作
-     */
-    default Children ltIfNull(SFunction<T, Object> column, Object val) {
-        return lt(ObjectUtils.isNotEmpty(val), column, val);
-    }
-
-    /**
-     * 当值不为空时才执行le操作
-     */
-    default Children leIfNull(SFunction<T, Object> column, Object val) {
-        return le(ObjectUtils.isNotEmpty(val), column, val);
-    }
-
-    /**
-     * 当值不为空时才执行like操作
-     */
-    default Children likeIfNull(SFunction<T, Object> column, Object val) {
-        return like(ObjectUtils.isNotEmpty(val), column, val);
-    }
-
-    /**
-     * 当值不为空时才执行notLike操作
-     */
-    default Children notLikeIfNull(SFunction<T, Object> column, Object val) {
-        return notLike(ObjectUtils.isNotEmpty(val), column, val);
-    }
-
-    /**
-     * 当值不为空时才执行likeLeft操作
-     */
-    default Children likeLeftIfNull(SFunction<T, Object> column, Object val) {
-        return likeLeft(ObjectUtils.isNotEmpty(val), column, val);
-    }
-
-    /**
-     * 当值不为空时才执行likeRight操作
-     */
-    default Children likeRightIfNull(SFunction<T, Object> column, Object val) {
-        return likeRight(ObjectUtils.isNotEmpty(val), column, val);
-    }
-
-    /**
-     * 当两个值都不为空时才执行between操作
-     */
-    default Children betweenIfNull(SFunction<T, Object> column, Object val1, Object val2) {
-        return between(ObjectUtils.isNotEmpty(val1) && ObjectUtils.isNotEmpty(val2), column, val1, val2);
-    }
-
-    /**
-     * 当两个值都不为空时才执行notBetween操作
-     */
-    default Children notBetweenIfNull(SFunction<T, Object> column, Object val1, Object val2) {
-        return notBetween(ObjectUtils.isNotEmpty(val1) && ObjectUtils.isNotEmpty(val2), column, val1, val2);
-    }
 
 }

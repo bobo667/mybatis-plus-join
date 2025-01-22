@@ -10,7 +10,7 @@
  * 5.不可二次分发开源参与同类竞品，如有想法可联系团队mhb0409@qq.com商议合作。
  * 6.若您的项目无法满足以上几点，需要更多功能代码，获取Nb-LowCode商业授权许可，请在官网购买授权，地址为 https://nblowcode.aicats.cc
  */
-package icu.mhb.mybatisplus.plugln.conditions;
+package icu.mhb.mybatisplus.plugln.annotations.conditions;
 
 import java.lang.annotation.*;
 
@@ -22,7 +22,7 @@ import java.lang.annotation.*;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD})
-public @interface LikeRight {
+public @interface Ne {
 
     /**
      * 默认主表的字段 如果是子表则需要对应上子表的别名

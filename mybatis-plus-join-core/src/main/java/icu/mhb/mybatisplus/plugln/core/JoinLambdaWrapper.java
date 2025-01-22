@@ -365,7 +365,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         // 优化SQL处理
         if (StringUtils.isNotBlank(sql)) {
             String processedSql = sql.replace(Constants.WHERE, StringPool.SPACE)
-                                   .replaceAll(JoinConstant.MP_PARAMS_NAME, 
+                                   .replaceAll(JoinConstant.MP_PARAMS_NAME,
                                              JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
             joinConditionSql.add(processedSql);
         }
@@ -374,7 +374,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         if (CollectionUtils.isNotEmpty(sunQueryList)) {
             sunQueryList.forEach(item -> {
                 String processedValue = item.getStringValue()
-                                         .replaceAll(JoinConstant.MP_PARAMS_NAME, 
+                                         .replaceAll(JoinConstant.MP_PARAMS_NAME,
                                                    JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
                 item.setStringValue(processedValue);
             });
@@ -385,7 +385,7 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         if (CollectionUtils.isNotEmpty(joinSql)) {
             joinSql.forEach(item -> {
                 String processedValue = item.getStringValue()
-                                         .replaceAll(JoinConstant.MP_PARAMS_NAME, 
+                                         .replaceAll(JoinConstant.MP_PARAMS_NAME,
                                                    JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
                 item.setStringValue(processedValue);
             });
@@ -524,9 +524,4 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         super.initNeed();
         final Class<T> entityClass = getEntityClass();
     }
-
-
-
-
-
 }

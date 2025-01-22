@@ -5,28 +5,18 @@ import com.baomidou.mybatisplus.core.conditions.ISqlSegment;
 import com.baomidou.mybatisplus.core.conditions.SharedString;
 import com.baomidou.mybatisplus.core.conditions.segments.*;
 import com.baomidou.mybatisplus.core.enums.SqlKeyword;
-import com.baomidou.mybatisplus.core.exceptions.MybatisPlusException;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.*;
-import com.baomidou.mybatisplus.core.toolkit.support.ColumnCache;
-import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
-import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
 import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
-import icu.mhb.mybatisplus.plugln.annotations.TableAlias;
+import icu.mhb.mybatisplus.plugln.annotations.conditions.*;
 import icu.mhb.mybatisplus.plugln.base.mapper.JoinBaseMapper;
-import icu.mhb.mybatisplus.plugln.conditions.*;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
-import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
-import icu.mhb.mybatisplus.plugln.core.func.JoinCompareFun;
-import icu.mhb.mybatisplus.plugln.core.func.JoinOrderFunc;
+import icu.mhb.mybatisplus.plugln.core.func.IfCompareFun;
 import icu.mhb.mybatisplus.plugln.entity.*;
 import icu.mhb.mybatisplus.plugln.enums.ConditionType;
-import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
-import icu.mhb.mybatisplus.plugln.exception.Exceptions;
-import icu.mhb.mybatisplus.plugln.extend.Joins;
 import icu.mhb.mybatisplus.plugln.keyword.DefaultFuncKeyWord;
 import icu.mhb.mybatisplus.plugln.keyword.IFuncKeyWord;
 import icu.mhb.mybatisplus.plugln.tookit.*;
@@ -34,23 +24,14 @@ import icu.mhb.mybatisplus.plugln.tookit.ArrayUtils;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 import icu.mhb.mybatisplus.plugln.tookit.StringUtils;
 import lombok.Getter;
-import lombok.Setter;
-import org.apache.ibatis.reflection.property.PropertyNamer;
 import org.apache.ibatis.session.SqlSession;
 import org.mybatis.spring.SqlSessionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.annotation.Resource;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import static com.baomidou.mybatisplus.core.enums.SqlKeyword.*;
-import static com.baomidou.mybatisplus.core.enums.WrapperKeyword.APPLY;
-import static com.baomidou.mybatisplus.core.toolkit.StringPool.NEWLINE;
 import static com.baomidou.mybatisplus.core.toolkit.StringPool.SPACE;
 import static java.util.stream.Collectors.joining;
 
@@ -64,7 +45,7 @@ import static java.util.stream.Collectors.joining;
  * @see com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
  */
 @SuppressWarnings("all")
-public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapper<T, R, Children>> extends AbstractWrapper<T, R, Children> {
+public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapper<T, R, Children>> extends AbstractWrapper<T, R, Children> implements IfCompareFun<Children, R> {
 
     /**
      * 一对一 构建列表
@@ -390,43 +371,46 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
 
             switch (conditionAnnoVal.getType()) {
                 case EQ:
-                    eq(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    eqIfNull(r, fieldValue);
                     break;
                 case GT:
-                    gt(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    gtIfNull(r, fieldValue);
                     break;
                 case GE:
-                    ge(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    geIfNull(r, fieldValue);
                     break;
                 case LT:
-                    lt(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    ltIfNull(r, fieldValue);
                     break;
                 case LE:
-                    le(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    leIfNull(r, fieldValue);
                     break;
                 case NE:
-                    ne(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    neIfNull(r, fieldValue);
                     break;
                 case IN:
                     in(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
                     break;
+                case NOT_IN:
+                    notIn(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    break;
                 case LIKE:
-                    like(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    likeIfNull(r, fieldValue);
                     break;
                 case LIKE_LEFT:
-                    likeLeft(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    likeLeftIfNull(r, fieldValue);
                     break;
                 case LIKE_RIGHT:
-                    likeRight(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    likeRightIfNull(r, fieldValue);
                     break;
                 case NOT_LIKE:
-                    notLike(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    notLikeIfNull(r, fieldValue);
                     break;
                 case NOT_LIKE_LEFT:
-                    notLikeLeft(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    notLikeLeftIfNull(r, fieldValue);
                     break;
                 case NOT_LIKE_RIGHT:
-                    notLikeRight(ObjectUtils.isNotEmpty(fieldValue), r, fieldValue);
+                    notLikeRightIfNull(r, fieldValue);
                     break;
             }
         }
@@ -475,6 +459,12 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
         if (field.isAnnotationPresent(In.class)) {
             In annotation = field.getAnnotation(In.class);
             return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.IN);
+        }
+
+        // Not IN条件
+        if (field.isAnnotationPresent(NotIn.class)) {
+            NotIn annotation = field.getAnnotation(NotIn.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.NOT_IN);
         }
 
         // LIKE条件
