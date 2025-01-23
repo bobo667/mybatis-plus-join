@@ -53,7 +53,7 @@ mybatis plus：3.2.0版本依赖地址：
  <dependency>
    <groupId>icu.mhb</groupId>
    <artifactId>mybatis-plus-join-boot-starter</artifactId>
-   <version>2.0.4</version>
+   <version>2.0.6</version>
 </dependency>
 ```
 
@@ -62,7 +62,7 @@ apt依赖地址：
  <dependency>
    <groupId>icu.mhb</groupId>
    <artifactId>mybatis-plus-join-processor</artifactId>
-   <version>2.0.4</version>
+   <version>2.0.6</version>
 </dependency>
 ```
 
@@ -76,7 +76,7 @@ apt依赖地址：
 | 3.2.0           | 1.2.0                                                                                      |
 | 3.3.1 - 3.42    | 1.0.2、1.3.4.1                                                                              |
 | 3.4.3.4 - 3.5.2 | 1.0.3 、1.0.4、1.0.5、1.0.6、1.0.8、1.0.9、1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.6、1.3.1、1.3.2、1.3.3 |
-| 3.5.3 - *       | 1.3.3.1、1.3.4、1.3.5、1.3.5.1、1.3.6、1.3.7、1.3.8、2.0.4                                        |
+| 3.5.3 - *       | 1.3.3.1、1.3.4、1.3.5、1.3.5.1、1.3.6、1.3.7、1.3.8、2.0.4、2.0.6                                  |
 
 
 ## 2.0 版本发布啦
