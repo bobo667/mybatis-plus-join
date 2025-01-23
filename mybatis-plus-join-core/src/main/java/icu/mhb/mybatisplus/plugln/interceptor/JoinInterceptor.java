@@ -78,13 +78,24 @@ public class JoinInterceptor implements Interceptor {
         Object[] args = invocation.getArgs();
         MappedStatement ms = (MappedStatement) args[0];
 
+        if (!ms.getId().endsWith(JoinSqlMethod.JOIN_SELECT_COUNT.getMethod())
+                && !ms.getId().endsWith(JoinSqlMethod.JOIN_SELECT_LIST.getMethod())
+                && !ms.getId().endsWith(JoinSqlMethod.JOIN_SELECT_PAGE.getMethod())
+                && !ms.getId().endsWith(JoinSqlMethod.JOIN_SELECT_ONE.getMethod())) {
+            return invocation.proceed();
+        }
+
         if (!(args[1] instanceof Map)) {
             return invocation.proceed();
         }
 
         Map<String, Object> paramMap = (Map<String, Object>) args[1];
-        Object ew = paramMap.get(Constants.WRAPPER);
+        Object ew = paramMap.getOrDefault(Constants.WRAPPER, null);
         Object returnClass = paramMap.getOrDefault(JoinConstant.CLASS_PARAMS_NAME, null);
+
+        if (null == ew) {
+            return invocation.proceed();
+        }
 
         // count查询不需要返回类型
         if (ms.getId().endsWith(JoinSqlMethod.JOIN_SELECT_COUNT.getMethod())) {
