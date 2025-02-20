@@ -24,8 +24,11 @@ import icu.mhb.mybatisplus.plugln.tookit.ArrayUtils;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 import icu.mhb.mybatisplus.plugln.tookit.StringUtils;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.SqlSession;
 import org.mybatis.spring.SqlSessionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Field;
@@ -44,6 +47,7 @@ import static java.util.stream.Collectors.joining;
  * @time 8/24/21 6:28 PM
  * @see com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
  */
+@Slf4j
 @SuppressWarnings("all")
 public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapper<T, R, Children>> extends AbstractWrapper<T, R, Children> implements IfCompareFun<Children, R> {
 
@@ -434,6 +438,25 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
                 case NOT_LIKE_RIGHT:
                     notLikeRightIfNull(r, fieldValue);
                     break;
+                case BETWEEN:
+                    if (ObjectUtils.isNotEmpty(fieldValue)) {
+                        if (fieldValue instanceof Collection) {
+                            Collection collection = (Collection) fieldValue;
+                            betweenIfNull(r, CollUtil.get(collection, 0), CollUtil.get(collection, 1));
+                        } else if (fieldValue.getClass().isArray()) {
+                            Object[] vals = (Object[]) fieldValue;
+                            // 如果是数组类型，转换为集合
+                            betweenIfNull(r, ArrayUtils.get(vals, 0), ArrayUtils.get(vals, 1));
+                        } else if (fieldValue instanceof String) {
+                            // 如果是String则 用逗号分割
+                            String[] vals = ((String) fieldValue).split(",");
+                            betweenIfNull(r, ArrayUtils.get(vals, 0), ArrayUtils.get(vals, 1));
+                        }else {
+                            log.warn("@Between The type of the passed value {} is not supported. Please use Array, List, or a comma-separated string.");
+                        }
+                    }
+
+                    break;
             }
         }
 
@@ -523,6 +546,12 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
         if (field.isAnnotationPresent(NotLikeRight.class)) {
             NotLikeRight annotation = field.getAnnotation(NotLikeRight.class);
             return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.NOT_LIKE_RIGHT);
+        }
+
+        // Between 条件
+        if (field.isAnnotationPresent(Between.class)) {
+            Between annotation = field.getAnnotation(Between.class);
+            return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.BETWEEN);
         }
 
         return null;

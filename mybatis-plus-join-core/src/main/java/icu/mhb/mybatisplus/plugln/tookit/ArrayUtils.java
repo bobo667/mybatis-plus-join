@@ -13,6 +13,7 @@
 
 package icu.mhb.mybatisplus.plugln.tookit;
 
+import java.lang.reflect.Array;
 import java.util.Objects;
 
 /**
@@ -25,6 +26,21 @@ public final class ArrayUtils {
 
 
     private ArrayUtils() {
+    }
+
+    public static <T> T get(T[] array, int index) {
+        if (null == array) {
+            return null;
+        }
+
+        if (index < 0) {
+            index += Array.getLength(array);
+        }
+        try {
+            return (T) Array.get(array, index);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            return null;
+        }
     }
 
     /**

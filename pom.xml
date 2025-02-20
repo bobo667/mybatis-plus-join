@@ -16,7 +16,7 @@
     </modules>
 
     <properties>
-        <revision>2.0.7</revision>
+        <revision>2.0.8</revision>
         <mp.version>3.5.3.1</mp.version>
         <lombok.version>1.18.10</lombok.version>
         <autoService.version>1.0.1</autoService.version>
@@ -91,7 +91,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.6</version>
+                        <version>3.2.7</version>
                         <configuration>
                             <executable>C:\Program Files (x86)\GNU\GnuPG\pub\gpg.exe</executable>
                         </configuration>

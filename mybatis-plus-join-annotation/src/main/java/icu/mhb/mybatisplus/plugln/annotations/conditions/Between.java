@@ -10,19 +10,34 @@
  * 5.不可二次分发开源参与同类竞品，如有想法可联系团队mhb0409@qq.com商议合作。
  * 6.若您的项目无法满足以上几点，需要更多功能代码，获取Nb-LowCode商业授权许可，请在官网购买授权，地址为 https://nblowcode.aicats.cc
  */
-package icu.mhb.mybatisplus.plugln.enums;
+package icu.mhb.mybatisplus.plugln.annotations.conditions;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import java.lang.annotation.*;
 
 /**
  * @author mahuibo
- * @Title: ConditionType
  * @email mhb0409@qq.com
  * @time 2025/1/22
  */
-public enum ConditionType {
+@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.FIELD})
+public @interface Between {
 
-    EQ, GE, GT, IN, LE, LIKE, LT, NE, NOT_IN, NOT_LIKE, LIKE_RIGHT, LIKE_LEFT, NOT_LIKE_RIGHT, NOT_LIKE_LEFT,BETWEEN
+    /**
+     * 默认主表的字段 如果是子表则需要对应上子表的别名
+     */
+    String tableAlias() default "";
+
+    /**
+     * 映射列，如果不写，则默认为当前字段的下划线形式
+     */
+    String mappingColum() default "";
+
+    /**
+     * 组 类似于Valid注解中的组的用法，
+     * 可以用来定义不同情况下的条件是否加入
+     */
+    Class<?>[] group() default {};
 
 }

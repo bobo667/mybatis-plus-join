@@ -26,6 +26,10 @@ public class Vals {
         return new Vals(Lists.newArrayList(objs));
     }
 
+    public static Vals of(Object objs) {
+        return new Vals(Lists.newArrayList(objs));
+    }
+
     public static Vals of(List<Object> valList) {
         return new Vals(valList);
     }

@@ -63,8 +63,6 @@ import java.util.stream.Collectors;
         args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}))
 public class JoinInterceptor implements Interceptor {
 
-    private static final Logger log = LoggerFactory.getLogger(JoinInterceptor.class);
-
     @Autowired(required = false)
     private MybatisPlusJoinConfig mybatisPlusJoinConfig;
 

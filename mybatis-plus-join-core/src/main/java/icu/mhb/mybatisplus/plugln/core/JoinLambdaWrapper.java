@@ -41,6 +41,7 @@ import icu.mhb.mybatisplus.plugln.entity.TableInfoExt;
 import icu.mhb.mybatisplus.plugln.keyword.DefaultFuncKeyWord;
 import icu.mhb.mybatisplus.plugln.keyword.IFuncKeyWord;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 构建条件对象
@@ -49,6 +50,7 @@ import lombok.Getter;
  * @Title: JoinLambdaWrapper
  * @time 8/21/21 5:17 PM
  */
+@Slf4j
 @SuppressWarnings("all")
 public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambdaWrapper<T>>
         implements Query<JoinLambdaWrapper<T>, T, SFunction<T, ?>>, JoinMethodFunc<T>, JoinQueryFunc<T, SFunction<T, ?>, JoinLambdaWrapper<T>> {
