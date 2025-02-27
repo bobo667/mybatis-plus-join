@@ -82,4 +82,11 @@ public class StringUtils {
         return true;
     }
 
+    public static String format(String str, Object... params) {
+        if (isBlank(str) || null == params || params.length == 0) {
+            return str;
+        }
+
+        return String.format(str, params);
+    }
 }

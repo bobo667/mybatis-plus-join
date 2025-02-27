@@ -1,0 +1,68 @@
+{
+  "groups": [
+    {
+      "name": "mybatis-plus-join",
+      "type": "icu.mhb.mybatisplus.plugln.config.MybatisPlusJoinProperties",
+      "sourceType": "icu.mhb.mybatisplus.plugln.config.MybatisPlusJoinProperties",
+      "description": "MyBatis-Plus-Join 插件全局配置."
+    },
+    {
+      "name": "mybatis-plus-join.config",
+      "type": "icu.mhb.mybatisplus.plugln.config.MpjConfig",
+      "sourceType": "icu.mhb.mybatisplus.plugln.config.MpjConfig",
+      "description": "MPJ 核心配置项.",
+      "sourceMethod": "getConfig()"
+    }
+  ],
+  "properties": [
+    {
+      "name": "mybatis-plus-join.config.column-alias-keyword",
+      "type": "java.lang.String",
+      "description": "列别名关键字，用于 SQL 中的列别名生成规则.",
+      "sourceType": "icu.mhb.mybatisplus.plugln.config.MpjConfig"
+    },
+    {
+      "name": "mybatis-plus-join.config.table-alias-keyword",
+      "type": "java.lang.String",
+      "description": "表别名关键字，用于 SQL 中的表别名生成规则.",
+      "sourceType": "icu.mhb.mybatisplus.plugln.config.MpjConfig"
+    },
+    {
+      "name": "mybatis-plus-join.config.use-ms-cache",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "是否启用 MappedStatement 缓存。禁用可避免某些拦截器插件冲突.",
+      "sourceType": "icu.mhb.mybatisplus.plugln.config.MpjConfig"
+    },
+    {
+      "name": "mybatis-plus-join.config.sub-table-logic",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "是否开启子表逻辑删除功能.",
+      "sourceType": "icu.mhb.mybatisplus.plugln.config.MpjConfig"
+    },
+    {
+      "name": "mybatis-plus-join.config.def-table-alias",
+      "type": "java.lang.String",
+      "defaultValue": "%s",
+      "description": "默认表别名占位符，根据 defTableAliasType 生成最终别名.",
+      "sourceType": "icu.mhb.mybatisplus.plugln.config.MpjConfig"
+    }
+  ],
+  "hints": [
+    {
+      "name": "mybatis-plus-join.config.def-table-alias-type",
+      "values": [
+        {
+          "value": "FULL_TABLE_NAME",
+          "description": "使用完整表名作为别名（如：user_table）."
+        },
+        {
+          "value": "INDEX",
+          "description": "下标，配合defTableAliasType 比如说 t_%s 就是 t_1.."
+        }
+      ],
+      "description": "默认表别名生成策略."
+    }
+  ]
+}

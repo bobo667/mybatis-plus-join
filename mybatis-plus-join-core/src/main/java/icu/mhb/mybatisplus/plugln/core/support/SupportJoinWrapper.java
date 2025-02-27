@@ -12,7 +12,11 @@ import com.baomidou.mybatisplus.core.toolkit.*;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
 import icu.mhb.mybatisplus.plugln.annotations.conditions.*;
+import icu.mhb.mybatisplus.plugln.annotations.order.AliasMapping;
+import icu.mhb.mybatisplus.plugln.annotations.order.OrderBy;
 import icu.mhb.mybatisplus.plugln.base.mapper.JoinBaseMapper;
+import icu.mhb.mybatisplus.plugln.config.ConfigUtil;
+import icu.mhb.mybatisplus.plugln.config.MpjConfig;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.func.IfCompareFun;
 import icu.mhb.mybatisplus.plugln.entity.*;
@@ -50,6 +54,8 @@ import static java.util.stream.Collectors.joining;
 @Slf4j
 @SuppressWarnings("all")
 public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapper<T, R, Children>> extends AbstractWrapper<T, R, Children> implements IfCompareFun<Children, R> {
+
+    protected MpjConfig mpjConfig = ConfigUtil.getConfig();
 
     /**
      * 一对一 构建列表
@@ -451,16 +457,64 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
                             // 如果是String则 用逗号分割
                             String[] vals = ((String) fieldValue).split(",");
                             betweenIfNull(r, ArrayUtils.get(vals, 0), ArrayUtils.get(vals, 1));
-                        }else {
-                            log.warn("@Between The type of the passed value {} is not supported. Please use Array, List, or a comma-separated string.");
+                        } else {
+                            log.warn("@Between The type of the passed value {} is not supported. Please use Array, List, or a comma-separated string.", fieldValue);
                         }
                     }
+                    break;
+                case ORDER_BY:
+                    OrderBy orderBy = field.getAnnotation(OrderBy.class);
 
+                    AliasMappingAnnotUtil.parsing(objClass, field, orderBy.aliasMapping());
+
+                    if (ObjectUtils.isNotEmpty(fieldValue)) {
+                        if (fieldValue instanceof Collection) {
+                            Collection<Object> collection = (Collection) fieldValue;
+                            collection.stream()
+                                    .filter(ObjectUtils::isNotEmpty)
+                                    .map(i -> String.valueOf(i))
+                                    .forEach(is -> {
+                                        runOrderBy(field, is, objClass, tableAlias);
+                                    });
+                        } else if (fieldValue.getClass().isArray()) {
+                            Object[] vals = (Object[]) fieldValue;
+                            Arrays.stream(vals)
+                                    .filter(ObjectUtils::isNotEmpty)
+                                    .map(i -> String.valueOf(i))
+                                    .forEach(is -> {
+                                        runOrderBy(field, is, objClass, tableAlias);
+                                    });
+                        } else if (fieldValue instanceof String) {
+                            runOrderBy(field, String.valueOf(fieldValue), objClass, tableAlias);
+                        } else {
+                            log.warn("@OrderBy The type of the passed value {} is not supported. Please use Array, List, or a comma-separated string.", fieldValue);
+                        }
+                    }
                     break;
             }
         }
 
         return typedThis;
+    }
+
+    private void runOrderBy(Field field, String is, Class<?> objClass, String tableAlias) {
+        String[] split = is.split(StringPool.COMMA);
+        if (ArrayUtils.len(split) != 2) {
+            return;
+        }
+        String fieldName = split[0];
+        String orderType = split[1];
+        R conditionR = getConditionR(objClass, field);
+        AliasMapping aliasMapping = AliasMappingAnnotUtil.get(objClass, field, fieldName);
+        String tableAlias_ = null != aliasMapping ? aliasMapping.tableAlias() : tableAlias;
+        String columnAlias_ = null != aliasMapping ? aliasMapping.columnName() : StringUtils.camelToUnderline(fieldName);
+        customAliasMap.put(conditionR, tableAlias_ + StringPool.DOT + columnAlias_);
+
+        if (ASC.getSqlSegment().equals(orderType.toUpperCase())) {
+            orderByAsc(conditionR);
+        } else if (DESC.getSqlSegment().equals(orderType.toUpperCase())) {
+            orderByDesc(conditionR);
+        }
     }
 
     private ConditionAnnoVal getConditionAnnoVal(Field field) {
@@ -552,6 +606,11 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
         if (field.isAnnotationPresent(Between.class)) {
             Between annotation = field.getAnnotation(Between.class);
             return new ConditionAnnoVal(annotation.tableAlias(), annotation.mappingColum(), annotation.group(), ConditionType.BETWEEN);
+        }
+
+        // OrderBy 条件
+        if (field.isAnnotationPresent(OrderBy.class)) {
+            return new ConditionAnnoVal(null, null, null, ConditionType.ORDER_BY);
         }
 
         return null;

@@ -118,6 +118,7 @@ public interface StringPool {
     String HASH_LEFT_BRACE = "#{";
     String CRLF = "\r\n";
     String PACKAGE = "package";
+    String FORMAT_PLACEHOLDER = "%s";
 
     String HTML_NBSP = "&nbsp;";
     String HTML_AMP = "&amp";

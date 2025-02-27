@@ -28,6 +28,14 @@ public final class ArrayUtils {
     private ArrayUtils() {
     }
 
+    public static int len(Object[] array) {
+        if (isEmpty(array)) {
+            return 0;
+        }
+
+        return array.length;
+    }
+
     public static <T> T get(T[] array, int index) {
         if (null == array) {
             return null;

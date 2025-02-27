@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import icu.mhb.mybatisplus.plugln.config.ConfigUtil;
 import icu.mhb.mybatisplus.plugln.tookit.Lists;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 
@@ -103,7 +104,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
 
 
     JoinWrapper(T entity, JoinLambdaWrapper<J> wrapper, String alias) {
-        this(entity, wrapper, alias, true);
+        this(entity, wrapper, alias, ConfigUtil.getConfig().isSubTableLogic());
     }
 
     JoinWrapper(T entity, JoinLambdaWrapper<J> wrapper, String alias, boolean logicDelete) {
@@ -127,7 +128,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * 不建议直接 new 该实例，使用 Wrappers.lambdaQuery(entity)
      */
     JoinWrapper(Class<T> entityClass, JoinLambdaWrapper<J> wrapper, String alias) {
-        this(entityClass, wrapper, alias, true);
+        this(entityClass, wrapper, alias, ConfigUtil.getConfig().isSubTableLogic());
     }
 
     /**
@@ -139,6 +140,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         if (CollectionUtils.isNotEmpty(wrapper.getAliasMap())) {
             wrapper.getAliasMap().forEach((k, v) -> aliasMap.put(k, v));
         }
+        this.tableIndex = wrapper.tableIndex;
         if (StringUtils.isBlank(alias)) {
             alias = getAlias();
         }
@@ -162,9 +164,10 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     JoinWrapper(T entity, Class<T> entityClass, List<SharedString> sqlSelect, AtomicInteger paramNameSeq,
                 Map<String, Object> paramNameValuePairs, MergeSegments mergeSegments,
                 Map<Class<?>, String> aliasMap,
-                SharedString lastSql, SharedString sqlComment, SharedString sqlFirst) {
+                SharedString lastSql, SharedString sqlComment, SharedString sqlFirst,AtomicInteger tableIndex) {
         super.setEntity(entity);
         super.setEntityClass(entityClass);
+        this.tableIndex = tableIndex;
         this.paramNameSeq = paramNameSeq;
         this.aliasMap = aliasMap;
         this.paramNameValuePairs = paramNameValuePairs;
@@ -184,7 +187,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @Override
     public final JoinWrapper<T, J> select(SFunction<T, ?>... columns) {
         if (ArrayUtils.isNotEmpty(columns)) {
-            this.sqlSelect.addAll(Lists.changeList(columnsToString(false, true, columns),SharedString::new));
+            this.sqlSelect.addAll(Lists.changeList(columnsToString(false, true, columns), SharedString::new));
         }
         return typedThis;
     }
@@ -333,7 +336,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @Override
     public JoinWrapper<T, J> select(Class<T> entityClass, Predicate<TableFieldInfo> predicate) {
         super.setEntityClass(entityClass);
-        this.sqlSelect.addAll(Lists.changeList(new TableInfoExt(TableInfoHelper.getTableInfo(getEntityOrMasterClass())).chooseSelect(predicate, getAlias()),SharedString::new));
+        this.sqlSelect.addAll(Lists.changeList(new TableInfoExt(TableInfoHelper.getTableInfo(getEntityOrMasterClass())).chooseSelect(predicate, getAlias()), SharedString::new));
         return typedThis;
     }
 
@@ -342,7 +345,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         return sqlSelect.stream().map(SharedString::getStringValue).collect(joining(StringPool.COMMA));
     }
 
-    public List<SharedString> getSqlSelectList(){
+    public List<SharedString> getSqlSelectList() {
         return this.sqlSelect;
     }
 
@@ -353,7 +356,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @Override
     protected JoinWrapper<T, J> instance() {
         return new JoinWrapper<>(getEntity(), getEntityClass(), null, paramNameSeq, paramNameValuePairs,
-                new MergeSegments(), this.aliasMap, SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString());
+                new MergeSegments(), this.aliasMap, SharedString.emptyString(), SharedString.emptyString(), SharedString.emptyString(),new AtomicInteger(0));
     }
 
     @Override
@@ -482,7 +485,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
 
         String condition = joinWrapper.getCustomSqlSegment();
 
-        if(StringUtils.isNotBlank(condition)){
+        if (StringUtils.isNotBlank(condition)) {
             String key = IdUtil.getSimpleUUID();
             if (CollectionUtils.isNotEmpty(joinWrapper.getParamNameValuePairs())) {
                 paramNameValuePairs.put(key, joinWrapper.getParamNameValuePairs());
@@ -501,8 +504,8 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      * 构建join SQL - 优化后的方法
      */
     private <F> void buildJoinSql(SFunction<T, Object> joinTableField,
-                                 SFunction<F, Object> masterTableField,
-                                 SqlExcerpt sqlExcerpt) {
+                                  SFunction<F, Object> masterTableField,
+                                  SqlExcerpt sqlExcerpt) {
         // 参数校验
         Assert.notNull(joinTableField, "joinTableField cannot be null");
         Assert.notNull(masterTableField, "masterTableField cannot be null");
@@ -519,7 +522,7 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
         // 获取表信息并校验
         TableInfo joinTableInfo = TableInfoHelper.getTableInfo(joinTableClass);
         Assert.notNull(joinTableInfo, "can not find tableInfo cache for this entity [%s]",
-                      joinTableClass.getName());
+                joinTableClass.getName());
 
         // 获取表别名
         String joinTableAlias = getAlias(joinTableClass);
@@ -531,12 +534,12 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
 
         // 构建JOIN SQL
         String joinSql = String.format(sqlExcerpt.getSql(),
-                                     joinTableInfo.getTableName(),
-                                     joinTableAlias,
-                                     joinTableAlias,
-                                     joinColumn,
-                                     masterTableAlias,
-                                     masterColumn);
+                joinTableInfo.getTableName(),
+                joinTableAlias,
+                joinTableAlias,
+                joinColumn,
+                masterTableAlias,
+                masterColumn);
 
         // 处理逻辑删除
         if (shouldApplyLogicDelete(joinTableClass)) {
@@ -552,8 +555,8 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
      */
     private String getMasterTableAlias(Class<?> joinTableClass, Class<?> masterTableClass) {
         return joinTableClass.equals(wrapper.getEntityClass())
-               ? wrapper.getMasterTableAlias()
-               : getAlias(masterTableClass);
+                ? wrapper.getMasterTableAlias()
+                : getAlias(masterTableClass);
     }
 
     /**

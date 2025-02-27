@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -21,6 +22,8 @@ import com.baomidou.mybatisplus.core.conditions.segments.*;
 import com.baomidou.mybatisplus.core.toolkit.*;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
+import icu.mhb.mybatisplus.plugln.config.ConfigUtil;
+import icu.mhb.mybatisplus.plugln.enums.DefTableAlias;
 import icu.mhb.mybatisplus.plugln.tookit.*;
 import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
 import org.apache.ibatis.reflection.property.PropertyNamer;
@@ -64,6 +67,7 @@ import lombok.Getter;
 @SuppressWarnings("all")
 public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLambdaWrapper<T, Children>> extends SupportJoinWrapper<T, SFunction<T, ?>, Children> implements JoinOrderFunc<Children, SFunction<T, ?>>, JoinCompareFun<Children, T> {
 
+    public AtomicInteger tableIndex = new AtomicInteger(0);
 
     /**
      * 子查询列表
@@ -268,19 +272,23 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
 
         final Class<?> finalClz = clz;
 
-        return TableAliasCache.getOrSet(clz, (key) -> {
-            String alias;
+        String alias;
 
-            TableAlias tableAlias = finalClz.getAnnotation(TableAlias.class);
-            // 如果表名为空
-            if (tableAlias == null) {
-                TableInfo tableInfo = TableInfoHelper.getTableInfo(finalClz);
-                alias = tableInfo.getTableName();
-            } else {
-                alias = tableAlias.value();
+        TableAlias tableAlias = finalClz.getAnnotation(TableAlias.class);
+        // 如果表名为空
+        if (tableAlias == null) {
+            if (DefTableAlias.INDEX.equals(mpjConfig.getDefTableAliasType())) {
+                return icu.mhb.mybatisplus.plugln.tookit.StringUtils.format(mpjConfig.getDefTableAlias(), tableIndex.addAndGet(1));
             }
-            return alias;
-        });
+            TableInfo tableInfo = TableInfoHelper.getTableInfo(finalClz);
+            if (DefTableAlias.FULL_TABLE_NAME.equals(mpjConfig.getDefTableAliasType())) {
+                return icu.mhb.mybatisplus.plugln.tookit.StringUtils.format(mpjConfig.getDefTableAlias(), tableInfo.getTableName());
+            }
+
+            return tableInfo.getTableName();
+        } else {
+            return tableAlias.value();
+        }
     }
 
 

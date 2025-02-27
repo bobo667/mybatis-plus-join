@@ -4,25 +4,28 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
+ * 此类废弃，请使用
  * @author mahuibo
  * @Title: MybatisPlusJoinConfig
  * @email mhb0409@qq.com
  * @time 3/17/22
  */
+@Deprecated
+@Getter
+@Slf4j
 public class MybatisPlusJoinConfig {
 
     /**
      * 列别名关键字
      */
-    @Getter
     private String columnAliasKeyword;
 
     /**
      * 表别名关键字
      */
-    @Getter
     private String tableAliasKeyword;
 
     /**
@@ -30,7 +33,6 @@ public class MybatisPlusJoinConfig {
      * MappedStatement的id，导致mybatis-plus-mate 的某些拦截器插件报错，
      * 设置成false，代表不使用缓存则不会更改MappedStatement的id
      */
-    @Getter
     private boolean isUseMsCache = true;
 
     private MybatisPlusJoinConfig() {
@@ -44,6 +46,7 @@ public class MybatisPlusJoinConfig {
     }
 
     public static MybatisPlusJoinConfigBuilder builder() {
+        log.warn("该类已被废弃，请使用Spring boot 自动装配 icu.mhb.mybatisplus.plugln.config.MybatisPlusJoinProperties");
         return new MybatisPlusJoinConfigBuilder();
     }
 
@@ -88,7 +91,7 @@ public class MybatisPlusJoinConfig {
             }
 
             if (StringUtils.isNotBlank(tableAliasKeyword)) {
-                SqlExcerpt.TABLE_AS.updateValue(" %s " + columnAliasKeyword + " %s ", "");
+                SqlExcerpt.TABLE_AS.updateValue(" %s " + tableAliasKeyword + " %s ", "");
                 SqlExcerpt.LEFT_JOIN.updateValue(" LEFT JOIN %s " + tableAliasKeyword + " %s ON %s.%s = %s.%s", "");
                 SqlExcerpt.RIGHT_JOIN.updateValue(" RIGHT JOIN %s " + tableAliasKeyword + " %s ON %s.%s = %s.%s", "");
                 SqlExcerpt.INNER_JOIN.updateValue(" INNER JOIN %s " + tableAliasKeyword + " %s ON %s.%s = %s.%s", "");

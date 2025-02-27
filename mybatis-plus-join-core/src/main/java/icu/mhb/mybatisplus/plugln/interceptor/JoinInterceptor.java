@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.core.toolkit.StringPool;
 
+import icu.mhb.mybatisplus.plugln.config.ConfigUtil;
+import icu.mhb.mybatisplus.plugln.config.MpjConfig;
 import icu.mhb.mybatisplus.plugln.config.MybatisPlusJoinConfig;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
@@ -137,7 +139,7 @@ public class JoinInterceptor implements Interceptor {
         String msId = buildMappedStatementId(ms, joinWrapper, classType);
 
         // 从缓存获取MappedStatement
-        Map<Configuration, MappedStatement> statementMap = getMybatisPlusJoinConfig().isUseMsCache()
+        Map<Configuration, MappedStatement> statementMap = isUseMsCache()
                 ? MS_CACHE.get(msId)
                 : null;
 
@@ -149,7 +151,7 @@ public class JoinInterceptor implements Interceptor {
         MappedStatement newMs = buildNewMappedStatement(ms, msId, joinWrapper, classType);
 
         // 缓存MappedStatement
-        if (getMybatisPlusJoinConfig().isUseMsCache()) {
+        if (isUseMsCache()) {
             synchronized (MS_CACHE) {
                 MS_CACHE.computeIfAbsent(msId, k -> new ConcurrentHashMap<>())
                         .put(ms.getConfiguration(), newMs);
@@ -165,7 +167,7 @@ public class JoinInterceptor implements Interceptor {
     private String buildMappedStatementId(MappedStatement ms,
                                           SupportJoinWrapper joinWrapper,
                                           Class<?> classType) {
-        if (!getMybatisPlusJoinConfig().isUseMsCache()) {
+        if (!isUseMsCache()) {
             return ms.getId();
         }
         return (ms.getId() + StringPool.COLON + classType.getName() +
@@ -399,12 +401,15 @@ public class JoinInterceptor implements Interceptor {
         }
     }
 
-    public MybatisPlusJoinConfig getMybatisPlusJoinConfig() {
+    private boolean isUseMsCache() {
         if (this.mybatisPlusJoinConfig == null) {
-            this.mybatisPlusJoinConfig = MybatisPlusJoinConfig.builder().build();
+            MpjConfig config = ConfigUtil.getConfig();
+            return config.isUseMsCache();
         }
-        return this.mybatisPlusJoinConfig;
+
+        return this.mybatisPlusJoinConfig.isUseMsCache();
     }
+
 
 }
 

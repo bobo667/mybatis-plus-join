@@ -5,11 +5,11 @@
   <parent>
     <groupId>icu.mhb</groupId>
     <artifactId>mybatis-plus-join-parent</artifactId>
-    <version>2.0.8</version>
+    <version>2.0.9</version>
   </parent>
   <groupId>icu.mhb</groupId>
   <artifactId>mybatis-plus-join-annotation</artifactId>
-  <version>2.0.8</version>
+  <version>2.0.9</version>
   <name>mybatis-plus-join-annotation</name>
   <description>A multi-table plugin for Mybatis Plus.</description>
   <url>https://github.com/bobo667/mybatis-plus-join</url>

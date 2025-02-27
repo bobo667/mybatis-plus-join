@@ -3,6 +3,7 @@ package icu.mhb.mybatisplus.plugln.core.func;
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
 
+import icu.mhb.mybatisplus.plugln.config.ConfigUtil;
 import icu.mhb.mybatisplus.plugln.entity.JoinLambdaModel;
 import icu.mhb.mybatisplus.plugln.tookit.StringUtils;
 import org.apache.ibatis.reflection.property.PropertyNamer;
@@ -259,7 +260,7 @@ public interface JoinMethodFunc<T> {
     }
 
     default <J> JoinWrapper<J, T> join(Class<J> clz, String alias) {
-        return join(clz, alias, true);
+        return join(clz, alias, ConfigUtil.getConfig().isSubTableLogic());
     }
 
     default <J> JoinWrapper<J, T> join(Class<J> clz, boolean logicDelete) {
