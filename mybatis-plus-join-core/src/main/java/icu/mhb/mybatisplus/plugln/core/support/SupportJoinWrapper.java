@@ -458,7 +458,7 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
                             String[] vals = ((String) fieldValue).split(",");
                             betweenIfNull(r, ArrayUtils.get(vals, 0), ArrayUtils.get(vals, 1));
                         } else {
-                            log.warn("@Between The type of the passed value {} is not supported. Please use Array, List, or a comma-separated string.", fieldValue);
+                            log.warn("@Between The type of the passed value {} is not supported. Please use Array, List, or a comma-separated str.", fieldValue);
                         }
                     }
                     break;
@@ -487,7 +487,7 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
                         } else if (fieldValue instanceof String) {
                             runOrderBy(field, String.valueOf(fieldValue), objClass, tableAlias);
                         } else {
-                            log.warn("@OrderBy The type of the passed value {} is not supported. Please use Array, List, or a comma-separated string.", fieldValue);
+                            log.warn("@OrderBy The type of the passed value {} is not supported. Please use Array, List, or a comma-separated str.", fieldValue);
                         }
                     }
                     break;
