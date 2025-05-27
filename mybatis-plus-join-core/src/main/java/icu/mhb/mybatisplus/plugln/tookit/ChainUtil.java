@@ -1,7 +1,6 @@
 package icu.mhb.mybatisplus.plugln.tookit;
 
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
-import com.sun.org.apache.regexp.internal.RE;
 import icu.mhb.mybatisplus.plugln.entity.BaseChainModel;
 import icu.mhb.mybatisplus.plugln.entity.ChainFieldData;
 import icu.mhb.mybatisplus.plugln.entity.MockChainModel;

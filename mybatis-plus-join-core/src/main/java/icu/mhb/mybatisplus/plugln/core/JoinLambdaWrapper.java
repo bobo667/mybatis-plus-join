@@ -143,6 +143,43 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         this.sqlFirst = sqlFirst;
     }
 
+    /**
+     * 全参数公共构造函数 - 用于状态复制
+     */
+    public JoinLambdaWrapper(T entity, Class<T> entityClass, List<SharedString> sqlSelect, AtomicInteger paramNameSeq,
+                             Map<String, Object> paramNameValuePairs, MergeSegments mergeSegments,
+                             SharedString lastSql, SharedString sqlComment, SharedString sqlFirst,
+                             String masterTableAlias, boolean notDefaultSelectAll, boolean hasDistinct,
+                             List<FieldMapping> fieldMappingList, List<OneToOneSelectBuild> oneToOneSelectBuildList,
+                             List<ManyToManySelectBuild> manyToManySelectBuildList,
+                             List<SharedString> joinSql, List<SharedString> joinSqlSelect, List<String> joinConditionSql,
+                             Map<Class<?>, String> aliasMap, boolean sqlCacheFlag, SharedString sqlCache,
+                             boolean sqlSelectFlag, SharedString sqlSelectCache) {
+        this.initNeed();
+        super.setEntity(entity);
+        super.setEntityClass(entityClass);
+        this.paramNameSeq = paramNameSeq;
+        this.paramNameValuePairs = paramNameValuePairs;
+        this.expression = mergeSegments;
+        this.sqlSelect = sqlSelect;
+        this.lastSql = lastSql;
+        this.sqlComment = sqlComment;
+        this.sqlFirst = sqlFirst;
+        this.masterTableAlias = masterTableAlias;
+        this.notDefaultSelectAll = notDefaultSelectAll;
+        this.hasDistinct = hasDistinct;
+        this.fieldMappingList = fieldMappingList != null ? fieldMappingList : new java.util.ArrayList<>();
+        this.oneToOneSelectBuildList = oneToOneSelectBuildList != null ? oneToOneSelectBuildList : new java.util.ArrayList<>();
+        this.manyToManySelectBuildList = manyToManySelectBuildList != null ? manyToManySelectBuildList : new java.util.ArrayList<>();
+        this.joinSql = joinSql != null ? joinSql : new java.util.ArrayList<>();
+        this.joinSqlSelect = joinSqlSelect != null ? joinSqlSelect : new java.util.ArrayList<>();
+        this.joinConditionSql = joinConditionSql != null ? joinConditionSql : new java.util.ArrayList<>();
+        this.aliasMap = aliasMap != null ? aliasMap : new java.util.HashMap<>();
+        this.sqlCacheFlag = sqlCacheFlag;
+        this.sqlCache = sqlCache;
+        this.sqlSelectFlag = sqlSelectFlag;
+        this.sqlSelectCahce = sqlSelectCache;
+    }
 
     /**
      * SELECT 部分 SQL 设置
@@ -367,8 +404,8 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         // 优化SQL处理
         if (StringUtils.isNotBlank(sql)) {
             String processedSql = sql.replace(Constants.WHERE, StringPool.SPACE)
-                                   .replaceAll(JoinConstant.MP_PARAMS_NAME,
-                                             JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
+                    .replaceAll(JoinConstant.MP_PARAMS_NAME,
+                            JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
             joinConditionSql.add(processedSql);
         }
 
@@ -376,8 +413,8 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         if (CollectionUtils.isNotEmpty(sunQueryList)) {
             sunQueryList.forEach(item -> {
                 String processedValue = item.getStringValue()
-                                         .replaceAll(JoinConstant.MP_PARAMS_NAME,
-                                                   JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
+                        .replaceAll(JoinConstant.MP_PARAMS_NAME,
+                                JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
                 item.setStringValue(processedValue);
             });
             this.sunQueryList.addAll(sunQueryList);
@@ -387,8 +424,8 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         if (CollectionUtils.isNotEmpty(joinSql)) {
             joinSql.forEach(item -> {
                 String processedValue = item.getStringValue()
-                                         .replaceAll(JoinConstant.MP_PARAMS_NAME,
-                                                   JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
+                        .replaceAll(JoinConstant.MP_PARAMS_NAME,
+                                JoinConstant.MP_PARAMS_NAME + StringPool.DOT + key);
                 item.setStringValue(processedValue);
             });
             this.joinSql.addAll(joinSql);
@@ -525,5 +562,65 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
     protected void initNeed() {
         super.initNeed();
         final Class<T> entityClass = getEntityClass();
+    }
+
+
+    /**
+     * 转换为String类型的Join构造器
+     * 原模原样复制所有状态
+     *
+     * @return JoinStrQueryWrapper实例
+     */
+    public icu.mhb.mybatisplus.plugln.core.str.JoinStrQueryWrapper<T> toStr() {
+
+        // 将joinSql列表转换为joinSqlMapping
+        Map<String, SharedString> joinSqlMapping = new java.util.HashMap<>();
+        if (CollectionUtils.isNotEmpty(this.joinSql)) {
+            for (int i = 0; i < this.joinSql.size(); i++) {
+                joinSqlMapping.put("join_" + i, new SharedString(this.joinSql.get(i).getStringValue()));
+            }
+        }
+
+        // 将aliasMap转换为alias2table (String -> String)
+        Map<String, String> alias2table = new java.util.HashMap<>();
+        if (CollectionUtils.isNotEmpty(this.aliasMap)) {
+            for (Map.Entry<Class<?>, String> entry : this.aliasMap.entrySet()) {
+                try {
+                    TableInfo tableInfo = TableInfoHelper.getTableInfo(entry.getKey());
+                    if (tableInfo != null) {
+                        alias2table.put(entry.getValue(), tableInfo.getTableName());
+                    }
+                } catch (Exception e) {
+                    // 忽略转换失败的情况
+                }
+            }
+        }
+
+        // 使用全参数构造函数创建JoinStrQueryWrapper，完整复制状态
+        return new icu.mhb.mybatisplus.plugln.core.str.JoinStrQueryWrapper<T>(
+                getEntity(),
+                getEntityClass(),
+                new java.util.ArrayList<>(this.sqlSelect),
+                this.paramNameSeq,
+                this.paramNameValuePairs,
+                this.expression,
+                this.lastSql,
+                this.sqlComment,
+                this.sqlFirst,
+                this.masterTableAlias,
+                this.notDefaultSelectAll,
+                this.hasDistinct,
+                new java.util.ArrayList<>(this.fieldMappingList),
+                new java.util.ArrayList<>(this.oneToOneSelectBuildList),
+                new java.util.ArrayList<>(this.manyToManySelectBuildList),
+                joinSqlMapping,
+                alias2table,
+                this.sqlCacheFlag,
+                new SharedString(this.sqlCache.getStringValue()),
+                this.sqlSelectFlag,
+                new SharedString(this.sqlSelectCahce.getStringValue()),
+                new java.util.ArrayList<>(this.joinSqlSelect),
+                new java.util.ArrayList<>(this.joinConditionSql)
+        );
     }
 }

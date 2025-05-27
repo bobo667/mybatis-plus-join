@@ -31,6 +31,7 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import icu.mhb.mybatisplus.plugln.core.str.func.JoinStrCompareFunc;
 import icu.mhb.mybatisplus.plugln.core.str.func.JoinStrFunc;
 import icu.mhb.mybatisplus.plugln.core.str.func.JoinStrMethodFunc;
+import icu.mhb.mybatisplus.plugln.core.str.util.StrQueryWrapperHelper;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinWrapper;
 import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
 import icu.mhb.mybatisplus.plugln.entity.TableFieldInfoExt;
@@ -54,35 +55,21 @@ public abstract class SupportJoinStrQueryWrapper<T, Children extends SupportJoin
         JoinStrCompareFunc<Children>, JoinStrMethodFunc<T, Children>, JoinStrFunc<Children> {
 
     /**
-     * 主表别名
-     */
-    protected String masterTableAlias;
-
-    /**
      * join sql和别名映射
      */
     protected Map<String, SharedString> joinSqlMapping;
 
-    /**
-     * 是否默认查询全部
-     */
-    protected boolean notDefaultSelectAll = false;
 
     /**
-     * 是否使用distinct
+     * 别名映射表
      */
-    protected boolean hasDistinct = false;
+    protected Map<String, String> alias2table = new HashMap<>();
 
-    /**
-     * 自定义别名映射
-     */
-    protected Map<String, String> customAliasMap;
 
     @Override
     protected void initNeed() {
         super.initNeed();
         this.joinSqlMapping = new HashMap<>();
-        this.customAliasMap = new HashMap<>();
     }
 
     /**
@@ -92,7 +79,21 @@ public abstract class SupportJoinStrQueryWrapper<T, Children extends SupportJoin
         TableInfo tableInfo = TableInfoHelper.getTableInfo(getEntityOrMasterClass());
         if (tableInfo != null) {
             TableInfoExt infoExt = new TableInfoExt(tableInfo);
-            this.sqlSelect.addAll(Lists.changeList(infoExt.chooseSelect(i -> true, getAlias()), SharedString::new));
+            List<String> columns = infoExt.chooseSelect(i -> true, getAlias());
+
+            // 添加字段映射
+            for (String column : columns) {
+                // 解析字段名，去掉表别名前缀
+                String fieldName = column;
+                if (column.contains(".")) {
+                    fieldName = column.substring(column.lastIndexOf(".") + 1);
+                }
+
+                // 调用setFieldMappingList设置字段映射
+                setFieldMappingList(fieldName, column, getEntityOrMasterClass());
+            }
+
+            this.sqlSelect.addAll(Lists.changeList(columns, SharedString::new));
         }
         return typedThis;
     }
@@ -122,14 +123,21 @@ public abstract class SupportJoinStrQueryWrapper<T, Children extends SupportJoin
      * 根据字段名获取TableFieldInfo
      */
     protected TableFieldInfo getTableFieldInfoByFieldName(String fieldName, Class<?> clazz) {
-        TableInfo tableInfo = TableInfoHelper.getTableInfo(clazz);
-        if (tableInfo == null) {
-            return null;
-        }
-        return tableInfo.getFieldList().stream()
-                .filter(i -> i.getProperty().equals(fieldName))
-                .findFirst()
-                .orElse(null);
+        return StrQueryWrapperHelper.getTableFieldInfoByFieldName(fieldName, clazz);
+    }
+
+    /**
+     * 根据字段名获取TableFieldInfo
+     */
+    protected TableFieldInfo getTableFieldInfoByColumn(String fieldName, Class<?> clazz) {
+        return StrQueryWrapperHelper.getTableFieldInfoByColumn(fieldName, clazz);
+    }
+
+    /**
+     * 根据字段名获取TableFieldInfo
+     */
+    protected TableFieldInfo getTableFieldInfoByColumn(String fieldName, String tableName) {
+        return StrQueryWrapperHelper.getTableFieldInfoByColumn(fieldName, tableName);
     }
 
     /**
@@ -157,45 +165,19 @@ public abstract class SupportJoinStrQueryWrapper<T, Children extends SupportJoin
     }
 
     /**
-     * 构建Join SQL
-     */
-    protected void buildJoinSql(String joinTableField, String masterTableField, SqlExcerpt joinType) {
-        SharedString sharedString = SharedString.emptyString();
-
-        // 获取当前类的表信息
-        TableInfo tableInfo = TableInfoHelper.getTableInfo(getEntityOrMasterClass());
-        String tableName = tableInfo != null ? tableInfo.getTableName() : "";
-
-        // 构建Join SQL
-        StringBuilder sb = new StringBuilder(String.format(
-                joinType.getSql(),
-                tableName,
-                getAlias(),
-                getAlias(),
-                joinTableField,
-                masterTableAlias,
-                masterTableField
-        ));
-
-        // 处理逻辑删除
-        if (tableInfo != null) {
-            TableInfoExt infoExt = new TableInfoExt(tableInfo);
-            String logicDeleteSql = infoExt.getLogicDeleteSql(true, true, getAlias());
-            if (StringUtils.isNotBlank(logicDeleteSql)) {
-                sb.append(SPACE).append(logicDeleteSql);
-            }
-        }
-
-        sharedString.setStringValue(sb.toString());
-        String alias = getAlias();
-        joinSqlMapping.put(alias, sharedString);
-    }
-
-    /**
      * 构建Join SQL - 带表名和别名
      */
-    protected void buildJoinSql(String joinTable, String joinTableField, String masterTableField, String alias, SqlExcerpt joinType) {
+    protected void buildJoinSql(String joinTable, String joinTableField, String masterTableField, String alias, SqlExcerpt joinType, boolean isLogicDelete) {
         SharedString sharedString = SharedString.emptyString();
+
+        String tableAlias = masterTableAlias;
+        String field = masterTableField;
+        alias2table.put(alias, joinTable);
+        // 大于1 代表用户自定义了别名不需要用主表的
+        if (masterTableField.split("\\.").length > 1) {
+            tableAlias = masterTableField.split("\\.")[0];
+            field = masterTableField.split("\\.")[1];
+        }
 
         // 构建Join SQL
         StringBuilder sb = new StringBuilder(String.format(
@@ -204,17 +186,19 @@ public abstract class SupportJoinStrQueryWrapper<T, Children extends SupportJoin
                 alias,
                 alias,
                 joinTableField,
-                masterTableAlias,
-                masterTableField
+                tableAlias,
+                field
         ));
 
         // 处理逻辑删除
-        TableInfo tableInfo = TableInfoHelper.getTableInfo(getEntityOrMasterClass());
-        if (tableInfo != null) {
-            TableInfoExt infoExt = new TableInfoExt(tableInfo);
-            String logicDeleteSql = infoExt.getLogicDeleteSql(true, true, alias);
-            if (StringUtils.isNotBlank(logicDeleteSql)) {
-                sb.append(SPACE).append(logicDeleteSql);
+        if (isLogicDelete) {
+            TableInfo tableInfo = TableInfoHelper.getTableInfo(joinTable);
+            if (tableInfo != null) {
+                TableInfoExt infoExt = new TableInfoExt(tableInfo);
+                String logicDeleteSql = infoExt.getLogicDeleteSql(true, true, alias);
+                if (StringUtils.isNotBlank(logicDeleteSql)) {
+                    sb.append(SPACE).append(logicDeleteSql);
+                }
             }
         }
 
@@ -231,37 +215,45 @@ public abstract class SupportJoinStrQueryWrapper<T, Children extends SupportJoin
      * @return 处理后的字段名
      */
     protected String handleColumnPrefix(String alias, String column) {
-        if (StringUtils.isNotBlank(column) && !column.contains(DOT)) {
-            return alias + DOT + column;
-        }
-        return column;
+        return StrQueryWrapperHelper.handleColumnPrefix(alias, column);
+    }
+
+    /**
+     * 检查并处理字段名
+     * 如果字段名不包含点号，则自动添加主表别名前缀
+     *
+     * @param column 字段名
+     * @return 处理后的字段名
+     */
+    protected String checkAndHandleColumn(String column) {
+        return StrQueryWrapperHelper.checkAndHandleColumn(column, masterTableAlias);
     }
 
     /**
      * 处理查询字段前缀
      * 处理子查询中的select字段，为没有前缀的字段添加表别名前缀
      *
-     * @param alias 表别名
+     * @param alias    表别名
      * @param children 子查询
      */
     protected void handleSelectPrefix(String alias, Children children) {
         if (children.sqlSelect != null && !children.sqlSelect.isEmpty()) {
             List<SharedString> prefixedSelects = new java.util.ArrayList<>();
-            
+
             for (SharedString select : children.sqlSelect) {
                 String selectStr = select.getStringValue();
-                
+
                 // 跳过已经处理过的字段或带有AS的字段
                 if (selectStr.contains(DOT) || selectStr.toLowerCase().contains(" as ")) {
                     prefixedSelects.add(select);
                     continue;
                 }
-                
+
                 // 为没有前缀的字段添加别名前缀
                 String prefixedSelect = alias + DOT + selectStr;
                 prefixedSelects.add(new SharedString(prefixedSelect));
             }
-            
+
             // 清空原有的select字段并添加处理后的字段
             children.sqlSelect.clear();
             children.sqlSelect.addAll(prefixedSelects);
@@ -271,37 +263,17 @@ public abstract class SupportJoinStrQueryWrapper<T, Children extends SupportJoin
     /**
      * 构建Join SQL - 带表名、别名和回调函数
      */
-    protected void buildJoinSql(String joinTable, String joinTableField, String masterTableField, String alias, 
-                                SqlExcerpt joinType, Consumer<Children> consumer) {
-        buildJoinSql(joinTable, joinTableField, masterTableField, alias, joinType);
-        
+    protected void buildJoinSql(String joinTable, String joinTableField, String masterTableField, String alias,
+                                SqlExcerpt joinType, Consumer<Children> consumer, boolean isLogicDelete) {
+        buildJoinSql(joinTable, joinTableField, masterTableField, alias, joinType, isLogicDelete);
+
+        alias2table.put(alias, joinTable);
+
         if (consumer != null) {
-            Children children = instance();
-            children.setAlias(alias);
-            children.paramNameSeq.set(this.paramNameSeq.intValue());
-            
-            consumer.accept(children);
-            
-            // 处理select字段，为没有前缀的字段添加表别名前缀
-            handleSelectPrefix(alias, children);
-            
-            // 添加处理后的select字段到主查询
-            if (!children.sqlSelect.isEmpty()) {
-                this.sqlSelect.addAll(children.sqlSelect);
-            }
-            
-            // 处理条件
-            String conditionSql = children.getCustomSqlSegment();
-            if (StringUtils.isNotBlank(conditionSql)) {
-                conditionSql = conditionSql.replaceFirst("WHERE", SPACE);
-                this.paramNameSeq.set(children.paramNameSeq.intValue());
-                this.paramNameValuePairs.putAll(children.paramNameValuePairs);
-                
-                SharedString joinSql = joinSqlMapping.get(alias);
-                joinSql.setStringValue(joinSql.getStringValue() + SPACE + AND + conditionSql);
-                
-                joinSqlMapping.put(alias, joinSql);
-            }
+            String oldMasterTableAlias = masterTableAlias;
+            typedThis.masterTableAlias = alias;
+            consumer.accept(typedThis);
+            typedThis.masterTableAlias = oldMasterTableAlias;
         }
     }
 
@@ -334,6 +306,7 @@ public abstract class SupportJoinStrQueryWrapper<T, Children extends SupportJoin
         }
 
         Children children = instance();
+        children.alias2table = this.alias2table;
         children.paramNameSeq.set(this.paramNameSeq.intValue());
 
         consumer.accept(children);
@@ -387,6 +360,56 @@ public abstract class SupportJoinStrQueryWrapper<T, Children extends SupportJoin
      */
     public Children orderBySql(boolean condition, String sql) {
         return maybeDo(condition, () -> appendSqlSegments(ORDER_BY, columnToSqlSegment(sql)));
+    }
+
+    @Override
+    protected void setFieldMappingList(String fieldName, String columns) {
+        setFieldMappingList(fieldName, columns, null);
+    }
+
+    /**
+     * 设置字段映射，带有类参数
+     *
+     * @param fieldName 字段名
+     * @param columns   列名
+     * @param clz       类
+     */
+    protected void setFieldMappingList(String fieldName, String columns, Class<?> clz) {
+        FieldMapping fieldMapping = StrQueryWrapperHelper.createFieldMapping(
+            fieldName, columns, clz, alias2table, masterTableAlias);
+        fieldMappingList.add(fieldMapping);
+    }
+
+    /**
+     * 构建字段映射列表 - 用于oneToOne和manyToMany
+     *
+     * @param tableNameOrAlias 表名或别名
+     * @param columns          字段列表
+     * @return 字段映射列表
+     */
+    protected List<FieldMapping> buildFieldMappingList(String tableNameOrAlias, String... columns) {
+        return buildFieldMappingList(tableNameOrAlias, false, columns);
+    }
+
+    /**
+     * 构建字段映射列表 - 用于oneToOne和manyToMany
+     *
+     * @param tableNameOrAlias 表名或别名
+     * @param autoAlias        是否自动生成别名
+     * @param columns          字段列表
+     * @return 字段映射列表
+     */
+    protected List<FieldMapping> buildFieldMappingList(String tableNameOrAlias, boolean autoAlias, String... columns) {
+        return StrQueryWrapperHelper.buildFieldMappingList(tableNameOrAlias, autoAlias, alias2table, columns);
+    }
+
+    /**
+     * 根据字段映射列表添加查询字段
+     *
+     * @param fieldMappings 字段映射列表
+     */
+    protected void addSelectByFieldMappings(List<FieldMapping> fieldMappings) {
+        StrQueryWrapperHelper.addSelectByFieldMappings(fieldMappings, this.sqlSelect, this.fieldMappingList);
     }
 
 }

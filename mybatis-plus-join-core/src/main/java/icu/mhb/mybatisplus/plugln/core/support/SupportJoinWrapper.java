@@ -61,29 +61,29 @@ public abstract class SupportJoinWrapper<T, R, Children extends SupportJoinWrapp
      * 一对一 构建列表
      */
     @Getter
-    protected List<OneToOneSelectBuild> oneToOneSelectBuildList;
+    protected List<OneToOneSelectBuild> oneToOneSelectBuildList = new ArrayList<>();
 
     /**
      * 多对多 构建列表
      */
     @Getter
-    protected List<ManyToManySelectBuild> manyToManySelectBuildList;
+    protected List<ManyToManySelectBuild> manyToManySelectBuildList = new ArrayList<>();
 
     /**
      * 查询的字段映射列表
      */
     @Getter
-    protected List<FieldMapping> fieldMappingList;
+    protected List<FieldMapping> fieldMappingList = new ArrayList<>();
 
     /**
      * 查询字段
      */
-    protected List<SharedString> sqlSelect;
+    protected List<SharedString> sqlSelect = new ArrayList<>();
 
     /**
      * 关联表SQL
      */
-    protected List<SharedString> joinSql;
+    protected List<SharedString> joinSql = new ArrayList<>();
 
     @Getter
     protected boolean masterLogicDelete;
