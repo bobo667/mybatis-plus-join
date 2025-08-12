@@ -195,6 +195,13 @@ public class JoinLambdaWrapper<T> extends SupportJoinLambdaWrapper<T, JoinLambda
         return typedThis;
     }
 
+    public JoinLambdaWrapper<T> select(boolean condition, List<SFunction<T, ?>> columns) {
+        if (CollectionUtils.isNotEmpty(columns)) {
+            this.sqlSelect.addAll(Lists.changeList(columnsToString(false, true, columns), SharedString::new));
+        }
+        return typedThis;
+    }
+
 
     /**
      * 过滤查询的字段信息(主键除外!)

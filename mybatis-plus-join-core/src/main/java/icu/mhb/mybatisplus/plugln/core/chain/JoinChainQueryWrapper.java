@@ -13,6 +13,7 @@ import icu.mhb.mybatisplus.plugln.entity.*;
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
 import icu.mhb.mybatisplus.plugln.keyword.IFuncKeyWord;
 import icu.mhb.mybatisplus.plugln.tookit.Provider;
+import icu.mhb.mybatisplus.plugln.tookit.fun.FunComm;
 import lombok.Getter;
 
 import java.util.Collection;
@@ -107,6 +108,10 @@ public class JoinChainQueryWrapper<T> extends SupportJoinChainQueryWrapper<T, Jo
         this.lastSql = lastSql;
         this.sqlComment = sqlComment;
         this.sqlFirst = sqlFirst;
+    }
+
+    public JoinChainQueryWrapper<T> select(boolean condition, List<String> columns) {
+        return condition ? super.select(columns) : typedThis;
     }
 
     @Override

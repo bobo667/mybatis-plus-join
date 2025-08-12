@@ -1,45 +1,18 @@
 package icu.mhb.mybatisplus.plugln.core.support;
 
-import static com.baomidou.mybatisplus.core.enums.SqlKeyword.*;
-import static com.baomidou.mybatisplus.core.enums.WrapperKeyword.APPLY;
-import static java.util.stream.Collectors.joining;
-
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import com.baomidou.mybatisplus.core.conditions.ISqlSegment;
-import com.baomidou.mybatisplus.core.conditions.segments.*;
-import com.baomidou.mybatisplus.core.toolkit.*;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
-import icu.mhb.mybatisplus.plugln.config.ConfigUtil;
-import icu.mhb.mybatisplus.plugln.enums.DefTableAlias;
-import icu.mhb.mybatisplus.plugln.tookit.*;
-import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
-import org.apache.ibatis.reflection.property.PropertyNamer;
-
 import com.baomidou.mybatisplus.core.conditions.AbstractWrapper;
 import com.baomidou.mybatisplus.core.conditions.SharedString;
+import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
 import com.baomidou.mybatisplus.core.enums.SqlKeyword;
 import com.baomidou.mybatisplus.core.exceptions.MybatisPlusException;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import com.baomidou.mybatisplus.core.toolkit.*;
 import com.baomidou.mybatisplus.core.toolkit.support.ColumnCache;
 import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.core.toolkit.support.SerializedLambda;
-
 import icu.mhb.mybatisplus.plugln.annotations.TableAlias;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.core.JoinLambdaWrapper;
@@ -49,11 +22,25 @@ import icu.mhb.mybatisplus.plugln.entity.As;
 import icu.mhb.mybatisplus.plugln.entity.ColumnsBuilder;
 import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
 import icu.mhb.mybatisplus.plugln.entity.OrderByBuild;
-import icu.mhb.mybatisplus.plugln.entity.TableFieldInfoExt;
+import icu.mhb.mybatisplus.plugln.enums.DefTableAlias;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
 import icu.mhb.mybatisplus.plugln.extend.Joins;
+import icu.mhb.mybatisplus.plugln.tookit.ClassUtils;
+import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
+import icu.mhb.mybatisplus.plugln.tookit.Lists;
 import lombok.Getter;
+import org.apache.ibatis.reflection.property.PropertyNamer;
+
+import java.lang.reflect.Field;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import static com.baomidou.mybatisplus.core.enums.SqlKeyword.*;
+import static com.baomidou.mybatisplus.core.enums.WrapperKeyword.APPLY;
+import static java.util.stream.Collectors.joining;
 
 /**
  * Join lambda解析
@@ -102,6 +89,10 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
         return Arrays.stream(columns).map(i -> columnToString(i, onlyColumn, saveType)).collect(Collectors.toList());
     }
 
+    protected List<String> columnsToString(boolean onlyColumn, boolean saveType, List<SFunction<T, ?>> columns) {
+        return columns.stream().map(i -> columnToString(i, onlyColumn, saveType)).collect(Collectors.toList());
+    }
+
     @Override
     protected String columnToString(SFunction<T, ?> column) {
         return columnToString(column, true, false);
@@ -140,7 +131,7 @@ public abstract class SupportJoinLambdaWrapper<T, Children extends SupportJoinLa
     public Children orderBy(boolean condition, boolean isAsc, SFunction<T, ?> column, int index) {
         orderByBuildList.add(new OrderByBuild() {{
             setIndex(index);
-            setColumn(columnToSqlSegment(columnSqlInjectFilter(column)));
+            setColumn(columnToSqlSegment(column));
             setCondition(condition);
             setAsc(isAsc);
             setSql(false);

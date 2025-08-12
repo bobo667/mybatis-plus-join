@@ -23,6 +23,7 @@ import icu.mhb.mybatisplus.plugln.entity.*;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
 import icu.mhb.mybatisplus.plugln.tookit.Lists;
+import icu.mhb.mybatisplus.plugln.tookit.fun.FunComm;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 
 import java.lang.reflect.Field;
@@ -293,13 +294,18 @@ public class JoinStrQueryWrapper<T> extends AbstractJoinStrWrapper<T, JoinStrQue
             } else {
                 // 处理普通字段
                 String simpleFieldName = column.contains(".") ?
-                    column.substring(column.lastIndexOf(".") + 1) : column;
+                        column.substring(column.lastIndexOf(".") + 1) : column;
                 setFieldMappingList(simpleFieldName, prefixedColumn);
             }
         }
 
         List<SharedString> list = Lists.changeList(prefixedColumns, SharedString::new);
         this.sqlSelect.addAll(list);
+        return typedThis;
+    }
+
+    public JoinStrQueryWrapper<T> select(boolean condition, List<String> columns) {
+        FunComm.isTrue(condition, () -> this.select(columns.toArray(new String[0])));
         return typedThis;
     }
 
@@ -319,7 +325,7 @@ public class JoinStrQueryWrapper<T> extends AbstractJoinStrWrapper<T, JoinStrQue
         for (String column : columns) {
             String prefixedColumn = handleColumnPrefix(alias, column);
             String fieldName = column.toLowerCase().contains(" as ") ?
-                column.split("(?i) as ")[1].trim() : column;
+                    column.split("(?i) as ")[1].trim() : column;
 
             setFieldMappingList(fieldName, prefixedColumn);
             this.sqlSelect.add(new SharedString(prefixedColumn));

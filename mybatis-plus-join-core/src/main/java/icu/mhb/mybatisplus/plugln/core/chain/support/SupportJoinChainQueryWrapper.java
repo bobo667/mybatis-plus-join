@@ -20,6 +20,7 @@ import icu.mhb.mybatisplus.plugln.constant.StringPool;
 import icu.mhb.mybatisplus.plugln.core.chain.func.JoinChainCompareFunc;
 import icu.mhb.mybatisplus.plugln.core.chain.func.JoinChainFunc;
 import icu.mhb.mybatisplus.plugln.core.chain.func.JoinChainMethodFunc;
+import icu.mhb.mybatisplus.plugln.core.str.JoinStrQueryWrapper;
 import icu.mhb.mybatisplus.plugln.core.support.SupportJoinWrapper;
 import icu.mhb.mybatisplus.plugln.entity.*;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
@@ -187,6 +188,9 @@ public abstract class SupportJoinChainQueryWrapper<T, Children extends SupportJo
             return model.getChainFieldDataList().stream()
                     .map(i -> {
                         String rawColumn = i.getColumn();
+                        if(rawColumn.startsWith("`") && rawColumn.endsWith("`")) {
+                            rawColumn = rawColumn.substring(1, rawColumn.length() - 1);
+                        }
                         if (ObjectUtils.isEmpty(i.getVal())) {
                             i.setColumn(model.getAlias() + UNDERSCORE + rawColumn);
                         }
@@ -477,12 +481,13 @@ public abstract class SupportJoinChainQueryWrapper<T, Children extends SupportJo
         return typedThis;
     }
 
-    protected void select(List<String> selectList) {
+    public Children select(List<String> selectList) {
         if (CollectionUtils.isEmpty(selectList)) {
-            return;
+            return typedThis;
         }
         List<SharedString> list = Lists.changeList(selectList, SharedString::new);
         sqlSelect.addAll(list);
+        return typedThis;
     }
 
 

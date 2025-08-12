@@ -1,5 +1,27 @@
 package icu.mhb.mybatisplus.plugln.core;
 
+import com.baomidou.mybatisplus.core.conditions.SharedString;
+import com.baomidou.mybatisplus.core.conditions.query.Query;
+import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
+import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
+import com.baomidou.mybatisplus.core.metadata.TableInfo;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import com.baomidou.mybatisplus.core.toolkit.*;
+import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+import icu.mhb.mybatisplus.plugln.config.ConfigUtil;
+import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
+import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
+import icu.mhb.mybatisplus.plugln.entity.*;
+import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
+import icu.mhb.mybatisplus.plugln.exception.Exceptions;
+import icu.mhb.mybatisplus.plugln.extend.Joins;
+import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
+import icu.mhb.mybatisplus.plugln.tookit.Lambdas;
+import icu.mhb.mybatisplus.plugln.tookit.Lists;
+import lombok.SneakyThrows;
+import org.apache.ibatis.reflection.property.PropertyNamer;
+
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -8,43 +30,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-
-import icu.mhb.mybatisplus.plugln.config.ConfigUtil;
-import icu.mhb.mybatisplus.plugln.tookit.Lists;
-import org.apache.ibatis.reflection.property.PropertyNamer;
-
-import com.baomidou.mybatisplus.core.conditions.SharedString;
-import com.baomidou.mybatisplus.core.conditions.query.Query;
-import com.baomidou.mybatisplus.core.conditions.segments.MergeSegments;
-import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
-import com.baomidou.mybatisplus.core.metadata.TableInfo;
-import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
-import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
-import com.baomidou.mybatisplus.core.toolkit.Assert;
-import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import com.baomidou.mybatisplus.core.toolkit.Constants;
-import com.baomidou.mybatisplus.core.toolkit.LambdaUtils;
-import com.baomidou.mybatisplus.core.toolkit.StringPool;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.baomidou.mybatisplus.core.toolkit.support.LambdaMeta;
-import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
-
-import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
-import icu.mhb.mybatisplus.plugln.core.support.SupportJoinLambdaWrapper;
-import icu.mhb.mybatisplus.plugln.entity.As;
-import icu.mhb.mybatisplus.plugln.entity.ColumnsBuilder;
-import icu.mhb.mybatisplus.plugln.entity.FieldMapping;
-import icu.mhb.mybatisplus.plugln.entity.HavingBuild;
-import icu.mhb.mybatisplus.plugln.entity.ManyToManySelectBuild;
-import icu.mhb.mybatisplus.plugln.entity.OneToOneSelectBuild;
-import icu.mhb.mybatisplus.plugln.entity.TableFieldInfoExt;
-import icu.mhb.mybatisplus.plugln.entity.TableInfoExt;
-import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
-import icu.mhb.mybatisplus.plugln.exception.Exceptions;
-import icu.mhb.mybatisplus.plugln.extend.Joins;
-import icu.mhb.mybatisplus.plugln.tookit.IdUtil;
-import icu.mhb.mybatisplus.plugln.tookit.Lambdas;
-import lombok.SneakyThrows;
 
 import static java.util.stream.Collectors.joining;
 
@@ -187,6 +172,13 @@ public class JoinWrapper<T, J> extends SupportJoinLambdaWrapper<T, JoinWrapper<T
     @Override
     public final JoinWrapper<T, J> select(SFunction<T, ?>... columns) {
         if (ArrayUtils.isNotEmpty(columns)) {
+            this.sqlSelect.addAll(Lists.changeList(columnsToString(false, true, columns), SharedString::new));
+        }
+        return typedThis;
+    }
+
+    public JoinWrapper<T, J> select(boolean condition, List<SFunction<T, ?>> columns) {
+        if (CollectionUtils.isNotEmpty(columns)) {
             this.sqlSelect.addAll(Lists.changeList(columnsToString(false, true, columns), SharedString::new));
         }
         return typedThis;
