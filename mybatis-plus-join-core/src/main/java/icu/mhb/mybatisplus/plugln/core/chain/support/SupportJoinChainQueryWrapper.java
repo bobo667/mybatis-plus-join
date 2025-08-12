@@ -24,9 +24,9 @@ import icu.mhb.mybatisplus.plugln.core.support.SupportJoinWrapper;
 import icu.mhb.mybatisplus.plugln.entity.*;
 import icu.mhb.mybatisplus.plugln.enums.SqlExcerpt;
 import icu.mhb.mybatisplus.plugln.exception.Exceptions;
+import icu.mhb.mybatisplus.plugln.tookit.*;
 import icu.mhb.mybatisplus.plugln.tookit.ArrayUtils;
 import icu.mhb.mybatisplus.plugln.tookit.StringUtils;
-import icu.mhb.mybatisplus.plugln.tookit.*;
 import icu.mhb.mybatisplus.plugln.tookit.fun.FunComm;
 import lombok.SneakyThrows;
 import org.apache.ibatis.reflection.property.PropertyNamer;
@@ -34,7 +34,7 @@ import org.apache.ibatis.reflection.property.PropertyNamer;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -659,7 +659,7 @@ public abstract class SupportJoinChainQueryWrapper<T, Children extends SupportJo
     @Override
     protected void initNeed() {
         super.initNeed();
-        this.joinSqlMapping = new HashMap<>();
+        this.joinSqlMapping = new LinkedHashMap<>();
     }
 
     protected FieldMapping getFieldMapping(ChainFieldData chainFieldData) {
