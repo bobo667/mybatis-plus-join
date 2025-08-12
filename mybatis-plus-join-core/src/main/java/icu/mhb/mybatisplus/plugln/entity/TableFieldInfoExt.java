@@ -87,7 +87,7 @@ public class TableFieldInfoExt {
         if (fieldStrategy == FieldStrategy.NEVER) {
             return null;
         }
-        if (tableFieldInfo.isPrimitive() || fieldStrategy == FieldStrategy.IGNORED) {
+        if (tableFieldInfo.isPrimitive() || fieldStrategy == FieldStrategy.ALWAYS) {
             return sqlScript;
         }
         if (fieldStrategy == FieldStrategy.NOT_EMPTY && tableFieldInfo.isCharSequence()) {
