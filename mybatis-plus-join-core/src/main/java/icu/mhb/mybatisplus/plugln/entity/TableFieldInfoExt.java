@@ -1,6 +1,8 @@
 package icu.mhb.mybatisplus.plugln.entity;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.core.handlers.IJsonTypeHandler;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
+import com.baomidou.mybatisplus.core.toolkit.MybatisUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
@@ -113,7 +115,10 @@ public class TableFieldInfoExt {
         }
         if (tableFieldInfo.getTypeHandler() != null && tableFieldInfo.getTypeHandler() != UnknownTypeHandler.class) {
             TypeHandler<?> typeHandler = registry.getMappingTypeHandler(tableFieldInfo.getTypeHandler());
-            if (typeHandler == null) {
+            if (IJsonTypeHandler.class.isAssignableFrom(tableFieldInfo.getTypeHandler())) {
+                // 保证每次实例化
+                typeHandler = MybatisUtils.newJsonTypeHandler(tableFieldInfo.getTypeHandler(), tableFieldInfo.getPropertyType(), tableFieldInfo.getField());
+            } else if (typeHandler == null) {
                 typeHandler = registry.getInstance(tableFieldInfo.getPropertyType(), tableFieldInfo.getTypeHandler());
                 // todo 这会有影响 registry.register(typeHandler);
             }
