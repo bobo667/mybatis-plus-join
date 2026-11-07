@@ -1,5 +1,7 @@
 package icu.mhb.mybatisplus.plugln.processor;
 
+import icu.mhb.mybatisplus.plugln.annotations.JoinChainModel;
+import icu.mhb.mybatisplus.plugln.annotations.JoinChainModel.FieldMethodNaming;
 import icu.mhb.mybatisplus.plugln.constant.JoinConstant;
 import icu.mhb.mybatisplus.plugln.tookit.StringUtils;
 
@@ -31,6 +33,11 @@ import static icu.mhb.mybatisplus.plugln.constant.StringPool.*;
  */
 @SupportedAnnotationTypes("icu.mhb.mybatisplus.plugln.annotations.JoinChainModel")
 public class JoinChainModelProcessor extends AbstractProcessor {
+
+    /**
+     * {@link FieldMethodNaming#FIELD_SUFFIX} 策略下使用的字段方法后缀。
+     */
+    private static final String CHAIN_FIELD_METHOD_SUFFIX = "Field";
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -86,7 +93,7 @@ public class JoinChainModelProcessor extends AbstractProcessor {
                 sb.append(NEWLINE);
 
                 // 构建方法
-                buildFieldMethodInfo(sb, className, elementList);
+                buildFieldMethodInfo(sb, className, elementList, resolveFieldMethodNaming(element));
                 sb.append(RIGHT_BRACE);
 
                 writer.println(sb.toString());
@@ -116,7 +123,7 @@ public class JoinChainModelProcessor extends AbstractProcessor {
     /**
      * 构建字段方法
      */
-    private void buildFieldMethodInfo(StringBuilder writer, String className, List<Element> elementList) {
+    private void buildFieldMethodInfo(StringBuilder writer, String className, List<Element> elementList, FieldMethodNaming fieldMethodNaming) {
         for (Element element : elementList) {
             String fieldName = element.getSimpleName().toString();
             HashMap<String, String> param = new HashMap<String, String>() {{
@@ -133,13 +140,13 @@ public class JoinChainModelProcessor extends AbstractProcessor {
             writer.append(TAB).append(TAB).append(RETURN_).append(SPACE).append(fieldName).append(LEFT_BRACKET).append(NULL).append(RIGHT_BRACKET).append(SEMICOLON).append(NEWLINE)
                     .append(TAB).append(RIGHT_BRACE).append(NEWLINE);
 
-            // 函數方法
-            buildMethodHeader(writer, false, UNDERSCORE + fieldName, CHAIN_FIELD_DATA, null);
+            // 字段数据方法（无参，返回 ChainFieldData），方法名由命名策略决定
+            buildMethodHeader(writer, false, buildChainFieldMethodName(fieldName, fieldMethodNaming), CHAIN_FIELD_DATA, null);
             writer.append(TAB).append(TAB).append(RETURN_).append(SPACE).append(SUPER).append(DOT).append(BUILD_CHAIN_FIELD_DATA).append(LEFT_BRACKET).append(StringUtils.camelToUnderline(fieldName).toUpperCase()).append(COMMA).append(NULL).append(RIGHT_BRACKET).append(SEMICOLON).append(NEWLINE)
                     .append(TAB).append(RIGHT_BRACE).append(NEWLINE);
 
-            // 函數方法
-            buildMethodHeader(writer, false, UNDERSCORE + fieldName, CHAIN_FIELD_DATA, param);
+            // 字段数据方法（带值，返回 ChainFieldData），方法名由命名策略决定
+            buildMethodHeader(writer, false, buildChainFieldMethodName(fieldName, fieldMethodNaming), CHAIN_FIELD_DATA, param);
             writer.append(TAB).append(TAB).append(RETURN_).append(SPACE).append(SUPER).append(DOT).append(BUILD_CHAIN_FIELD_DATA).append(LEFT_BRACKET).append(StringUtils.camelToUnderline(fieldName).toUpperCase()).append(COMMA).append(VAL).append(RIGHT_BRACKET).append(SEMICOLON).append(NEWLINE)
                     .append(TAB).append(RIGHT_BRACE).append(NEWLINE);
         }
@@ -260,6 +267,37 @@ public class JoinChainModelProcessor extends AbstractProcessor {
 
     private String capitalize(String str) {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+
+    /**
+     * 解析实体类上 {@link JoinChainModel} 配置的字段方法命名策略。
+     * <p>
+     * 未标注该注解或未显式指定时，默认使用 {@link FieldMethodNaming#UNDERSCORE_PREFIX}（下划线前缀，向后兼容）。
+     *
+     * @param element 被 {@link JoinChainModel} 标注的类型元素
+     * @return 字段方法命名策略
+     */
+    private FieldMethodNaming resolveFieldMethodNaming(TypeElement element) {
+        JoinChainModel annotation = element.getAnnotation(JoinChainModel.class);
+        return annotation == null ? FieldMethodNaming.UNDERSCORE_PREFIX : annotation.fieldMethodNaming();
+    }
+
+    /**
+     * 根据命名策略构建返回 {@link icu.mhb.mybatisplus.plugln.entity.ChainFieldData} 的字段方法名。
+     * <ul>
+     *     <li>{@link FieldMethodNaming#UNDERSCORE_PREFIX}：下划线前缀，如 {@code _id}</li>
+     *     <li>{@link FieldMethodNaming#FIELD_SUFFIX}：{@code Field} 后缀，如 {@code idField}</li>
+     * </ul>
+     *
+     * @param fieldName         字段名
+     * @param fieldMethodNaming 命名策略
+     * @return 字段数据方法名
+     */
+    private String buildChainFieldMethodName(String fieldName, FieldMethodNaming fieldMethodNaming) {
+        if (fieldMethodNaming == FieldMethodNaming.FIELD_SUFFIX) {
+            return fieldName + CHAIN_FIELD_METHOD_SUFFIX;
+        }
+        return UNDERSCORE + fieldName;
     }
 
     @Override

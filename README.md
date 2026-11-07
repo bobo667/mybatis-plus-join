@@ -108,6 +108,20 @@ apt依赖地址：
                 }).joinList(UsersVo.class);
 ```
 
+### 链式字段方法命名（可选）
+`@JoinChainModel` 生成的、返回 `ChainFieldData` 的字段方法（上例中的 `_id()`、`_ageId()`）默认采用**下划线前缀**命名，与旧版本保持一致。
+
+如需更符合 Java 命名规范的写法，可在实体类上通过 `fieldMethodNaming` 属性切换为 **`Field` 后缀**命名：
+
+```java
+@JoinChainModel(fieldMethodNaming = JoinChainModel.FieldMethodNaming.FIELD_SUFFIX)
+public class Users {}
+
+// 生成： idField()、ageIdField()、userNameField()、createTimeField()
+// 用法： .leftJoin(ageChain.idField(), usersChain.ageIdField())
+//        .joinAnd(ageChain, (w) -> w.eq(ageChain.idField(1)))
+```
+
 ## 使用预览
 ```java
 List<UsersVo> list = Joins.of(Users.class)
