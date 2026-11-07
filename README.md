@@ -96,8 +96,8 @@ apt依赖地址：
                                         .to(ageChain)
                                         .ageDoc().ageName().id();
                             })
-                .leftJoin(ageChain._id(), usersChain._ageId())
-                .joinAnd(ageChain, (w) -> w.eq(ageChain._id(1)))
+                .leftJoin(ageChain.idField(), usersChain.ageIdField())
+                .joinAnd(ageChain, (w) -> w.eq(ageChain.idField(1)))
                 .eqIfNull(() -> {
                     return usersChain.userName(users.getUserName())
                     .userId(users.getUserId())

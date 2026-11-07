@@ -32,6 +32,15 @@ import static icu.mhb.mybatisplus.plugln.constant.StringPool.*;
 @SupportedAnnotationTypes("icu.mhb.mybatisplus.plugln.annotations.JoinChainModel")
 public class JoinChainModelProcessor extends AbstractProcessor {
 
+    /**
+     * 返回 {@link icu.mhb.mybatisplus.plugln.entity.ChainFieldData} 的字段方法后缀。
+     * <p>
+     * 原先使用 "_" 下划线前缀命名（如 {@code _id}），不符合 Java 命名规范；
+     * 现改为 camelCase + 后缀命名（如 {@code idField}），语义更清晰，
+     * 同时避免与同名的链式方法 {@code id(...)} 产生签名冲突。
+     */
+    private static final String CHAIN_FIELD_METHOD_SUFFIX = "Field";
+
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
@@ -133,13 +142,13 @@ public class JoinChainModelProcessor extends AbstractProcessor {
             writer.append(TAB).append(TAB).append(RETURN_).append(SPACE).append(fieldName).append(LEFT_BRACKET).append(NULL).append(RIGHT_BRACKET).append(SEMICOLON).append(NEWLINE)
                     .append(TAB).append(RIGHT_BRACE).append(NEWLINE);
 
-            // 函數方法
-            buildMethodHeader(writer, false, UNDERSCORE + fieldName, CHAIN_FIELD_DATA, null);
+            // 字段数据方法（无参，返回 ChainFieldData）
+            buildMethodHeader(writer, false, buildChainFieldMethodName(fieldName), CHAIN_FIELD_DATA, null);
             writer.append(TAB).append(TAB).append(RETURN_).append(SPACE).append(SUPER).append(DOT).append(BUILD_CHAIN_FIELD_DATA).append(LEFT_BRACKET).append(StringUtils.camelToUnderline(fieldName).toUpperCase()).append(COMMA).append(NULL).append(RIGHT_BRACKET).append(SEMICOLON).append(NEWLINE)
                     .append(TAB).append(RIGHT_BRACE).append(NEWLINE);
 
-            // 函數方法
-            buildMethodHeader(writer, false, UNDERSCORE + fieldName, CHAIN_FIELD_DATA, param);
+            // 字段数据方法（带值，返回 ChainFieldData）
+            buildMethodHeader(writer, false, buildChainFieldMethodName(fieldName), CHAIN_FIELD_DATA, param);
             writer.append(TAB).append(TAB).append(RETURN_).append(SPACE).append(SUPER).append(DOT).append(BUILD_CHAIN_FIELD_DATA).append(LEFT_BRACKET).append(StringUtils.camelToUnderline(fieldName).toUpperCase()).append(COMMA).append(VAL).append(RIGHT_BRACKET).append(SEMICOLON).append(NEWLINE)
                     .append(TAB).append(RIGHT_BRACE).append(NEWLINE);
         }
@@ -260,6 +269,18 @@ public class JoinChainModelProcessor extends AbstractProcessor {
 
     private String capitalize(String str) {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+
+    /**
+     * 构建返回 {@link icu.mhb.mybatisplus.plugln.entity.ChainFieldData} 的字段方法名。
+     * <p>
+     * 采用 camelCase + 后缀命名（如 {@code idField}），替代原先的下划线前缀命名（如 {@code _id}）。
+     *
+     * @param fieldName 字段名
+     * @return 字段数据方法名
+     */
+    private String buildChainFieldMethodName(String fieldName) {
+        return fieldName + CHAIN_FIELD_METHOD_SUFFIX;
     }
 
     @Override
